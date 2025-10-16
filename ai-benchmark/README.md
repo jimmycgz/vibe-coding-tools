@@ -57,12 +57,59 @@ Use **Claude Haiku 4.5** for Act Mode when:
 - Haiku 4.5: `claude-haiku-4-5@20251001`
 - Sonnet 4.5: `claude-sonnet-4-5@20250929`
 
-## Running the Benchmark
+## Setup & Running the Benchmark
+
+### Prerequisites
+- Python 3.11 or higher
+- Google Cloud account with Vertex AI enabled
+- Appropriate GCP permissions for Vertex AI
+
+### Installation
+
+1. **Clone the repository and navigate to the project:**
+```bash
+cd /your-path/vibe-coding-tools
+```
+
+2. **Create a virtual environment:**
+```bash
+python3 -m venv ai-venv
+```
+
+3. **Activate the virtual environment:**
+```bash
+source ai-venv/bin/activate
+```
+
+4. **Install required dependencies:**
+```bash
+pip install 'anthropic[vertex]'
+```
+
+5. **Authenticate with Google Cloud:**
+```bash
+gcloud auth application-default login
+```
+This will open a browser window for you to authenticate with your Google Cloud account.
+
+6. **Configure your GCP project:**
+Edit `vertex_benchmark.py` and update:
+```python
+PROJECT_ID = "your-gcp-project-id"
+REGION = "us-east5"  # or your preferred region
+```
+
+### Running the Benchmark
 
 ```bash
-cd /your-path/vibe-coding-tools/ai-benchmark
-source ../ai-venv/bin/activate  # Activate virtual environment
+cd ai-benchmark
 python vertex_benchmark.py
+```
+
+### Deactivate Virtual Environment
+When finished:
+```bash
+deactivate
 ```
 
 ## Pricing (Vertex AI)
