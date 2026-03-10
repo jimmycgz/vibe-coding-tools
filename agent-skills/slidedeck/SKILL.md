@@ -113,6 +113,25 @@ generate_slides_block_b.py   # Slides 5-8
 generate_slides_block_c.py   # Slides 9-12
 ```
 
+> [!IMPORTANT]
+> **Early User Gate — Show Block A PNGs After AI QA Is Complete**
+>
+> After generating Block A (Slides 1-4):
+> 1. **AI completes its full QA cycle first** — `view_file` every PNG, fix all
+>    clipping/overflow/contrast issues, regenerate, re-verify until zero defects
+> 2. **Then show the polished PNGs to the user** for style/direction approval
+>
+> The user validates:
+> - Visual style and color palette
+> - Layout patterns and information density
+> - Font readability and text sizing
+> - Overall design direction
+>
+> **Only proceed to Block B and C after user approves Block A.**
+> Never show unpolished first-draft PNGs — the AI QA loop must be complete first.
+> Generating all 12 slides before getting feedback wastes effort if the user
+> wants a different visual direction.
+
 Each script must include:
 - Import and font setup at the top
 - Color constants
