@@ -8,6 +8,46 @@ Generate professional presentation slide images (PNG) using Python/Pillow with o
 2. Point your AI agent to read `SKILL.md`
 3. Follow the 6-phase workflow: Plan → Generate PNGs → QA → Notes → PPTX → Commit
 
+## Environment Setup
+
+### Python Virtual Environment
+
+Create a venv within your workspace to isolate dependencies:
+
+```bash
+cd <your-workspace>
+python3 -m venv .venv
+source .venv/bin/activate
+pip install Pillow
+```
+
+> The PPTX assembly script (`assemble_pptx.py`) uses only Python stdlib — no extra packages needed.
+> Only PIL/Pillow is required for PNG generation.
+
+### Working Directory
+
+All temporary and work-in-progress files should live within the workspace:
+
+```
+<your-workspace>/
+├── tmp/                        # Temporary files (gitignored)
+│   └── pptx_assembly/          # PPTX unpacking/repacking workspace
+├── <Topic>/                    # Your deck output directory
+│   ├── Deck.md                 # Deck proposal
+│   ├── Speaker-Notes.md        # Speaker notes
+│   ├── generate_slides_*.py    # PIL generators
+│   ├── assemble_pptx.py        # Assembly script (copied from skill)
+│   ├── Slide_01_*.png          # Generated PNGs
+│   └── My-Presentation.pptx    # Final output
+└── .venv/                      # Python venv (gitignored)
+```
+
+Add to your `.gitignore`:
+```
+.venv/
+tmp/
+```
+
 ## What's Inside
 
 ```
