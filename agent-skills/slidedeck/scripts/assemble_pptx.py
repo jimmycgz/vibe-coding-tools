@@ -41,7 +41,7 @@ SUBTITLE_TEXT = "Your Subtitle Here"
 
 # Title & content layout XML filenames from the template
 TITLE_LAYOUT = "slideLayout1.xml"
-CONTENT_LAYOUT = "slideLayout45.xml"  # Typically the "Blank" layout
+CONTENT_LAYOUT = "slideLayout1.xml"    # Use "Blank" layout; override for templates
 
 # ─── Branding Configuration ───────────────────────────────────────────────────
 BRANDING = {
@@ -104,10 +104,28 @@ EMU_H = 6858000    # 1080px at 96dpi
 
 
 def make_title_slide_xml() -> str:
-    """Generate XML for the title slide (page 0, text only)."""
+    """Generate XML for the title slide (page 0, text only).
+
+    Uses absolute-positioned text boxes instead of placeholder types.
+    Placeholders (ctrTitle/subTitle) require the slide layout to define
+    their position and size. Our minimal Blank layout has no such
+    definitions, so PowerPoint renders them at (0,0) causing overlap.
+    """
     # Escape XML special chars in title/subtitle
     title_esc = TITLE_TEXT.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     subtitle_esc = SUBTITLE_TEXT.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    # Title: centered, at ~1/3 height (y=2286000 EMU = ~2.5")
+    # Size: 10" wide × 1.5" tall, centered horizontally
+    title_x = 1143000    # (12192000 - 9906000) / 2
+    title_y = 2286000    # ~1/3 down
+    title_cx = 9906000   # ~10.3"
+    title_cy = 1371600   # ~1.4"
+
+    # Subtitle: centered, below title
+    sub_y = 3886200      # ~4.0" down
+    sub_cy = 914400      # ~0.95"
+
     return f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld {NS_DECL}>
   <p:cSld>
@@ -123,28 +141,52 @@ def make_title_slide_xml() -> str:
       </p:grpSpPr>
       <p:sp>
         <p:nvSpPr>
-          <p:cNvPr id="2" name="Title 1"/>
-          <p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>
-          <p:nvPr><p:ph type="ctrTitle"/></p:nvPr>
+          <p:cNvPr id="2" name="Title"/>
+          <p:cNvSpPr txBox="1"/>
+          <p:nvPr/>
         </p:nvSpPr>
-        <p:spPr/>
+        <p:spPr>
+          <a:xfrm><a:off x="{title_x}" y="{title_y}"/><a:ext cx="{title_cx}" cy="{title_cy}"/></a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+        </p:spPr>
         <p:txBody>
-          <a:bodyPr/>
+          <a:bodyPr anchor="ctr"/>
           <a:lstStyle/>
-          <a:p><a:r><a:rPr lang="en-US" dirty="0"/><a:t>{title_esc}</a:t></a:r></a:p>
+          <a:p>
+            <a:pPr algn="ctr"/>
+            <a:r>
+              <a:rPr lang="en-US" sz="4400" b="1" dirty="0">
+                <a:solidFill><a:srgbClr val="333333"/></a:solidFill>
+                <a:latin typeface="Calibri Light"/>
+              </a:rPr>
+              <a:t>{title_esc}</a:t>
+            </a:r>
+          </a:p>
         </p:txBody>
       </p:sp>
       <p:sp>
         <p:nvSpPr>
-          <p:cNvPr id="3" name="Subtitle 2"/>
-          <p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>
-          <p:nvPr><p:ph type="subTitle" idx="1"/></p:nvPr>
+          <p:cNvPr id="3" name="Subtitle"/>
+          <p:cNvSpPr txBox="1"/>
+          <p:nvPr/>
         </p:nvSpPr>
-        <p:spPr/>
+        <p:spPr>
+          <a:xfrm><a:off x="{title_x}" y="{sub_y}"/><a:ext cx="{title_cx}" cy="{sub_cy}"/></a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+        </p:spPr>
         <p:txBody>
-          <a:bodyPr/>
+          <a:bodyPr anchor="t"/>
           <a:lstStyle/>
-          <a:p><a:r><a:rPr lang="en-US" dirty="0"/><a:t>{subtitle_esc}</a:t></a:r></a:p>
+          <a:p>
+            <a:pPr algn="ctr"/>
+            <a:r>
+              <a:rPr lang="en-US" sz="2400" dirty="0">
+                <a:solidFill><a:srgbClr val="666666"/></a:solidFill>
+                <a:latin typeface="Calibri"/>
+              </a:rPr>
+              <a:t>{subtitle_esc}</a:t>
+            </a:r>
+          </a:p>
         </p:txBody>
       </p:sp>
     </p:spTree>
@@ -219,9 +261,9 @@ def make_content_slide_xml(branding: dict) -> str:
         </p:txBody>
       </p:sp>'''
 
-        # Page number
-        if branding.get("page_numbers"):
-            decorations += '''
+    # Page numbers work independently of branding
+    if branding.get("page_numbers"):
+        decorations += '''
       <p:sp>
         <p:nvSpPr>
           <p:cNvPr id="12" name="Slide Number"/>
@@ -238,7 +280,7 @@ def make_content_slide_xml(branding: dict) -> str:
           <a:p>
             <a:pPr algn="r"/>
             <a:fld id="{B6F15528-F159-4107-2D15-F9CC29DEADBE}" type="slidenum">
-              <a:rPr lang="en-US" sz="800" dirty="0">
+              <a:rPr lang="en-US" sz="1100" dirty="0">
                 <a:solidFill><a:srgbClr val="A6A6A6"/></a:solidFill>
               </a:rPr>
               <a:t>&lt;#&gt;</a:t>
@@ -524,7 +566,8 @@ def _update_presentation_xml():
 
     pres = pres_path.read_text(encoding="utf-8")
 
-    # Remove existing sldIdLst
+    # Remove existing sldIdLst (both self-closing and open/close forms)
+    pres = re.sub(r'<p:sldIdLst/>', '', pres)
     pres = re.sub(r'<p:sldIdLst>.*?</p:sldIdLst>', '', pres, flags=re.DOTALL)
 
     # Build new slide ID list
@@ -584,8 +627,8 @@ def _update_content_types():
     for i in range(len(SLIDES)):
         overrides.append(f'<Override PartName="/ppt/slides/slide{101+i}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>')
 
-    # Add PNG extension if missing
-    if ".png" not in ct:
+    # Add PNG extension if missing (check exact attribute, not substring)
+    if 'Extension="png"' not in ct:
         overrides.append('<Default Extension="png" ContentType="image/png"/>')
 
     ct = ct.replace("</Types>", "\n".join("  " + o for o in overrides) + "\n</Types>")
@@ -623,6 +666,7 @@ def _create_minimal_pptx_structure():
   <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
   <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
   <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
+  <Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/>
 </Types>'''
     (WORK_DIR / "[Content_Types].xml").write_text(ct, encoding="utf-8")
 
@@ -656,6 +700,7 @@ def _create_minimal_pptx_structure():
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="notesMasters/notesMaster1.xml"/>
 </Relationships>''', encoding="utf-8")
 
     # ── ppt/slideMasters/slideMaster1.xml ────────────────────────────────
@@ -785,6 +830,63 @@ def _create_minimal_pptx_structure():
   <a:objectDefaults/>
   <a:extraClrSchemeLst/>
 </a:theme>''', encoding="utf-8")
+
+    # ── ppt/notesMasters/notesMaster1.xml ──────────────────────────────
+    # Required when notesSlides exist — defines placeholder positions
+    masters_notes_dir = ppt_dir / "notesMasters"
+    masters_notes_dir.mkdir()
+    (masters_notes_dir / "notesMaster1.xml").write_text(f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:notesMaster {NS_DECL}>
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/>
+        <a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm>
+      </p:grpSpPr>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="2" name="Slide Image Placeholder 1"/>
+          <p:cNvSpPr><a:spLocks noGrp="1" noRot="1" noChangeAspect="1"/></p:cNvSpPr>
+          <p:nvPr><p:ph type="sldImg"/></p:nvPr>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="381000" y="685800"/><a:ext cx="6096000" cy="3429000"/></a:xfrm>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="3" name="Notes Placeholder 2"/>
+          <p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>
+          <p:nvPr><p:ph type="body" idx="1"/></p:nvPr>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="381000" y="4343400"/><a:ext cx="6096000" cy="4114800"/></a:xfrm>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          <a:p><a:endParaRPr lang="en-US"/></a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1"
+    accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5"
+    accent6="accent6" hlink="hlink" folHlink="folHlink"/>
+</p:notesMaster>''', encoding="utf-8")
+
+    # notesMaster1 rels
+    masters_notes_rels = masters_notes_dir / "_rels"
+    masters_notes_rels.mkdir()
+    (masters_notes_rels / "notesMaster1.xml.rels").write_text('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
+</Relationships>''', encoding="utf-8")
 
     # ── Create remaining directories ─────────────────────────────────────
     (ppt_dir / "slides" / "_rels").mkdir(parents=True)
