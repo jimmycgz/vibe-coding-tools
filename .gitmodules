@@ -1,0 +1,3 @@
+[submodule "agent-skills/anthropic-skills"]
+	path = agent-skills/anthropic-skills
+	url = https://github.com/anthropics/skills.git
