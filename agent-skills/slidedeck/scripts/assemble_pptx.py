@@ -606,8 +606,13 @@ def _clean_unreferenced():
 
 
 def _create_minimal_pptx_structure():
-    """Create a bare-bones PPTX structure when no template is provided."""
-    # Minimal [Content_Types].xml
+    """Create a valid PPTX structure with slide master, layout, and theme.
+
+    PowerPoint requires at minimum: presentation.xml, a slideMaster,
+    a slideLayout, and a theme. Without these, PowerPoint shows a repair
+    dialog or refuses to open the file.
+    """
+    # ── [Content_Types].xml ──────────────────────────────────────────────
     ct = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="xml" ContentType="application/xml"/>
@@ -615,10 +620,13 @@ def _create_minimal_pptx_structure():
   <Default Extension="png" ContentType="image/png"/>
   <Default Extension="jpg" ContentType="image/jpeg"/>
   <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
+  <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
+  <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
+  <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
 </Types>'''
     (WORK_DIR / "[Content_Types].xml").write_text(ct, encoding="utf-8")
 
-    # _rels/.rels
+    # ── _rels/.rels ──────────────────────────────────────────────────────
     rels_dir = WORK_DIR / "_rels"
     rels_dir.mkdir()
     (rels_dir / ".rels").write_text('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -626,26 +634,159 @@ def _create_minimal_pptx_structure():
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
 </Relationships>''', encoding="utf-8")
 
-    # ppt/presentation.xml
+    # ── ppt/presentation.xml ─────────────────────────────────────────────
     ppt_dir = WORK_DIR / "ppt"
     ppt_dir.mkdir()
     (ppt_dir / "presentation.xml").write_text(f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:presentation {NS_DECL}
+  xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"
   saveSubsetFonts="1" firstSlideNum="0">
-  <p:sldMasterIdLst/>
+  <p:sldMasterIdLst>
+    <p:sldMasterId id="2147483648" r:id="rId1"/>
+  </p:sldMasterIdLst>
   <p:sldIdLst/>
   <p:sldSz cx="{EMU_W}" cy="{EMU_H}"/>
   <p:notesSz cx="{EMU_H}" cy="{EMU_W}"/>
 </p:presentation>''', encoding="utf-8")
 
-    # ppt/_rels/presentation.xml.rels
+    # ── ppt/_rels/presentation.xml.rels ──────────────────────────────────
     ppt_rels_dir = ppt_dir / "_rels"
     ppt_rels_dir.mkdir()
     (ppt_rels_dir / "presentation.xml.rels").write_text('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
 </Relationships>''', encoding="utf-8")
 
-    # Create directories
+    # ── ppt/slideMasters/slideMaster1.xml ────────────────────────────────
+    masters_dir = ppt_dir / "slideMasters"
+    masters_dir.mkdir()
+    (masters_dir / "slideMaster1.xml").write_text(f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldMaster {NS_DECL}>
+  <p:cSld>
+    <p:bg>
+      <p:bgRef idx="1001">
+        <a:schemeClr val="bg1"/>
+      </p:bgRef>
+    </p:bg>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/>
+        <a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm>
+      </p:grpSpPr>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1"
+    accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5"
+    accent6="accent6" hlink="hlink" folHlink="folHlink"/>
+  <p:sldLayoutIdLst>
+    <p:sldLayoutId id="2147483649" r:id="rId1"/>
+  </p:sldLayoutIdLst>
+</p:sldMaster>''', encoding="utf-8")
+
+    # slideMaster1 rels
+    masters_rels = masters_dir / "_rels"
+    masters_rels.mkdir()
+    (masters_rels / "slideMaster1.xml.rels").write_text('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
+</Relationships>''', encoding="utf-8")
+
+    # ── ppt/slideLayouts/slideLayout1.xml (Blank) ────────────────────────
+    layouts_dir = ppt_dir / "slideLayouts"
+    layouts_dir.mkdir()
+    (layouts_dir / "slideLayout1.xml").write_text(f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldLayout {NS_DECL} type="blank" preserve="1">
+  <p:cSld name="Blank">
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/>
+        <a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm>
+      </p:grpSpPr>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
+</p:sldLayout>''', encoding="utf-8")
+
+    # slideLayout1 rels
+    layouts_rels = layouts_dir / "_rels"
+    layouts_rels.mkdir()
+    (layouts_rels / "slideLayout1.xml.rels").write_text('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>
+</Relationships>''', encoding="utf-8")
+
+    # ── ppt/theme/theme1.xml (minimal Office theme) ──────────────────────
+    theme_dir = ppt_dir / "theme"
+    theme_dir.mkdir()
+    (theme_dir / "theme1.xml").write_text('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Minimal">
+  <a:themeElements>
+    <a:clrScheme name="Office">
+      <a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1>
+      <a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>
+      <a:dk2><a:srgbClr val="44546A"/></a:dk2>
+      <a:lt2><a:srgbClr val="E7E6E6"/></a:lt2>
+      <a:accent1><a:srgbClr val="4472C4"/></a:accent1>
+      <a:accent2><a:srgbClr val="ED7D31"/></a:accent2>
+      <a:accent3><a:srgbClr val="A5A5A5"/></a:accent3>
+      <a:accent4><a:srgbClr val="FFC000"/></a:accent4>
+      <a:accent5><a:srgbClr val="5B9BD5"/></a:accent5>
+      <a:accent6><a:srgbClr val="70AD47"/></a:accent6>
+      <a:hlink><a:srgbClr val="0563C1"/></a:hlink>
+      <a:folHlink><a:srgbClr val="954F72"/></a:folHlink>
+    </a:clrScheme>
+    <a:fontScheme name="Office">
+      <a:majorFont>
+        <a:latin typeface="Calibri Light"/>
+        <a:ea typeface=""/>
+        <a:cs typeface=""/>
+      </a:majorFont>
+      <a:minorFont>
+        <a:latin typeface="Calibri"/>
+        <a:ea typeface=""/>
+        <a:cs typeface=""/>
+      </a:minorFont>
+    </a:fontScheme>
+    <a:fmtScheme name="Office">
+      <a:fillStyleLst>
+        <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+        <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+        <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+      </a:fillStyleLst>
+      <a:lnStyleLst>
+        <a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>
+        <a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>
+        <a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>
+      </a:lnStyleLst>
+      <a:effectStyleLst>
+        <a:effectStyle><a:effectLst/></a:effectStyle>
+        <a:effectStyle><a:effectLst/></a:effectStyle>
+        <a:effectStyle><a:effectLst/></a:effectStyle>
+      </a:effectStyleLst>
+      <a:bgFillStyleLst>
+        <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+        <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+        <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+      </a:bgFillStyleLst>
+    </a:fmtScheme>
+  </a:themeElements>
+  <a:objectDefaults/>
+  <a:extraClrSchemeLst/>
+</a:theme>''', encoding="utf-8")
+
+    # ── Create remaining directories ─────────────────────────────────────
     (ppt_dir / "slides" / "_rels").mkdir(parents=True)
     (ppt_dir / "media").mkdir()
 
