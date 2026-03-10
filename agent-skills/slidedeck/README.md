@@ -6,7 +6,24 @@ Generate professional presentation slide images (PNG) using Python/Pillow with o
 
 1. Copy `SKILL.md` and `scripts/` to your `.agents/skills/slidedeck/` directory
 2. Point your AI agent to read `SKILL.md`
-3. Follow the 6-phase workflow: Plan → Generate PNGs → QA → Notes → PPTX → Commit
+3. Follow the 6-phase workflow: Plan → Generate PNGs → **QA on PNGs** → Notes → PPTX → Commit
+
+## Key Principle: PNGs Are the Product
+
+> **⚠️ The PNG slides ARE the deliverable — PPTX assembly is the last optional step.**
+>
+> The fastest, most reliable QA loop is:
+>
+> ```
+> Generate PNG → view_file (instant) → spot issue → fix code → regenerate → view_file again
+> ```
+>
+> **Never convert to PDF or PPTX for QA.** That adds 10-30 seconds per slide and introduces
+> rendering differences. The PNG is pixel-accurate and viewable instantly by both the AI agent
+> and the user. Show PNGs to the user for approval BEFORE assembling the PPTX.
+>
+> PPTX assembly only adds template branding, speaker notes, and page numbers.
+> If a slide looks wrong in the PPTX, fix the PNG source — not the PPTX XML.
 
 ## Environment Setup
 
