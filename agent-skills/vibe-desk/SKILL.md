@@ -1,9 +1,9 @@
 ---
-name: SlideDeck
+name: VibeDesk
 description: Generate presentation slide images (PNG) using Python/Pillow with consistent visual quality, optional PPTX assembly, and speaker notes.
 ---
 
-# SlideDeck Skill
+# VibeDesk Skill
 
 Generate professional presentation slide images as PNG files using Python and Pillow,
 then optionally assemble them into a branded PPTX with speaker notes.
@@ -432,7 +432,8 @@ Rules:
 > PPTX assembly adds template branding, speaker notes injection, and page numbers.
 
 Use the `scripts/assemble_pptx.py` reference script to assemble PNGs into a branded PPTX.
-No external dependencies — uses only Python stdlib (`pathlib`, `shutil`, `zipfile`, `re`).
+No external dependencies by default (stdlib only: `pathlib`, `shutil`, `zipfile`, `re`).
+Optional: install `cairosvg` if you want SVG logo fallback without a template.
 
 #### Configuration
 

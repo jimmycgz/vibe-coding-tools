@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generic PPTX Assembly Script — SlideDeck Skill
+Generic PPTX Assembly Script — VibeDesk Skill
 
 Assembles PNG slide images into a branded PPTX file with optional
 template decorations (logo, gradient, copyright, page numbers) and
@@ -23,11 +23,16 @@ import shutil
 import zipfile
 import re
 
+try:
+  import cairosvg
+except Exception:  # Optional, only used for SVG logo fallback
+  cairosvg = None
+
 # ─── Configuration ────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).parent
 TEMPLATE = None  # Path to .pptx template, or None for plain PPTX
 OUTPUT = SCRIPT_DIR / "My-Presentation.pptx"
-WORK_DIR = Path("/tmp/pptx_assembly")  # Override with <WORKSPACE>/tmp/pptx_assembly
+WORK_DIR = SCRIPT_DIR / "tmp" / "pptx_assembly"  # Override with <WORKSPACE>/tmp/pptx_assembly
 
 # Slide PNGs — ordered list of content slide images
 SLIDES = [
@@ -45,15 +50,20 @@ CONTENT_LAYOUT = "slideLayout1.xml"    # Use "Blank" layout; override for templa
 
 # ─── Branding Configuration ───────────────────────────────────────────────────
 BRANDING = {
-    "enabled": False,                    # Set True to embed decorations
-    "logo_image": "image17.png",         # Logo filename in template media/
-    "logo_position": (196678, 4777740),  # EMU (x, y) — bottom-left
-    "logo_size": (995378, 365760),       # EMU (cx, cy)
-    "gradient_image": "image28.jpg",     # Background gradient filename
-    "copyright_text": "",                # e.g., "© 2026 Company. All Rights Reserved."
-    "page_numbers": True,                # Automatic slide numbers
-    "page_number_start": 0,              # 0 = title is page 0, content starts at 1
-    "notes_font_size": 1100,             # 1100 = 11pt in hundredths of a point
+  "enabled": False,                    # Set True to embed decorations
+  "logo_image": "image17.png",         # Logo filename in template media/
+  "logo_position": (196678, 4777740),  # EMU (x, y) — bottom-left
+  "logo_size": (995378, 365760),       # EMU (cx, cy)
+  "logo_svg_path": None,               # Optional SVG for fallback branding
+  "logo_png_path": None,               # Optional PNG for fallback branding
+  "logo_px_w": 220,                    # Fallback logo width in pixels
+  "logo_position_px": (60, 1002),      # Fallback logo position in pixels
+  "logo_aspect": (1200, 360),          # SVG aspect ratio (width, height)
+  "gradient_image": "image28.jpg",     # Background gradient filename
+  "copyright_text": "",                # e.g., "© 2026 Your Company. All Rights Reserved."
+  "page_numbers": True,                # Automatic slide numbers
+  "page_number_start": 0,              # 0 = title is page 0, content starts at 1
+  "notes_font_size": 1100,             # 1100 = 11pt in hundredths of a point
 }
 
 
@@ -101,6 +111,52 @@ NS_DECL = ' '.join(f'xmlns:{k}="{v}"' for k, v in NS.items())
 
 EMU_W = 12192000   # 1920px at 96dpi
 EMU_H = 6858000    # 1080px at 96dpi
+EMU_PER_PX = EMU_W // 1920
+
+
+def _px_to_emu(px: int) -> int:
+  return px * EMU_PER_PX
+
+
+def _set_fallback_logo_emu(branding: dict) -> None:
+  px_w = branding.get("logo_px_w", 220)
+  aspect_w, aspect_h = branding.get("logo_aspect", (1200, 360))
+  px_h = int(px_w * (aspect_h / aspect_w))
+  pos_x_px, pos_y_px = branding.get("logo_position_px", (60, 1002))
+
+  branding["logo_size"] = (_px_to_emu(px_w), _px_to_emu(px_h))
+  branding["logo_position"] = (_px_to_emu(pos_x_px), _px_to_emu(pos_y_px))
+
+
+def _prepare_fallback_logo(media_dir: Path, branding: dict) -> None:
+  if TEMPLATE is not None:
+    return
+  if not branding.get("enabled"):
+    return
+
+  if branding.get("logo_image") and (media_dir / branding["logo_image"]).exists():
+    return
+
+  logo_png = branding.get("logo_png_path")
+  logo_svg = branding.get("logo_svg_path")
+
+  if logo_png:
+    logo_path = Path(logo_png)
+    if logo_path.exists():
+      target = media_dir / "brandLogo.png"
+      shutil.copy2(logo_path, target)
+      branding["logo_image"] = target.name
+      _set_fallback_logo_emu(branding)
+      return
+
+  if logo_svg and cairosvg:
+    logo_path = Path(logo_svg)
+    if logo_path.exists():
+      png_bytes = cairosvg.svg2png(url=str(logo_path), output_width=branding["logo_px_w"])
+      target = media_dir / "brandLogo.png"
+      target.write_bytes(png_bytes)
+      branding["logo_image"] = target.name
+      _set_fallback_logo_emu(branding)
 
 
 def make_title_slide_xml() -> str:
@@ -492,6 +548,8 @@ def assemble():
     slides_dir.mkdir(parents=True, exist_ok=True)
     slides_rels_dir.mkdir(exist_ok=True)
     media_dir.mkdir(exist_ok=True)
+
+    _prepare_fallback_logo(media_dir, BRANDING)
 
     # Detect if template has slide layouts (no-template mode won't)
     has_layouts = (WORK_DIR / "ppt" / "slideLayouts").exists()
