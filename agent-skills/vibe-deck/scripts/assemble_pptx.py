@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generic PPTX Assembly Script — VibeDesk Skill
+Generic PPTX Assembly Script — VibeDeck Skill
 
 Assembles PNG slide images into a branded PPTX file with optional
 template decorations (logo, gradient, copyright, page numbers) and

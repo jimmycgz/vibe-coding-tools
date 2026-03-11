@@ -26,27 +26,29 @@ Performance and cost comparison between Claude Haiku 4.5 and Sonnet 4.5 using Go
 - Both models produce similar output quality for the same prompts
 - Performance remains consistent across different prompt complexities
 
-## Recommendations for Cline Usage
+## Recommendations for Cline Usage (2026 Meta)
 
-### 🎯 Plan Mode → Sonnet 4.5
-Use **Claude Sonnet 4.5** for Plan Mode when:
+> **Note:** The benchmark data above was collected in **October 2025**. As of early 2026, the frontier model landscape has expanded.
+
+### 🎯 Plan Mode → Gemini 3.1 Pro / GPT-5 / Opus 4.6
+Use **Gemini 3.1 Pro** or **GPT-5** (or **Claude Opus 4.6**) for Plan Mode when:
 - Architecting complex solutions
 - Designing system architecture
 - Planning multi-step implementations
 - Analyzing requirements and edge cases
 - Quality and thoroughness are more important than speed
 
-**Why?** Sonnet 4.5 provides superior reasoning and design capabilities, making it ideal for the planning phase where thoughtful analysis is critical.
+**Why?** These state-of-the-art models provide superior reasoning and design capabilities, making them ideal for the planning phase where thoughtful analysis is critical.
 
-### ⚡ Act Mode → Haiku 4.5
-Use **Claude Haiku 4.5** for Act Mode when:
+### ⚡ Act Mode → Gemini 3.1 Flash / Haiku 4.5
+Use **Gemini 3.1 Flash** or **Claude Haiku 4.5** for Act Mode when:
 - Implementing code changes
 - Executing planned tasks
 - Running iterative development cycles
 - Performing routine coding tasks
 - Speed and cost-efficiency matter
 
-**Why?** Haiku 4.5 delivers 2.3x faster execution at 1/3 the cost, making it perfect for rapid implementation and iteration during the execution phase.
+**Why?** These models deliver ultra-fast execution at a fraction of the cost, making them perfect for rapid implementation and fast agentic tool-looping. *(Note: Claude Haiku 4.6 is not yet available as of early 2026).*
 
 ## Configuration
 
@@ -121,4 +123,5 @@ deactivate
 
 ---
 
-*Last updated: October 15, 2025*
+*Benchmark data collected: October 15, 2025*
+*Recommendations updated: Early 2026*

@@ -1,15 +1,15 @@
-# Vibe-Desk Skill
+# Vibe-Deck Skill
 
 A Streamlined Solution to Generate Professional Presentation Slide Images (PNG) using Python/Pillow with Optional PPTX Assembly, Speaker Notes, and Configurable Branding (Logo, Master Template).
 
-<img src="branding-assets/vibe-desk-logo.svg" alt="VibeDeck logo" width="200"/>
+![VibeDeck logo](branding-assets/vibe-deck-logo.svg)
 
 
-![VibeDesk sample deck](branding-assets/Vibe-Deck-Example-Page-With-Logo/Slide3.png)
+![VibeDeck sample deck](branding-assets/Vibe-Deck-Example-Page-With-Logo/Slide3.png)
 
 ## Quick Start
 
-1. Copy `SKILL.md` and `scripts/` to your `.agents/skills/vibe-desk/` directory
+1. Copy `SKILL.md` and `scripts/` to your `.agents/skills/vibe-deck/` directory
 2. Point your AI agent to read `SKILL.md`
 3. Follow the 6-phase workflow: Plan → Generate PNGs → **QA on PNGs** → Notes → PPTX → Commit
 
@@ -73,7 +73,7 @@ tmp/
 ## What's Inside
 
 ```
-vibe-desk/
+vibe-deck/
 ├── SKILL.md                    # Full skill instruction (503 lines)
 └── scripts/
     └── assemble_pptx.py        # Generic PPTX assembly (654 lines, stdlib only)
@@ -83,11 +83,11 @@ vibe-desk/
 
 ```
 branding-assets/
-├── vibe-desk-logo.svg
+├── vibe-deck-logo.svg
 └── Vibe-Deck-Example-Page-With-Logo/Slide3.png
 ```
 
-- `vibe-desk-logo.svg` is the default logo for fallback branding.
+- `vibe-deck-logo.svg` is the default logo for fallback branding.
 - `Vibe-Deck-Example-Page-With-Logo/Slide3.png` is the public sample screenshot used in this README.
 
 ## Logo Fallback (No Template)
@@ -96,16 +96,16 @@ If you run without a template and want a logo, set:
 
 ```python
 BRANDING["enabled"] = True
-BRANDING["logo_svg_path"] = "branding-assets/vibe-desk-logo.svg"
+BRANDING["logo_svg_path"] = "branding-assets/vibe-deck-logo.svg"
 ```
 
 Note: SVG fallback uses `cairosvg` if installed. If not available, provide a PNG via `logo_png_path`.
 
-## Comparison: VibeDesk vs Claude `pptx` Skill
+## Comparison: VibeDeck vs Claude `pptx` Skill
 
 Reference: [anthropics/skills — pptx](https://github.com/anthropics/skills/tree/main/skills/pptx)
 
-| Dimension | **This Skill (VibeDesk)** | **Claude pptx Skill** |
+| Dimension | **This Skill (VibeDeck)** | **Claude pptx Skill** |
 |---|---|---|
 | **Approach** | PIL/Pillow renders PNG slides → optional PPTX assembly | pptxgenjs (Node.js) or direct XML editing |
 | **Visual control** | Pixel-perfect — full control over every element | Shape/text-box level — relies on OOXML layout engine |
@@ -123,13 +123,13 @@ Reference: [anthropics/skills — pptx](https://github.com/anthropics/skills/tre
 
 ### When to Use Which
 
-- **Use VibeDesk** when you need pixel-perfect technical diagrams, architecture slides, code blocks, tables, and flow charts — and fast QA iteration
+- **Use VibeDeck** when you need pixel-perfect technical diagrams, architecture slides, code blocks, tables, and flow charts — and fast QA iteration
 - **Use Claude pptx** when you need rich image layouts, template editing, or marketing-style presentations with photos and gradients
 
 ### Complementary Usage
 
 They can work together:
-1. Use **VibeDesk** to generate high-quality PNG content slides
+1. Use **VibeDeck** to generate high-quality PNG content slides
 2. Use **Claude pptx** editing workflow to insert them into an existing corporate template
 
 ## Tested Frontier Models
