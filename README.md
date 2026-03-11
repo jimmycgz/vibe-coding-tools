@@ -25,7 +25,7 @@ Reusable AI agent skills — drop into `.agents/skills/` for any agentic coding 
 
 | Skill | Description |
 |---|---|
-| [**slidedeck**](./agent-skills/slidedeck) | Generate professional slide PNGs (Python/Pillow) with optional PPTX assembly, speaker notes, and configurable branding |
+| [**vibe-deck**](./agent-skills/vibe-deck) | A Streamlined Solution for Generating Professional Slide PNG Images (Python/Pillow) with Optional PPTX Assembly, Speaker Notes, and Configurable Branding |
 
 #### Anthropic Skills (submodule)
 

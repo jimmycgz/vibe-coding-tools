@@ -1,9 +1,9 @@
 ---
-name: VibeDesk
+name: VibeDeck
 description: Generate presentation slide images (PNG) using Python/Pillow with consistent visual quality, optional PPTX assembly, and speaker notes.
 ---
 
-# VibeDesk Skill
+# VibeDeck Skill
 
 Generate professional presentation slide images as PNG files using Python and Pillow,
 then optionally assemble them into a branded PPTX with speaker notes.
