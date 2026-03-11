@@ -8,11 +8,13 @@ These tools are designed for and tested with frontier-class AI models:
 
 | Model | Provider | Notes |
 |---|---|---|
-| **GPT-4o / GPT-4.5** | OpenAI | Full agentic coding support |
-| **GPT-5** | OpenAI | Next-gen reasoning |
-| **Claude Sonnet 4 / 4.5** | Anthropic | Strong planning + execution |
-| **Claude Opus 4** | Anthropic | Deep reasoning + complex tasks |
-| **Gemini 3.1 Pro** | Google DeepMind | Advanced agentic coding |
+| **GPT-4o / GPT-4.5** | OpenAI | Fast iterative coding |
+| **GPT-5** | OpenAI | Next-gen reasoning / Plan mode |
+| **Claude Sonnet 4.5 / 4.6** | Anthropic | Strong planning + execution |
+| **Claude Opus 4.6** | Anthropic | Deep reasoning + complex tasks |
+| **Claude Haiku 4.5** | Anthropic | Ultra-fast execution |
+| **Gemini 3.1 Pro** | Google DeepMind | Advanced agentic coding / Plan mode |
+| **Gemini 3.1 Flash** | Google DeepMind | Lightning-fast execution / Act mode |
 
 > **Note:** These skills require models with tool-use capabilities (file viewing, code execution, image inspection). Smaller or non-agentic models will not produce equivalent results.
 
@@ -51,15 +53,17 @@ Included via git submodule from [anthropics/skills](https://github.com/anthropic
 | [**slack-gif-creator**](./agent-skills/anthropic-skills/skills/slack-gif-creator) | Create animated GIFs for Slack |
 
 ### [AI Benchmark](./ai-benchmark)
-Performance and cost comparison of Claude models on Vertex AI.
+Performance and cost comparison of Claude models on Vertex AI *(Tests conducted October 2025)*.
 
-**Key Findings:**
-- Haiku 4.5: ~2.3x faster, ~3x cheaper
+**Key Findings (Oct 2025):**
+- Haiku 4.5: ~2.3x faster, ~3x cheaper than Sonnet 4.5
 - Sonnet 4.5: Superior reasoning for complex planning
 
-**Recommended Usage:**
-- 🎯 **Plan Mode** → Sonnet 4.5 (best design & architecture)
-- ⚡ **Act Mode** → Haiku 4.5 (faster implementation & cost-effective)
+**Recommended Usage (2026 Meta):**
+- 🎯 **Plan Mode** → **Gemini 3.1 Pro**, **GPT-5**, or **Claude Opus 4.6** (Best design, architecture, and reasoning)
+- ⚡ **Act Mode** → **Gemini 3.1 Flash** or **Claude Haiku 4.5** (Ultra-fast implementation & cost-effective looping)
+
+Note: As of early 2026, *Claude Haiku 4.6* has not yet been released.
 
 See [ai-benchmark/README.md](./ai-benchmark/README.md) for detailed results.
 
