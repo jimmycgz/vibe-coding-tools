@@ -1,8 +1,9 @@
-# VibeDesk Skill
+# Vibe-Desk Skill
 
-Generate professional presentation slide images (PNG) using Python/Pillow with optional PPTX assembly, configurable branding, and speaker notes.
+A Streamlined Solution to Generate Professional Presentation Slide Images (PNG) using Python/Pillow with Optional PPTX Assembly, Speaker Notes, and Configurable Branding (Logo, Master Template).
 
 ![VibeDesk logo](branding-assets/vibe-desk-logo.svg)
+
 
 ![VibeDesk sample deck](branding-assets/Vibe-Deck-Example-Page-With-Logo/Slide3.png)
 
