@@ -2,34 +2,43 @@
 
 A collection of AI agent skills, tools, and benchmarks for vibe coding workflows.
 
+## Repository Structure
+
+```text
+vibe-coding-tools/
+├── agent-skills/              # Reusable agent skills
+│   ├── remove-background/     # Transparent PNG generation pipeline
+│   ├── vibe-deck/             # Automated PPTX & slide generation
+│   └── anthropic-skills/      # Anthropics submodule library
+└── ai-benchmark/              # AI code & reasoning benchmarks
+```
+
 ## Tested Frontier Models
 
 These tools are designed for and tested with frontier-class AI models:
 
 | Model | Provider | Notes |
 |---|---|---|
-| **GPT-4o / GPT-4.5** | OpenAI | Fast iterative coding |
 | **GPT-5** | OpenAI | Next-gen reasoning / Plan mode |
-| **Claude Sonnet 4.5 / 4.6** | Anthropic | Strong planning + execution |
-| **Claude Opus 4.6** | Anthropic | Deep reasoning + complex tasks |
-| **Claude Haiku 4.5** | Anthropic | Ultra-fast execution |
-| **Gemini 3.1 Pro** | Google DeepMind | Advanced agentic coding / Plan mode |
-| **Gemini 3.1 Flash** | Google DeepMind | Lightning-fast execution / Act mode |
+| **Claude Sonnet 4.x** | Anthropic | Strong planning + execution |
+| **Claude Opus 4.x** | Anthropic | Deep reasoning + complex tasks |
+| **Gemini 3.x Pro** | Google DeepMind | Advanced agentic coding / Plan mode |
+
 
 > **Note:** These skills require models with tool-use capabilities (file viewing, code execution, image inspection). Smaller or non-agentic models will not produce equivalent results.
 
-## Contents
 
-### [Agent Skills](./agent-skills)
+## [Agent Skills](./agent-skills)
 Reusable AI agent skills — drop into `.agents/skills/` for any agentic coding assistant.
 
-#### Custom Skills
+### Custom Skills
 
 | Skill | Description |
 |---|---|
+| [**remove-background**](./agent-skills/remove-background) | Remove white/light backgrounds from images to create transparent PNGs. Handles logos, icons, product photos, and multi-object images. |
 | [**vibe-deck**](./agent-skills/vibe-deck) | A Streamlined Solution for Generating Professional Slide PNG Images (Python/Pillow) with Optional PPTX Assembly, Speaker Notes, and Configurable Branding |
 
-#### Anthropic Skills (submodule)
+### Anthropic Skills (submodule)
 
 Included via git submodule from [anthropics/skills](https://github.com/anthropics/skills). See their repo for license terms.
 
@@ -52,18 +61,22 @@ Included via git submodule from [anthropics/skills](https://github.com/anthropic
 | [**skill-creator**](./agent-skills/anthropic-skills/skills/skill-creator) | Meta-skill for creating new skills |
 | [**slack-gif-creator**](./agent-skills/anthropic-skills/skills/slack-gif-creator) | Create animated GIFs for Slack |
 
-### [AI Benchmark](./ai-benchmark)
+## [AI Benchmark](./ai-benchmark)
 Performance and cost comparison of Claude models on Vertex AI *(Tests conducted October 2025)*.
 
 **Key Findings (Oct 2025):**
 - Haiku 4.5: ~2.3x faster, ~3x cheaper than Sonnet 4.5
 - Sonnet 4.5: Superior reasoning for complex planning
 
-**Recommended Usage (2026 Meta):**
-- 🎯 **Plan Mode** → **Gemini 3.1 Pro**, **GPT-5**, or **Claude Opus 4.6** (Best design, architecture, and reasoning)
-- ⚡ **Act Mode** → **Gemini 3.1 Flash** or **Claude Haiku 4.5** (Ultra-fast implementation & cost-effective looping)
+**Recommended Usage:**
+- 🎯 **Plan Mode** → **Claude Opus 4.x** (Best design, architecture, and reasoning)
+- ⚡ **Act Mode** → **Claude Sonnet 4.x** (Ultra-fast implementation & solid reasoning)
 
-Note: As of early 2026, *Claude Haiku 4.6* has not yet been released.
+**Tooling:**
+- Google Antigravity
+- Anthropic Claude Code
+- Cline
+
 
 See [ai-benchmark/README.md](./ai-benchmark/README.md) for detailed results.
 
