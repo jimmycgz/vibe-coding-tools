@@ -40,7 +40,11 @@ SLIDES = [
     # Add more slides here...
 ]
 
-# Title slide content (page 0 — no PNG, no page number)
+# Title slide (page 0 — text only, no PNG, no page number)
+# Set to True/False to force, or None to auto-detect.
+# Auto-detect: if SLIDES[0] filename contains "title" (case-insensitive),
+# the text-only title is skipped to avoid a duplicate title page.
+TITLE_SLIDE_ENABLED = None    # None = auto-detect | True = force on | False = force off
 TITLE_TEXT = "Presentation Title"
 SUBTITLE_TEXT = "Your Subtitle Here"
 
@@ -432,7 +436,8 @@ def insert_speaker_notes(notes: list[str]):
         if not note_text:
             continue
 
-        slide_num = 101 + i  # offset for title page
+        content_start = 101 if TITLE_SLIDE_ENABLED else 100
+        slide_num = content_start + i  # offset for title page (if enabled)
         slide_file = f"slide{slide_num}.xml"
         notes_file = f"notesSlide{slide_num}.xml"
 
@@ -560,16 +565,32 @@ def assemble():
     for f in slides_rels_dir.glob("slide*.xml.rels"):
         f.unlink()
 
-    # 3. Create title slide (slide100)
-    print(f"Creating title slide: {TITLE_TEXT}")
-    (slides_dir / "slide100.xml").write_text(make_title_slide_xml(), encoding="utf-8")
-    (slides_rels_dir / "slide100.xml.rels").write_text(
-        make_title_slide_rels(TITLE_LAYOUT, has_layouts), encoding="utf-8")
+    # 3. Auto-detect title slide if not explicitly set
+    global TITLE_SLIDE_ENABLED
+    _auto_detected = False
+    if TITLE_SLIDE_ENABLED is None:
+        has_title_png = SLIDES and "title" in SLIDES[0].lower()
+        TITLE_SLIDE_ENABLED = not has_title_png
+        _auto_detected = True
+        if has_title_png:
+            print(f"Title slide: AUTO-SKIPPED (SLIDES[0] = {SLIDES[0]!r} contains 'title')")
+        else:
+            print("Title slide: AUTO-ENABLED (no title PNG detected in SLIDES[0])")
 
-    # 4. Create content slides (slide101, slide102, ...)
+    # 4. Create title slide (slide100) — optional text-only page
+    if TITLE_SLIDE_ENABLED:
+        print(f"Creating title slide: {TITLE_TEXT}")
+        (slides_dir / "slide100.xml").write_text(make_title_slide_xml(), encoding="utf-8")
+        (slides_rels_dir / "slide100.xml.rels").write_text(
+            make_title_slide_rels(TITLE_LAYOUT, has_layouts), encoding="utf-8")
+    elif not _auto_detected:
+        print("Title slide: SKIPPED (TITLE_SLIDE_ENABLED = False)")
+
+    # 4. Create content slides
+    content_start = 101 if TITLE_SLIDE_ENABLED else 100
     actual_slide_count = 0
     for i, slide_png in enumerate(SLIDES):
-        slide_num = 101 + i
+        slide_num = content_start + i
         src = SCRIPT_DIR / slide_png
         if not src.exists():
             print(f"  WARN: {slide_png} not found — skipping")
@@ -631,12 +652,16 @@ def _update_presentation_xml():
     # Build new slide ID list
     slide_ids = []
     base_id = 256
-    # Title slide
-    slide_ids.append(f'<p:sldId id="{base_id}" r:id="rId100"/>')
+    content_start = 101 if TITLE_SLIDE_ENABLED else 100
+    id_offset = 0
+    # Title slide (optional)
+    if TITLE_SLIDE_ENABLED:
+        slide_ids.append(f'<p:sldId id="{base_id}" r:id="rId100"/>')
+        id_offset = 1
 
     # Content slides
     for i in range(len(SLIDES)):
-        slide_ids.append(f'<p:sldId id="{base_id + 1 + i}" r:id="rId{101 + i}"/>')
+        slide_ids.append(f'<p:sldId id="{base_id + id_offset + i}" r:id="rId{content_start + i}"/>')
 
     sld_list = f'<p:sldIdLst>\n    {chr(10).join("    " + s for s in slide_ids)}\n  </p:sldIdLst>'
 
@@ -661,9 +686,12 @@ def _update_presentation_xml():
         pres_rels = re.sub(r'<Relationship[^>]*Type="[^"]*relationships/slide"[^>]*/>', '', pres_rels)
 
         # Add our slide rels
-        new_rels = [f'<Relationship Id="rId100" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide100.xml"/>']
+        content_start = 101 if TITLE_SLIDE_ENABLED else 100
+        new_rels = []
+        if TITLE_SLIDE_ENABLED:
+            new_rels.append(f'<Relationship Id="rId100" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide100.xml"/>')
         for i in range(len(SLIDES)):
-            new_rels.append(f'<Relationship Id="rId{101+i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide{101+i}.xml"/>')
+            new_rels.append(f'<Relationship Id="rId{content_start+i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide{content_start+i}.xml"/>')
 
         pres_rels = pres_rels.replace("</Relationships>", "\n".join("  " + r for r in new_rels) + "\n</Relationships>")
         pres_rels_path.write_text(pres_rels, encoding="utf-8")
@@ -681,9 +709,12 @@ def _update_content_types():
     ct = re.sub(r'<Override PartName="/ppt/slides/slide\d+\.xml"[^/]*/>', '', ct)
 
     # Add our slide overrides
-    overrides = [f'<Override PartName="/ppt/slides/slide100.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>']
+    content_start = 101 if TITLE_SLIDE_ENABLED else 100
+    overrides = []
+    if TITLE_SLIDE_ENABLED:
+        overrides.append(f'<Override PartName="/ppt/slides/slide100.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>')
     for i in range(len(SLIDES)):
-        overrides.append(f'<Override PartName="/ppt/slides/slide{101+i}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>')
+        overrides.append(f'<Override PartName="/ppt/slides/slide{content_start+i}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>')
 
     # Add PNG extension if missing (check exact attribute, not substring)
     if 'Extension="png"' not in ct:
@@ -696,7 +727,10 @@ def _update_content_types():
 def _clean_unreferenced():
     """Remove slides from template that we don't use."""
     slides_dir = WORK_DIR / "ppt" / "slides"
-    our_slides = {f"slide{100 + i}.xml" for i in range(len(SLIDES) + 1)}
+    content_start = 101 if TITLE_SLIDE_ENABLED else 100
+    our_slides = {f"slide{content_start + i}.xml" for i in range(len(SLIDES))}
+    if TITLE_SLIDE_ENABLED:
+        our_slides.add("slide100.xml")
 
     for f in slides_dir.glob("slide*.xml"):
         if f.name not in our_slides:

@@ -449,6 +449,7 @@ TITLE_LAYOUT = "slideLayout1.xml"         # Layout for title slide (page 0)
 CONTENT_LAYOUT = "slideLayout45.xml"      # Layout for content slides
 
 # ─── Title Slide (page 0 — text only, no PNG) ────────────
+TITLE_SLIDE_ENABLED = None    # None = auto-detect | True = force on | False = force off
 TITLE_TEXT = "Presentation Title"
 SUBTITLE_TEXT = "Subtitle or session info"
 
@@ -458,6 +459,11 @@ BRANDING = {
     "logo_image": "image17.png",        # Logo filename in template media/
     "logo_position": (196678, 4777740), # EMU (x, y)
     "logo_size": (995378, 365760),      # EMU (cx, cy)
+    "logo_svg_path": None,              # SVG logo for non-template mode (needs cairosvg)
+    "logo_png_path": None,              # PNG logo for non-template mode (preferred)
+    "logo_px_w": 220,                   # Fallback logo width in pixels
+    "logo_position_px": (60, 1002),     # Fallback logo position in pixels
+    "logo_aspect": (1200, 360),         # Logo aspect ratio (width, height)
     "gradient_image": "image28.jpg",    # Background image filename
     "copyright_text": "© 2026 Your Company. All Rights Reserved.",
     "page_numbers": True,               # Auto slide numbers
@@ -465,6 +471,16 @@ BRANDING = {
     "notes_font_size": 1100,            # hundredths of a point (1100 = 11pt)
 }
 ```
+
+When `TITLE_SLIDE_ENABLED = None` (default — auto-detect):
+- If `SLIDES[0]` filename contains "title" (case-insensitive), the text-only title page is **skipped**
+- Otherwise, a text-only title page is generated as page 0
+- This prevents the most common bug: duplicate title slides when SLIDES already has a title PNG
+
+When `TITLE_SLIDE_ENABLED = False` (force off):
+- No text-only title page is generated
+- PNGs start at page 0 (or page 1 if `page_number_start = 1`)
+- Use this when your SLIDES list already includes an AI-generated hero title PNG
 
 When `BRANDING["enabled"] = False`:
 - No logo, no copyright text, no gradient background
