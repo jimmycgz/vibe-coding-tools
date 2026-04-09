@@ -138,13 +138,13 @@ They can work together:
 1. Use **VibeDeck** to generate high-quality PNG content slides
 2. Use **Claude pptx** editing workflow to insert them into an existing corporate template
 
-## Tested Frontier Models
+## Tested Frontier Models Under Google Antigravity as of April 2026
+
+Ideally we want to use the most powerful model available under Google Antigravity, plus Nano Banana for the image generation part.
 
 | Model | Provider |
 |---|---|
-| GPT-4o / GPT-4.5 / GPT-5 | OpenAI |
-| Claude Sonnet 4 / 4.5 | Anthropic |
-| Claude Opus 4 | Anthropic |
+| Claude Sonnet/Opus 4.6 | Anthropic | 
 | Gemini 3.1 Pro | Google DeepMind |
 
 > Requires models with tool-use capabilities (file viewing, code execution, image inspection).
