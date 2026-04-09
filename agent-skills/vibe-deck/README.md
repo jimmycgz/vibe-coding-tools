@@ -5,7 +5,11 @@ A Streamlined Solution to Generate Professional Presentation Slide Images (PNG) 
 ![VibeDeck logo](branding-assets/vibe-deck-logo.svg)
 
 
-![VibeDeck sample deck](branding-assets/Vibe-Deck-Example-Page-With-Logo/Slide3.png)
+### Example Slides (with Logo + Page Number)
+
+![VibeDeck 2-column comparison slide](branding-assets/Vibe-Deck-Example-Page-With-Logo/Slide3.png)
+
+![VibeDeck 3-card layout slide](branding-assets/Vibe-Deck-Example-Page-With-Logo/Vibe-Deck-Example-Slide-3Cards.png)
 
 ## Quick Start
 
@@ -74,9 +78,9 @@ tmp/
 
 ```
 vibe-deck/
-├── SKILL.md                    # Full skill instruction (503 lines)
+├── SKILL.md                    # Full skill instruction (523 lines)
 └── scripts/
-    └── assemble_pptx.py        # Generic PPTX assembly (654 lines, stdlib only)
+    └── assemble_pptx.py        # Generic PPTX assembly (955 lines, stdlib only)
 ```
 
 ## Branding Assets
@@ -84,11 +88,13 @@ vibe-deck/
 ```
 branding-assets/
 ├── vibe-deck-logo.svg
-└── Vibe-Deck-Example-Page-With-Logo/Slide3.png
+└── Vibe-Deck-Example-Page-With-Logo/
+    ├── Slide3.png                           # 2-column comparison layout
+    └── Vibe-Deck-Example-Slide-3Cards.png   # 3-card layout with flow arrows
 ```
 
 - `vibe-deck-logo.svg` is the default logo for fallback branding.
-- `Vibe-Deck-Example-Page-With-Logo/Slide3.png` is the public sample screenshot used in this README.
+- Example slides demonstrate auto page numbers (bottom-right) and logo branding (bottom-left).
 
 ## Logo Fallback (No Template)
 
