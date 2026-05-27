@@ -7,6 +7,7 @@ A collection of AI agent skills, tools, and benchmarks for vibe coding workflows
 ```text
 vibe-coding-tools/
 ├── agent-skills/              # Reusable agent skills
+│   ├── claude-code-statusbar/ # Color-coded Claude Code status line + popup alerts
 │   ├── remove-background/     # Transparent PNG generation pipeline
 │   ├── vibe-deck/             # Automated PPTX & slide generation
 │   └── anthropic-skills/      # Anthropics submodule library
@@ -35,6 +36,7 @@ Reusable AI agent skills — drop into `.agents/skills/` for any agentic coding 
 
 | Skill | Description |
 |---|---|
+| [**claude-code-statusbar**](./agent-skills/claude-code-statusbar) | Color-coded Claude Code `statusLine` showing model, context size, usage bar, with escalating macOS popup alerts at 33%, 85%, 90%, and 95% context usage. |
 | [**remove-background**](./agent-skills/remove-background) | Remove white/light backgrounds from images to create transparent PNGs. Handles logos, icons, product photos, and multi-object images. |
 | [**vibe-deck**](./agent-skills/vibe-deck) | A Streamlined Solution for Generating Professional Slide PNG Images (Python/Pillow) with Optional PPTX Assembly, Speaker Notes, and Configurable Branding |
 
