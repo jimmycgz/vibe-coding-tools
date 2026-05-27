@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="32" viewBox="0 0 500 32" role="img" aria-label="Opus 4.7 (1M) status bar at 30%, green">
+  <text x="0" y="22" font-family="ui-monospace, Menlo, Monaco, Consolas, monospace" font-size="14" fill="#9aa0a6">Opus 4.7 (1M)</text>
+  <g fill="#2ec760">
+    <rect x="120" y="9" width="14" height="16"/>
+    <rect x="136" y="9" width="14" height="16"/>
+    <rect x="152" y="9" width="14" height="16"/>
+    <rect x="168" y="9" width="14" height="16"/>
+    <rect x="184" y="9" width="14" height="16"/>
+    <rect x="200" y="9" width="14" height="16"/>
+  </g>
+  <g fill="#7a7a7a" opacity="0.35">
+    <rect x="216" y="9" width="14" height="16"/>
+    <rect x="232" y="9" width="14" height="16"/>
+    <rect x="248" y="9" width="14" height="16"/>
+    <rect x="264" y="9" width="14" height="16"/>
+    <rect x="280" y="9" width="14" height="16"/>
+    <rect x="296" y="9" width="14" height="16"/>
+    <rect x="312" y="9" width="14" height="16"/>
+    <rect x="328" y="9" width="14" height="16"/>
+    <rect x="344" y="9" width="14" height="16"/>
+    <rect x="360" y="9" width="14" height="16"/>
+    <rect x="376" y="9" width="14" height="16"/>
+    <rect x="392" y="9" width="14" height="16"/>
+    <rect x="408" y="9" width="14" height="16"/>
+    <rect x="424" y="9" width="14" height="16"/>
+  </g>
+  <text x="450" y="22" font-family="ui-monospace, Menlo, Monaco, Consolas, monospace" font-size="14" fill="#2ec760" font-weight="600">30%</text>
+</svg>
