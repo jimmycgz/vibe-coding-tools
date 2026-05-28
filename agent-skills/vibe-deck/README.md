@@ -7,7 +7,11 @@ A Streamlined Solution to Generate Professional Presentation Slide Images (PNG) 
 
 ### Example Slides (with Logo + Page Number)
 
-![VibeDeck 2-column comparison slide](branding-assets/Vibe-Deck-Example-Page-With-Logo/Slide3.png)
+**Example 1 — Orchestration Timeline.** A self-referential slide produced by VibeDeck during the build of the deck it appears in: a Gantt-style timeline of one orchestrator coordinating multiple parallel sub-agents (slide agents per block, image agents calling Nano Banana Pro, a sequential rebalance agent), plus a real Claude Code TUI screenshot showing 3 parallel agents running. Closing pull-quote: *"A human can't track 3 specialist agents in parallel. Claude Code can."*
+
+![VibeDeck orchestration-timeline example](branding-assets/Vibe-Deck-Example-Page-With-Logo/Vibe-Deck-Example-Orchestration-Timeline.png)
+
+**Example 2 — 3-Card Comparison.** Common content shape: 3 parallel options of equal weight, color-coded headers, footer pull-quote with progression arrows.
 
 ![VibeDeck 3-card layout slide](branding-assets/Vibe-Deck-Example-Page-With-Logo/Vibe-Deck-Example-Slide-3Cards.png)
 
@@ -89,8 +93,8 @@ vibe-deck/
 branding-assets/
 ├── vibe-deck-logo.svg
 └── Vibe-Deck-Example-Page-With-Logo/
-    ├── Slide3.png                           # 2-column comparison layout
-    └── Vibe-Deck-Example-Slide-3Cards.png   # 3-card layout with flow arrows
+    ├── Vibe-Deck-Example-Orchestration-Timeline.png  # Gantt timeline + real screenshot
+    └── Vibe-Deck-Example-Slide-3Cards.png            # 3-card layout with flow arrows
 ```
 
 - `vibe-deck-logo.svg` is the default logo for fallback branding.
