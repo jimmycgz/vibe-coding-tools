@@ -8,7 +8,9 @@ A collection of AI agent skills, tools, and benchmarks for vibe coding workflows
 vibe-coding-tools/
 ├── agent-skills/              # Reusable agent skills
 │   ├── claude-code-statusbar/ # Color-coded Claude Code status line + popup alerts
+│   ├── nano-banana-pro-vertex/# Cinematic hero-image generation (Gemini 3 Pro Image on Vertex AI)
 │   ├── remove-background/     # Transparent PNG generation pipeline
+│   ├── svg-diagram-qa/        # Render-and-inspect QA for hand-authored SVG diagrams
 │   ├── vibe-deck/             # Automated PPTX & slide generation
 │   └── anthropic-skills/      # Anthropics submodule library
 └── ai-benchmark/              # AI code & reasoning benchmarks
@@ -20,9 +22,10 @@ These tools are designed for and tested with frontier-class AI models:
 
 | Model | Provider | Notes |
 |---|---|---|
+| **Claude Fable 5** | Anthropic | Highest-capability long-horizon agentic work |
+| **Claude Opus 4.8** | Anthropic | Deep reasoning + complex tasks |
+| **Claude Sonnet 5** | Anthropic | Strong planning + execution, daily driver |
 | **GPT-5** | OpenAI | Next-gen reasoning / Plan mode |
-| **Claude Sonnet 4.x** | Anthropic | Strong planning + execution |
-| **Claude Opus 4.x** | Anthropic | Deep reasoning + complex tasks |
 | **Gemini 3.x Pro** | Google DeepMind | Advanced agentic coding / Plan mode |
 
 
@@ -37,7 +40,9 @@ Reusable AI agent skills — drop into `.agents/skills/` for any agentic coding 
 | Skill | Description |
 |---|---|
 | [**claude-code-statusbar**](./agent-skills/claude-code-statusbar) | Color-coded Claude Code `statusLine` showing model, context size, usage bar, with escalating macOS popup alerts at 33%, 85%, 90%, and 95% context usage. |
+| [**nano-banana-pro-vertex**](./agent-skills/nano-banana-pro-vertex) | Scriptable cinematic hero-image generation via Gemini 3 Pro Image (Nano Banana Pro) on Vertex AI — ADC auth, cost-tiered workflow (1K/2K/4K), parallel batch, PPTX-editable text-overlay sidecars. |
 | [**remove-background**](./agent-skills/remove-background) | Remove white/light backgrounds from images to create transparent PNGs. Handles logos, icons, product photos, and multi-object images. |
+| [**svg-diagram-qa**](./agent-skills/svg-diagram-qa) | Render-to-PNG-and-inspect QA for hand-authored SVG diagrams — catches overlapping boxes, painted-over labels, off-canvas text, and viewBox cropping that well-formed XML hides. |
 | [**vibe-deck**](./agent-skills/vibe-deck) | A Streamlined Solution for Generating Professional Slide PNG Images (Python/Pillow) with Optional PPTX Assembly, Speaker Notes, and Configurable Branding |
 
 ### Anthropic Skills (submodule)
