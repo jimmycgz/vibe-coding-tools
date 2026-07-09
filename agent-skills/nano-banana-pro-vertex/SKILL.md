@@ -118,15 +118,37 @@ If user explicitly asks for in-image text, warn them about the risk and proceed 
 
 ## Cost Strategy
 
-**Iterate cheap, finalize expensive:**
+**Default resolution tier is 1K for on-screen/slide-deck use — the common case.** Slides are viewed on
+a projector or a display; 1K (~1376×768) is plenty, and upgrading resolution there is a cost decision,
+not a style decision, so it belongs to the user, not an autonomous "safer to go bigger" call. Do not
+upgrade to 2K/4K automatically once style is "locked."
+
+**Condition check by USE CASE, not a blanket rule** — check what the output is actually for before
+picking a tier:
+- **Slides / on-screen / projector / web:** stay at 1K unless the user explicitly asks for higher.
+- **Print, large-format display, marketing collateral, anything that will be zoomed/cropped, or any
+  case where the user mentions physical printing, posters, banners, or "high-res":** these genuinely
+  need more pixels — **proactively SUGGEST 2K or 4K and explain why** (print needs more DPI at
+  physical size; a zoomed/cropped detail needs more source resolution to hold up), then let the user
+  confirm before spending the extra cost. Suggesting is not the same as silently defaulting — state
+  the tradeoff, get a yes.
+- **Unclear which use case:** ask, don't guess either direction.
+
+Observed failure mode (2026-07-09): an agent independently decided "style approved" implied "now
+generate at 2K for production" for a SLIDE deck, burning an extra call and producing an asset
+inconsistent with its siblings — the user had to catch and reverse it. The lesson isn't "never go above
+1K" — it's "don't silently upgrade for a use case that doesn't need it, and don't silently stay low for
+a use case that does — name the tradeoff either direction."
+
+**Iterate cheap, upgrade deliberately:**
 
 ```
-Phase 1 (style exploration):  generate.py --tier 1k    # ~$0.04 per try
-Phase 2 (style locked):       generate.py --tier 2k    # ~$0.08 per hero
-Phase 3 (final selection):    generate.py --tier 4k    # ~$0.24 per winning hero
+Phase 1 (style exploration, any use case):        generate.py --tier 1k    # ~$0.04 per try
+Phase 2 (style locked, slide/on-screen use case):  generate.py --tier 1k    # stay here — this is final quality for screens
+Phase 2 (style locked, print/large-format/zoom):   generate.py --tier 2k or 4k  # ~$0.08 / ~$0.24 — suggest this, confirm before spending
 ```
 
-Don't generate at 4K until the prompt is locked. A typical deck of 10 heroes:
+Don't generate at 4K (or 2K) until the user has actually asked for it. A typical deck of 10 heroes:
 - ~30 exploration tries × $0.04 = $1.20
 - ~10 locked-style 2K = $0.80
 - ~3 final 4K = $0.72
@@ -168,9 +190,11 @@ curl -s -X POST -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: applicatio
 generate.py "Two stylized monoliths..." \
   --project my-gcp-project \
   --aspect 16:9 \
-  --tier 2k \
+  --tier 1k \
   --out workspace/tmp/nbpv/slide-04-monoliths.png
 ```
+
+(`--tier 1k` is the default shown here deliberately — only pass `2k`/`4k` if the user explicitly asked for higher resolution. See Cost Strategy above.)
 
 ## Prompt Patterns
 
