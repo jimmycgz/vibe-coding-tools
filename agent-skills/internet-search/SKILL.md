@@ -8,8 +8,10 @@ description: >-
   provider/policy error (e.g. Claude routed through Vertex AI / Bedrock where server-side web search
   is blocked): this skill works over plain client-side HTTP and needs no WebSearch tool and no API
   keys. It prefers precise domain catalogs (GitHub, Stack Overflow, package registries, arXiv,
-  Hugging Face…) over generic web search, validates every hit with a live fetch, and can fan out
-  parallel searches across catalogs for broad questions.
+  Hugging Face…) over generic web search, and validates every hit with a live fetch. It **never runs
+  the search in the main session** — every search is dispatched to **background async subagents**
+  (one per catalog: GitHub, Stack Overflow, …), on Sonnet (never a cheaper model), so the main
+  session stays free to keep handling the user while results arrive by notification.
 ---
 
 # Internet search (route-independent, domain-first)
@@ -21,7 +23,14 @@ catalogs when the question is broad. It relies only on ordinary HTTPS (WebFetch 
 CLIs like `gh`), so it works on **any** Claude route — including hosts where the built-in WebSearch
 tool is blocked by org policy.
 
-## Two principles that drive everything
+## Principles that drive everything
+
+0. **Never run the search in the main session — always dispatch a background/async subagent.** Even
+   a single-catalog lookup runs in a background worker, so the conversation is *never* blocked. The
+   main session only *dispatches* workers and *synthesizes* their results when they return (by
+   notification). A long background run is the success signal, not a delay. This is non-negotiable:
+   no inline searching, ever.
+
 
 1. **Domain-first.** A question about code, packages, papers, or models has a *purpose-built index*
    whose ranking signals (stars, votes, downloads, citations) understand the question in a way
@@ -35,10 +44,25 @@ tool is blocked by org policy.
 
 ## Step 1 — Route the question to a catalog
 
-**First decide breadth. A NARROW question (one topic, one likely catalog) is answered INLINE — do
-NOT spawn subagents.** Query the one right catalog, fetch-validate the top hit, answer. Spawning a
-parallel fleet for "is there a known fix for X" wastes minutes and tokens on what one `gh search`
-resolves in seconds. Fan-out (Step 4) is only for genuinely broad or cross-domain questions.
+**Route by topic with the deterministic map below — do NOT rely on a judgment call about how
+"broad" the question is.** Breadth self-assessment is unreliable; the rule decides the dispatch, and
+the model's judgment is reserved for *reading and validating* what comes back. Match the question's
+topic to its catalog(s) and dispatch **one background worker per matched catalog**:
+
+| Topic signal | Catalogs to dispatch (background, Sonnet) |
+|---|---|
+| code · error message · "how do I" · "known fix" · library behavior · **any dev question** | **GitHub (`gh search`) + Stack Overflow + Hacker News** (always all three) |
+| a JS/Python/Rust/Helm/Docker package | the matching registry (npm/PyPI/crates/Artifact Hub/Docker Hub) |
+| AI/ML model or dataset | Hugging Face (+ arXiv if "why/method") |
+| academic / method / paper | arXiv (+ Hugging Face if model-adjacent) |
+| your own cloud resources | provider CLI (e.g. `gcloud asset search-all-resources`) |
+| definitions / general facts | Wikipedia |
+| none of the above / open web | DuckDuckGo fallback (Step 2) |
+
+Most questions match ≥2 rows → a 2–3 worker background fan-out. A question mapping to exactly one
+catalog still runs as **one background worker** — never inline (principle 0). **A dev/domain
+question always fans out code + Q&A + discussion**, never just one. The main session dispatches and
+waits for the notification; it does not run the queries itself.
 
 Pick the most specific catalog first. Most need no key; endpoint templates are in
 [references/endpoints.md](references/endpoints.md). Prefer **WebFetch** for plain HTTP GETs where
@@ -82,30 +106,34 @@ results.
 - If nothing validates, say so plainly. A confident answer from an unfetched snippet is the exact
   failure mode this skill exists to prevent.
 
-## Step 4 — Parallel fan-out (broad or cross-domain questions only)
+## Step 4 — Background fan-out (how EVERY search runs)
 
-When one catalog won't cover the question — e.g. "what's the current best approach to X" spanning
-code + discussion + papers — run a **multi-modal sweep**: dispatch background subagents, one per
-catalog family, each *blind* to the others so their angles stay independent. Then merge, dedup, and
-fetch-validate the union before synthesizing.
+Every search dispatches subagents **in the background (async)** — one per catalog matched in Step 1,
+each *blind* to the others so their angles stay independent. Async is the point — the workers grind
+while **the main session stays free to keep handling the user**; results arrive by notification, and
+you merge/dedup/fetch-validate/synthesize when they land. A long background run is the success
+signal, not a delay. Even a one-catalog lookup goes to one background worker — never inline
+(principle 0).
 
-Recommended families (skip any that don't apply):
+Catalog families (pick the ones that fit; a dev question almost always warrants at least **code** +
+**Q&A/discussion**):
 - **code** — `gh search`, relevant repos/issues
 - **Q&A + discussion** — Stack Exchange + Hacker News
 - **packages + registries** — npm/PyPI/crates/Artifact Hub/Docker Hub
 - **papers + models** — arXiv + Hugging Face
 - **open web** — DuckDuckGo fallback
 
-Effort/model floor: run workers on **Sonnet at low effort — never a smaller/cheaper model.** A
-fresh-context worker still has to make real judgment calls (is this source credible? does the quote
-support the claim?), and a cut-rate model produces unreliable search judgment that poisons the
-synthesis — the fan-out's whole value is independent *quality* angles, not just parallelism. Low
-*effort* on Sonnet is the cost lever; a smaller model is a false economy. Reserve higher effort for
-the merge/synthesis step that has to reconcile everything. Give each worker the same instruction to
-return structured hits
-(title, URL, one-line why-relevant) and to fetch-validate its own top picks. **Do not fan out for a
-single-catalog question** — a lone `gh search` or one DDG lookup is faster inline than spawning
-agents.
+**Model floor: run every worker on Sonnet — never a smaller/cheaper model** (no Haiku). A
+fresh-context worker still makes real judgment calls (is this source credible? does the quote
+support the claim?); a cut-rate model produces unreliable search judgment that poisons the
+synthesis. Low *effort* on Sonnet is the cost lever — a smaller model is a false economy. Reserve
+higher effort for the merge/synthesis step that reconciles everything.
+
+Dispatch pattern: launch all workers in one batch with `run_in_background: true` so they run
+concurrently and the conversation continues. Give each the same brief — return structured hits
+(title, URL, one-line why-relevant) and fetch-validate its own top picks — plus its catalog and
+query angle. When they report back, dedup semantically, rank by source quality + agreement, attach
+the validated source URL per claim, and surface anything unvalidated as a caveat.
 
 Synthesis: dedup semantically (same fact from two catalogs = one finding, both sources), rank by
 source quality + agreement, and attach the validated source URL to each claim. Surface what
@@ -137,8 +165,8 @@ Safe, **read-only** commands worth pre-allowing in `~/.claude/settings.json` `pe
 restrict it to GET, so prefer WebFetch and let the rare custom-header `curl` prompt) and
 `gh api` (can mutate with `-X`; and prefix rules can't enforce GET-only — the method flag can trail
 the path). For unattended raw-API **reads**, use the bundled **`scripts/gh-get`** — a GET-only
-wrapper that forces `--method GET` and refuses `-X`/`--method`/`--input`, so it's safe to allowlist
-as `Bash(gh-get:*)` (put it on your PATH first). The guarantee lives in the wrapper, not in a
+wrapper that forces `--method GET` and refuses `-X`/`--method`/`--input`, so it can be allowlisted
+as `Bash(gh-get:*)` **at your own risk** (put it on your PATH first). The guarantee lives in the wrapper, not in a
 pattern a prefix matcher can't express — and it works with your **normal** `gh` token (no special
 setup), because the GET-guarantee is in the wrapper, not the credential. This is a host convenience,
 not a security boundary the skill itself provides. A ready-to-merge example allowlist + denylist
