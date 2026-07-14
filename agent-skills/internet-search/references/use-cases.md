@@ -13,13 +13,15 @@ worker runs its catalog and fetch-validates its own top hits; you synthesize whe
 
 Each worker's core query (illustrative):
 ```bash
-# code worker
+# code worker — gh is allowlisted
 gh search issues "virtiofs git status all files modified" --limit 8 --json title,repository,state,url
 gh-get "search/issues?q=virtiofs+core.checkStat" --jq '.items[].html_url'
-# Q&A worker
-curl -s --compressed "https://api.stackexchange.com/2.3/search/advanced?q=virtiofs+git+modified&site=stackoverflow&pagesize=5"
-# discussion worker
-curl -s "https://hn.algolia.com/api/v1/search?query=virtiofs%20git&hitsPerPage=5"
+# Q&A worker — WebFetch (allowlisted, no prompt), not curl
+WebFetch("https://api.stackexchange.com/2.3/search/advanced?q=virtiofs+git+modified&site=stackoverflow&pagesize=5",
+         "list the question titles, scores, and links")
+# discussion worker — WebFetch
+WebFetch("https://hn.algolia.com/api/v1/search?query=virtiofs%20git&hitsPerPage=5",
+         "list the story titles and their HN item URLs")
 ```
 Each worker fetches the most relevant hit and confirms the fix appears in the actual thread — never
 inferred from a title. The main session merges the three, dedups, and cites the fetched sources.
@@ -39,26 +41,26 @@ WebFetch("<the vendor pricing URL>", "list the plans and their prices and limits
 
 Go straight to the registry; its download/version signals rank better than web search.
 
-```bash
-curl -s "https://registry.npmjs.org/-/v1/search?text=<task>&size=10"      # npm
-curl -s -A ua "https://crates.io/api/v1/crates?q=<task>&per_page=10"       # crates.io (needs UA)
-curl -s "https://pypi.org/pypi/<name>/json"                               # PyPI (exact name)
+```
+WebFetch("https://registry.npmjs.org/-/v1/search?text=<task>&size=10", "top packages + weekly downloads")
+WebFetch("https://crates.io/api/v1/crates?q=<task>&per_page=10", "top crates + downloads")  # WebFetch sets its own UA
+WebFetch("https://pypi.org/pypi/<name>/json", "latest version + last release date")          # PyPI: exact name
 ```
 Confirm the top candidate is maintained (recent release date) before recommending it.
 
 ## 4. "What model should I use for <ML task>?" — Hugging Face + arXiv
 
-```bash
-curl -s "https://huggingface.co/api/models?search=<task>&limit=10&sort=downloads"
-curl -s "https://export.arxiv.org/api/query?search_query=all:<task>&max_results=5&sortBy=relevance"
+```
+WebFetch("https://huggingface.co/api/models?search=<task>&limit=10&sort=downloads", "top models + downloads")
+WebFetch("https://export.arxiv.org/api/query?search_query=all:<task>&max_results=5&sortBy=relevance", "paper titles + abstract URLs")
 ```
 Downloads/likes rank models; arXiv gives the method behind them. Fetch a model card before citing
 its capabilities.
 
 ## 5. "Has anyone discussed <approach/tradeoff>?" — Hacker News
 
-```bash
-curl -s "https://hn.algolia.com/api/v1/search?query=<approach>&hitsPerPage=5"
+```
+WebFetch("https://hn.algolia.com/api/v1/search?query=<approach>&hitsPerPage=5", "story titles + item URLs + points")
 ```
 Good for prior art and honest practitioner pushback that vendor pages omit.
 

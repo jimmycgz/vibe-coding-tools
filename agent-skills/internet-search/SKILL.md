@@ -25,11 +25,13 @@ tool is blocked by org policy.
 
 ## Principles that drive everything
 
-0. **Never run the search in the main session — always dispatch a background/async subagent.** Even
-   a single-catalog lookup runs in a background worker, so the conversation is *never* blocked. The
-   main session only *dispatches* workers and *synthesizes* their results when they return (by
-   notification). A long background run is the success signal, not a delay. This is non-negotiable:
-   no inline searching, ever.
+0. **Never run a SEARCH in the main session — dispatch it to a background/async subagent.** Any
+   *discovery* (querying a catalog, a fan-out) runs in a background worker, so the conversation is
+   never blocked; the main session only *dispatches* and later *synthesizes* results (by
+   notification). A long background run is the success signal, not a delay. **Carve-out:** fetching
+   an *already-known URL* — validating a candidate (Step 3), pulling one specific doc or primary
+   source — is a **fetch, not a search**; it's cheap and read-only and may run **inline**. The rule
+   is about search/fan-out, not about every WebFetch.
 
 
 1. **Domain-first.** A question about code, packages, papers, or models has a *purpose-built index*
@@ -130,9 +132,13 @@ synthesis. Low *effort* on Sonnet is the cost lever — a smaller model is a fal
 higher effort for the merge/synthesis step that reconciles everything.
 
 Dispatch pattern: launch all workers in one batch with `run_in_background: true` so they run
-concurrently and the conversation continues. Give each the same brief — return structured hits
-(title, URL, one-line why-relevant) and fetch-validate its own top picks — plus its catalog and
-query angle. When they report back, dedup semantically, rank by source quality + agreement, attach
+concurrently and the conversation continues. **Pass `model: "sonnet"` explicitly on every spawn** —
+this is how the Sonnet floor is actually enforced. A subagent with no `model` **inherits the parent
+session's model**, so if the main session is on Fable/Opus the workers silently run there too (wrong
+tier and costly) and if it's on a cheap default they run cheap (poisons synthesis). The skill can't
+enforce the floor by asserting it; the *dispatcher must set it*. Give each worker the same brief —
+return structured hits (title, URL, one-line why-relevant) and fetch-validate its own top picks —
+plus its catalog and query angle. When they report back, dedup semantically, rank by source quality + agreement, attach
 the validated source URL per claim, and surface anything unvalidated as a caveat.
 
 Synthesis: dedup semantically (same fact from two catalogs = one finding, both sources), rank by

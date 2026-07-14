@@ -57,7 +57,7 @@ in a different niche:
 
 | | **internet-search** (this skill) | **deep-research** (built-in workflow at Claude Code) |
 |---|---|---|
-| Trigger | Any search/lookup, no opt-in | Requires explicit opt-in ("use a workflow" / ultracode) |
+| Trigger | Any search/lookup, no opt-in | Invoked explicitly (e.g. `/deep-research` or the Skill tool) |
 | Depends on WebSearch tool | **No** — client-side catalogs + WebFetch | **Yes** — server-side web search (so it's blocked on a Vertex/Bedrock route) |
 | Execution | Always background async subagents — never blocks the main session | Foreground multi-agent workflow (you wait for the report) |
 | Verification | Fetch-validate each cited hit | 3 skeptic votes per claim, 2/3 refutes to kill |

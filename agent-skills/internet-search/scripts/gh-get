@@ -7,18 +7,25 @@
 # guarantee into code: it forces `--method GET` and refuses any method-override or
 # request-body flag, so it can be allowlisted as `Bash(gh-get:*)` (at your own risk).
 #
+# The guard matches by PREFIX (-X*, --method*), not exact token, because gh/pflag accepts
+# glued short flags: -X DELETE, -XDELETE, --method=POST, and --method POST are all real and
+# must all be refused. -f/-F/--field are intentionally allowed: under the forced --method GET
+# they become query-string params (read-only), and blocking them would break legit GET queries.
+#
 # Usage: gh-get <endpoint> [gh api read flags]   e.g.
 #   gh-get repos/cli/cli --jq .stargazers_count
 #   gh-get "search/issues?q=virtiofs+git" --jq '.items[].title'
+#   gh-get repos/cli/cli/issues -f state=open --jq '.[].title'
 set -euo pipefail
 
 for a in "$@"; do
   case "$a" in
-    -X|--method|-X=*|--method=*|--input|--input=*)
-      echo "gh-get: GET-only wrapper — flag '$a' is not allowed (use plain 'gh api' if you truly need to mutate)." >&2
+    -X*|--method|--method=*|--request|--request=*|--input|--input=*)
+      echo "gh-get: GET-only wrapper — '$a' is not allowed (use plain 'gh api' if you truly need to mutate)." >&2
       exit 2 ;;
   esac
 done
 
-# --method GET is forced; any -f/-F string params degrade to query-string params under GET (still read-only).
+# Method is forced to GET and no override flag can reach here, so gh treats -f/-F params as
+# query-string params (read-only).
 exec gh api --method GET "$@"
