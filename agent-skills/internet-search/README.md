@@ -62,7 +62,10 @@ See the security note in [`SKILL.md`](SKILL.md); the short version is: allowlist
 *verbs* (`gh search`, `gh {issue,pr,repo} view`, `jq`, `grep`, `head`, `tail`, `sort`, `WebFetch`)
 and, for raw GitHub API reads, the bundled GET-only wrapper [`scripts/gh-get`](scripts/gh-get) as
 `Bash(gh-get:*)`. Do **not** blanket-allow `curl` or bare `gh api` — they can mutate, and prefix
-rules can't restrict them to GET.
+rules can't restrict them to GET. A ready-to-merge example (allow + deny + risk disclaimer + the
+real-boundary options like a read-scoped token) is in
+[`references/example-permissions.md`](references/example-permissions.md) — **merge it, don't replace
+your settings, and adopt at your own risk.**
 
 ## Portability
 

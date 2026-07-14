@@ -139,5 +139,7 @@ restrict it to GET, so prefer WebFetch and let the rare custom-header `curl` pro
 the path). For unattended raw-API **reads**, use the bundled **`scripts/gh-get`** — a GET-only
 wrapper that forces `--method GET` and refuses `-X`/`--method`/`--input`, so it's safe to allowlist
 as `Bash(gh-get:*)` (put it on your PATH first). The guarantee lives in the wrapper, not in a
-pattern a prefix matcher can't express. This is a host convenience, not a security boundary the
-skill itself provides.
+pattern a prefix matcher can't express — and it works with your **normal** `gh` token (no special
+setup), because the GET-guarantee is in the wrapper, not the credential. This is a host convenience,
+not a security boundary the skill itself provides. A ready-to-merge example allowlist + denylist
+(with risk disclaimer) is in [references/example-permissions.md](references/example-permissions.md).
