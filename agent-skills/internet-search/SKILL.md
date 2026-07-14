@@ -135,5 +135,9 @@ Safe, **read-only** commands worth pre-allowing in `~/.claude/settings.json` `pe
 `Bash(jq:*)`, `Bash(grep:*)`, `Bash(cat:*)`, `Bash(head:*)`, `Bash(tail:*)`, `Bash(sort:*)`, and
 `WebFetch`. **Deliberately NOT blanket-allowed:** `curl` (can POST/exfil — prefix rules can't
 restrict it to GET, so prefer WebFetch and let the rare custom-header `curl` prompt) and
-`gh api` (can mutate with `-X`; the `search`/`view` verbs above cover read needs). This is a host
-convenience, not a security boundary the skill provides.
+`gh api` (can mutate with `-X`; and prefix rules can't enforce GET-only — the method flag can trail
+the path). For unattended raw-API **reads**, use the bundled **`scripts/gh-get`** — a GET-only
+wrapper that forces `--method GET` and refuses `-X`/`--method`/`--input`, so it's safe to allowlist
+as `Bash(gh-get:*)` (put it on your PATH first). The guarantee lives in the wrapper, not in a
+pattern a prefix matcher can't express. This is a host convenience, not a security boundary the
+skill itself provides.

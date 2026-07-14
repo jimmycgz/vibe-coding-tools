@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# gh-get — a GET-only wrapper around `gh api`.
+#
+# Why this exists: Claude Code (and most allowlist mechanisms) match a Bash command by
+# PREFIX and do not parse gh's flags, so `Bash(gh api:*)` cannot mean "GET only" — a
+# mutating `gh api repos/o/r -X DELETE` shares the same prefix. This wrapper moves the
+# guarantee into code: it forces `--method GET` and refuses any method-override or
+# request-body flag, so it is safe to allowlist unattended as `Bash(gh-get:*)`.
+#
+# Usage: gh-get <endpoint> [gh api read flags]   e.g.
+#   gh-get repos/cli/cli --jq .stargazers_count
+#   gh-get "search/issues?q=virtiofs+git" --jq '.items[].title'
+set -euo pipefail
+
+for a in "$@"; do
+  case "$a" in
+    -X|--method|-X=*|--method=*|--input|--input=*)
+      echo "gh-get: GET-only wrapper — flag '$a' is not allowed (use plain 'gh api' if you truly need to mutate)." >&2
+      exit 2 ;;
+  esac
+done
+
+# --method GET is forced; any -f/-F string params degrade to query-string params under GET (still read-only).
+exec gh api --method GET "$@"
