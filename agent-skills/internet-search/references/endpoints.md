@@ -3,6 +3,13 @@
 Replace `<q>` with a URL-encoded query. All return JSON unless noted. Etiquette notes matter —
 a few of these reject bare requests without a User-Agent, and one only serves over https.
 
+**On a Claude Code host, call these plain GETs with `WebFetch(url, "extract …")`, not `curl`** —
+WebFetch is read-only and allowlisted, so it runs without a prompt; raw `curl` is not allowlisted
+(it can POST/exfil) and will prompt. The `curl` forms below are shown for **portability** (other
+agent runtimes, shell use) and for the two endpoints that need a custom header. WebFetch sets its
+own browser-like User-Agent, so it also covers the UA-required endpoints (crates.io, DuckDuckGo)
+without extra flags. For GitHub, use `gh search` / `gh-get` (allowlisted), not `curl`.
+
 ## Code / dev (GitHub — uses existing `gh` auth)
 ```
 gh search repos <q> --limit 10 --json fullName,description,stargazersCount,url
@@ -71,9 +78,17 @@ curl -s -A "Mozilla/5.0" "https://html.duckduckgo.com/html/?q=<q>"
 gcloud asset search-all-resources --query="<q>" --format=json
 ```
 
-## curl etiquette cheatsheet
-- `crates.io` and `html.duckduckgo.com` → send `-A "<user-agent>"`.
+## curl etiquette cheatsheet (only when not using WebFetch)
+- `crates.io` and `html.duckduckgo.com` → send `-A "<user-agent>"`. crates.io's policy asks the UA to
+  **identify you with contact info** (e.g. `-A "yourtool (you@example.com)"`); a bare `Mozilla/5.0`
+  can get rate-limited.
 - `arXiv` → use `https://` (http 301-redirects).
 - Add `--compressed -m 8` for gzip + an 8s timeout so a slow endpoint can't hang a sweep.
+- **Stack Exchange** is ~300 req/day **per IP** AND throttles via a `backoff` field in the JSON /
+  `Retry-After` — a burst fan-out can trip a short-term backoff before the daily cap. If a worker
+  loops, honor `backoff`/`Retry-After`.
+- **DuckDuckGo HTML is the least stable link** in the chain — it periodically changes its
+  challenge/markup and may return a bot page. Treat open-web fallback as best-effort; prefer a
+  specific catalog whenever one fits.
 - These are public endpoints — keep volume reasonable; for heavy sweeps prefer the APIs with
   explicit quotas (Stack Exchange, HN) over scraping the DDG HTML page repeatedly.
