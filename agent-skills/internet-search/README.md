@@ -2,13 +2,34 @@
 
 A Claude Code / agent skill for **efficient, route-independent internet search**. It prefers precise
 domain catalogs (GitHub, Stack Overflow, arXiv, Hugging Face, package registries) over generic web
-search, treats every result as unverified until a live fetch confirms it, and fans out parallel
-workers only when a question is genuinely broad. It needs **no WebSearch tool and no API keys** —
-so it works even on hosts where the built-in web search is blocked by org policy.
+search, and treats every result as unverified until a live fetch confirms it. It **never searches in
+the main session** — every search is dispatched to background async subagents (one per catalog), so
+the conversation stays free while they run. It needs **no WebSearch tool and no API keys** — so it
+works even on hosts where the built-in web search is blocked by org policy.
 
 The model-facing instructions live in [`SKILL.md`](SKILL.md); endpoint templates in
 [`references/endpoints.md`](references/endpoints.md); worked scenarios in
 [`references/use-cases.md`](references/use-cases.md).
+
+## Disclaimer
+
+**Provided "as is", used entirely at your own risk.**
+
+- **No warranty (as-is).** This skill — including its instructions, scripts, the `gh-get` wrapper,
+  endpoint templates, and permission examples — is provided "AS IS", **without warranty of any
+  kind**, express or implied, including but not limited to merchantability, fitness for a particular
+  purpose, and non-infringement. No guarantee is made that it is secure, error-free, or suitable for
+  any purpose.
+- **Limitation of liability.** In no event shall the authors or contributors be liable for any
+  claim, damages, or other liability — including system failures, security breaches, data loss, or
+  unintended actions taken by an AI agent or a shell command — whether in contract, tort, or
+  otherwise, arising from or in connection with this skill or its use.
+- **User responsibility.** You bear the **sole responsibility** for evaluating the skill's safety,
+  testing it, securing your system and credentials, and complying with your organization's policies.
+  Allowlisting commands, installing the `gh-get` wrapper, and running the endpoint calls reduce
+  safety prompts and execute real commands on your machine — review them and adopt only what you
+  understand and accept. Prefer a real boundary (least-privilege credentials, a sandbox/VM) for
+  anything you cannot afford to have go wrong.
 
 ## Why this exists
 
@@ -28,18 +49,17 @@ The governing rule is **"the index is a rumor; the fetch is the fact."** Search 
 cached/stale entries, so any hit — from any engine, including native WebSearch — is a *candidate*
 until a live fetch confirms it. Nothing gets cited that wasn't fetched this turn.
 
-## How it relates to (and competes with) `deep-research`
+## How it relates to (and competes with) Claude Code `deep-research`
 
 Claude Code ships a built-in **`deep-research` workflow** (Scope → parallel Search → Fetch → 3-vote
 adversarial Verify → Synthesize into a cited report). This skill overlaps it deliberately but sits
 in a different niche:
 
-| | **internet-search** (this skill) | **deep-research** (built-in workflow) |
+| | **internet-search** (this skill) | **deep-research** (built-in workflow at Claude Code) |
 |---|---|---|
 | Trigger | Any search/lookup, no opt-in | Requires explicit opt-in ("use a workflow" / ultracode) |
 | Depends on WebSearch tool | **No** — client-side catalogs + WebFetch | **Yes** — server-side web search (so it's blocked on a Vertex/Bedrock route) |
-| API keys | None | None, but needs the working WebSearch route |
-| Weight | Scales down to one inline catalog call | Always a multi-agent fan-out (heavier) |
+| Execution | Always background async subagents — never blocks the main session | Foreground multi-agent workflow (you wait for the report) |
 | Verification | Fetch-validate each cited hit | 3 skeptic votes per claim, 2/3 refutes to kill |
 | Best for | The everyday default; anything on a blocked route; dev/domain questions | A deliberately exhaustive, adversarially-verified cited report |
 

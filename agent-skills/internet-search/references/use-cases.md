@@ -1,20 +1,28 @@
 # Use cases
 
 Concrete scenarios showing how the skill routes each kind of question. The pattern is always the
-same: **pick the most specific catalog, fetch to confirm, answer with the fetched source** — and
-only fan out when one catalog genuinely can't cover the question.
+same: **route by topic (deterministic map in SKILL.md), dispatch background subagents — never search
+in the main session — fetch to confirm, answer with the fetched source.** Even a one-catalog
+question runs as a background worker so the conversation is never blocked.
 
-## 1. "Is there a known fix for <bug/error>?" — single catalog, inline
+## 1. "Is there a known fix for <bug/error>?" — dev question → background fan-out
 
-Route to GitHub issues (and Stack Overflow if it's an error message). One `gh search issues` +
-reading the top hit answers it. No subagents.
+A dev question always fans out **code + Q&A + discussion** (GitHub + Stack Overflow + Hacker News),
+dispatched as **parallel background subagents on Sonnet**, so the main session keeps moving. Each
+worker runs its catalog and fetch-validates its own top hits; you synthesize when they report back.
 
+Each worker's core query (illustrative):
 ```bash
+# code worker
 gh search issues "virtiofs git status all files modified" --limit 8 --json title,repository,state,url
 gh-get "search/issues?q=virtiofs+core.checkStat" --jq '.items[].html_url'
+# Q&A worker
+curl -s --compressed "https://api.stackexchange.com/2.3/search/advanced?q=virtiofs+git+modified&site=stackoverflow&pagesize=5"
+# discussion worker
+curl -s "https://hn.algolia.com/api/v1/search?query=virtiofs%20git&hitsPerPage=5"
 ```
-Then fetch the most relevant issue and cite it. If the fix is a config line, confirm it appears in
-the actual issue thread — don't infer it from the title.
+Each worker fetches the most relevant hit and confirms the fix appears in the actual thread — never
+inferred from a title. The main session merges the three, dedups, and cites the fetched sources.
 
 ## 2. "What's the current pricing / limits of <product>?" — open-web fallback, fetch-validated
 
@@ -54,12 +62,11 @@ curl -s "https://hn.algolia.com/api/v1/search?query=<approach>&hitsPerPage=5"
 ```
 Good for prior art and honest practitioner pushback that vendor pages omit.
 
-## 6. "What's the current best approach to <broad topic>?" — parallel fan-out
+## 6. "What's the current best approach to <broad topic>?" — widest fan-out
 
-The one case that justifies subagents: the question spans code + papers + discussion. Dispatch one
-**Sonnet-low** worker per catalog family (blind to each other), then merge, dedup, fetch-validate,
-and synthesize with per-claim sources. See `SKILL.md` Step 4. Do **not** use this shape for the
-narrow questions above — a single catalog call is faster and cheaper.
+The broadest case: dispatch background **Sonnet** workers across every matched family (code + papers
++ discussion + models), blind to each other, then merge, dedup, fetch-validate, and synthesize with
+per-claim sources. Same background/async execution as every other case — just more workers.
 
 ## 7. "Confirm <claim> against an official/primary source" — verify, don't trust memory
 
@@ -69,7 +76,10 @@ than answering from training data. This is the fetch-validation rule applied to 
 
 ## Anti-patterns
 
+- **Running the search in the main session** instead of dispatching a background subagent — blocks
+  the conversation; never do it, even for one catalog.
 - Quoting a search snippet without fetching the page it came from.
-- Spawning a subagent fleet for a one-catalog question.
+- Answering a dev question from a single catalog — always fan out code + Q&A + discussion.
 - Falling back to open-web search when a specific catalog (gh/registry/HF/arXiv) indexes the answer.
 - Treating a stale/404 link as a valid citation because the search index still lists it.
+- Downgrading workers to a cheaper model than Sonnet to "save cost" — it poisons the synthesis.

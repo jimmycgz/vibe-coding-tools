@@ -10,7 +10,7 @@ copying anything.
 > (you'd wipe your other settings). Nothing here is machine- or account-specific; there is
 > deliberately **no `env`, model, hook, or path** in this example — those are yours to keep.
 
-## The allowlist (read-only, safe to run unattended)
+## The allowlist (read-only — allowlist at your own risk)
 
 ```json
 {

@@ -90,4 +90,25 @@ See [ai-benchmark/README.md](./ai-benchmark/README.md) for detailed results.
 
 ---
 
+## Disclaimer
+
+**Provided "as is", used entirely at your own risk.** These tools run shell commands, make network
+calls, and drive AI agents on your machine; some suggest permission-allowlist entries or wrapper
+scripts that reduce safety prompts.
+
+- **No warranty (as-is).** All content in this repository — skills, scripts, wrappers, endpoint
+  templates, configuration examples, and benchmarks — is provided "AS IS", **without warranty of any
+  kind**, express or implied, including but not limited to merchantability, fitness for a particular
+  purpose, and non-infringement (consistent with the [MIT License](./LICENSE)).
+- **Limitation of liability.** In no event shall the author or contributors be liable for any claim,
+  damages, or other liability — including system failures, security breaches, data loss, or
+  unintended actions taken by an AI agent or shell command — arising from or in connection with this
+  software or its use.
+- **User responsibility.** You bear the **sole responsibility** for evaluating safety, testing,
+  securing your system and credentials, and complying with your organization's policies before use.
+  Adopt only what you understand and accept, and prefer a real security boundary (least-privilege
+  credentials, a sandbox/VM) for anything you cannot afford to have go wrong.
+
+---
+
 *Tools for optimizing AI-assisted development workflows*
