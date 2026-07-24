@@ -1,184 +1,262 @@
-import anthropic
-import time
+"""Claude on Vertex AI — streaming latency & cost benchmark.
+
+Measures, per model:
+  - TTFT (time to first stream event, and time to first visible text)
+  - Decode rate (output tokens / streaming window)
+  - End-to-end latency
+  - Cost per request (exact token counts from the API's usage block)
+
+Run:  PROJECT_ID=my-project REGION=global python vertex_benchmark.py
+Auth: gcloud auth application-default login
+Deps: pip install 'anthropic[vertex]'
+"""
+
+import json
+import os
 import statistics
-from typing import Dict, List
+import time
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
-# Configure your Vertex AI settings
-PROJECT_ID = "your-gcp-project"
-REGION = "us-east5"
+import anthropic
 
-# Pricing per million tokens (Vertex AI pricing)
-PRICING = {
-    "claude-haiku-4-5@20251001": {
-        "input": 1.00,   # $1.00 per million input tokens
-        "output": 5.00   # $5.00 per million output tokens
+PROJECT_ID = os.environ.get("PROJECT_ID", "your-gcp-project")
+REGION = os.environ.get("REGION", "global")
+NUM_ITERATIONS = int(os.environ.get("N", "5"))
+RESULTS_FILE = os.environ.get("RESULTS_FILE", "results.json")
+
+# ---------------------------------------------------------------------------
+# Model registry — IDs and $/MTok from Vertex AI pricing (dated in README).
+# thinking:
+#   "adaptive"  -> {"type": "adaptive"} pinned (Claude 4.6+ family)
+#   "always_on" -> parameter omitted; model thinks by design (Fable 5)
+#   None        -> parameter omitted; model does not think (Haiku 4.5)
+# ---------------------------------------------------------------------------
+MODELS: Dict[str, Dict] = {
+    # IDs verified live 2026-07-24 against platform.claude.com/docs (Vertex model
+    # table) — current-gen models use bare IDs and require the "global" endpoint
+    # (regional endpoints like us-east5 only serve Sonnet 4.6 and earlier).
+    # Prices are Anthropic list $/MTok; global endpoint carries no premium
+    # (us/eu multi-region adds 10%). Authoritative Vertex prices:
+    # https://cloud.google.com/vertex-ai/generative-ai/pricing#claude-models
+    "claude-fable-5": {
+        "label": "Fable 5",
+        "thinking": "always_on",
+        "input": 10.00,
+        "output": 50.00,
     },
-    "claude-sonnet-4-5@20250929": {
-        "input": 3.00,   # $3.00 per million input tokens
-        "output": 15.00  # $15.00 per million output tokens
-    }
+    "claude-opus-5": {
+        "label": "Opus 5",
+        "thinking": "adaptive",  # on by default on Opus 5; pinned for parity
+        "input": 5.00,
+        "output": 25.00,
+    },
+    "claude-sonnet-5": {
+        "label": "Sonnet 5",
+        "thinking": "adaptive",
+        "input": 2.00,   # intro pricing through 2026-08-31 ($3 after)
+        "output": 10.00,  # intro pricing through 2026-08-31 ($15 after)
+        # Sonnet 5's new tokenizer yields ~30% more tokens for the same text
+        # (Anthropic migration guide) — normalized columns divide by this.
+        "tokenizer_factor": 1.30,
+    },
 }
 
-# Test prompts of varying complexity
 TEST_PROMPTS = [
-    "Write a haiku about coding.",
-    "Explain quantum computing in simple terms.",
-    "Write a detailed analysis of the benefits of functional programming vs object-oriented programming.",
-    "Create a comprehensive guide to getting started with machine learning, including key concepts and practical steps."
+    ("short", "Write a haiku about coding."),
+    (
+        "long",
+        "Create a comprehensive guide to getting started with machine "
+        "learning, including key concepts and practical steps.",
+    ),
 ]
 
-# Max tokens configurations to test
-MAX_TOKENS_CONFIGS = [256, 512]
+MAX_TOKENS_CONFIGS = [256, 1024]
 
-def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
-    """Calculate the cost of a request based on token usage."""
-    pricing = PRICING.get(model, {"input": 0, "output": 0})
-    input_cost = (input_tokens / 1_000_000) * pricing["input"]
-    output_cost = (output_tokens / 1_000_000) * pricing["output"]
-    return input_cost + output_cost
 
-def benchmark_model(model: str, prompt: str, max_tokens: int, client: anthropic.AnthropicVertex) -> Dict:
-    """Benchmark a single model with a given prompt."""
-    start_time = time.time()
-    
-    response = client.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    
-    end_time = time.time()
-    elapsed = end_time - start_time
-    
-    input_tokens = response.usage.input_tokens
-    output_tokens = response.usage.output_tokens
-    tokens_per_sec = output_tokens / elapsed if elapsed > 0 else 0
-    cost = calculate_cost(model, input_tokens, output_tokens)
-    
+def request_cost(model: str, input_tokens: int, output_tokens: int) -> float:
+    p = MODELS[model]
+    return (input_tokens / 1e6) * p["input"] + (output_tokens / 1e6) * p["output"]
+
+
+def build_kwargs(model: str, prompt: str, max_tokens: int) -> Dict:
+    kwargs: Dict = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if MODELS[model]["thinking"] == "adaptive":
+        kwargs["thinking"] = {"type": "adaptive"}
+    return kwargs
+
+
+def benchmark_streaming(
+    client: anthropic.AnthropicVertex, model: str, prompt: str, max_tokens: int
+) -> Dict:
+    """One streamed request; timestamps taken client-side (wall clock)."""
+    t_start = time.monotonic()
+    t_first_event: Optional[float] = None
+    t_first_text: Optional[float] = None
+
+    with client.messages.stream(**build_kwargs(model, prompt, max_tokens)) as stream:
+        for event in stream:
+            if event.type == "content_block_delta":
+                now = time.monotonic()
+                if t_first_event is None:
+                    t_first_event = now
+                if (
+                    t_first_text is None
+                    and event.delta.type == "text_delta"
+                    and event.delta.text
+                ):
+                    t_first_text = now
+        final = stream.get_final_message()
+
+    t_end = time.monotonic()
+    input_tokens = final.usage.input_tokens
+    output_tokens = final.usage.output_tokens  # includes thinking tokens
+    e2e = t_end - t_start
+    stream_window = t_end - t_first_event if t_first_event else e2e
+
     return {
         "model": model,
         "max_tokens": max_tokens,
-        "prompt_length": len(prompt),
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
-        "time_seconds": elapsed,
-        "tokens_per_second": tokens_per_sec,
-        "cost_usd": cost,
-        "response_preview": response.content[0].text[:100] + "..."
+        "ttft_first_event_s": (t_first_event - t_start) if t_first_event else None,
+        "ttft_first_text_s": (t_first_text - t_start) if t_first_text else None,
+        "e2e_s": e2e,
+        "decode_tok_per_s": output_tokens / stream_window if stream_window > 0 else 0,
+        "cost_usd": request_cost(model, input_tokens, output_tokens),
+        "stop_reason": final.stop_reason,
     }
 
-def run_benchmark(num_iterations: int = 3):
-    """Run benchmark comparing Haiku 4.5 and Sonnet 4.5."""
-    client = anthropic.AnthropicVertex(
-        project_id=PROJECT_ID,
-        region=REGION
-    )
-    
-    models = [
-        "claude-haiku-4-5@20251001",
-        "claude-sonnet-4-5@20250929"
-    ]
-    
-    results = {f"{model}_{max_tokens}": [] for model in models for max_tokens in MAX_TOKENS_CONFIGS}
-    
-    print("=" * 80)
-    print("Claude Vertex AI Benchmark - Tokens/Second & Cost Comparison")
-    print("=" * 80)
-    print(f"\nRunning {num_iterations} iterations per prompt per model per max_tokens config...\n")
-    
-    for max_tokens in MAX_TOKENS_CONFIGS:
-        print(f"\n{'=' * 80}")
-        print(f"Testing with max_tokens={max_tokens}")
-        print(f"{'=' * 80}")
-        
-        for i, prompt in enumerate(TEST_PROMPTS, 1):
-            print(f"\n--- Test {i}: Prompt length {len(prompt)} chars ---")
-            print(f"Prompt: {prompt[:60]}...")
-            print()
-            
-            for model in models:
-                model_name = "Haiku 4.5" if "haiku" in model else "Sonnet 4.5"
-                print(f"Testing {model_name} (max_tokens={max_tokens})...")
-                
-                for iteration in range(num_iterations):
+
+def pct(values: List[float], p: float) -> float:
+    s = sorted(values)
+    k = max(0, min(len(s) - 1, round(p / 100 * (len(s) - 1))))
+    return s[k]
+
+
+def summarize(rows: List[Dict]) -> Dict:
+    def col(name):
+        return [r[name] for r in rows if r.get(name) is not None]
+
+    tps, ttft = col("decode_tok_per_s"), col("ttft_first_text_s")
+    return {
+        "n": len(rows),
+        "no_text_count": sum(1 for r in rows if r.get("ttft_first_text_s") is None),
+        "truncated_count": sum(1 for r in rows if r.get("stop_reason") == "max_tokens"),
+        "decode_tok_per_s_mean": statistics.mean(tps) if tps else None,
+        "decode_tok_per_s_p50": pct(tps, 50) if tps else None,
+        "ttft_first_text_p50_s": pct(ttft, 50) if ttft else None,
+        "ttft_first_text_p99_s": pct(ttft, 99) if ttft else None,
+        "e2e_mean_s": statistics.mean(col("e2e_s")),
+        "avg_output_tokens": statistics.mean(col("output_tokens")),
+        "avg_cost_usd": statistics.mean(col("cost_usd")),
+        "total_cost_usd": sum(col("cost_usd")),
+    }
+
+
+def _f(x: Optional[float], spec: str = ".2f", prefix: str = "") -> str:
+    return f"{prefix}{x:{spec}}" if x is not None else "n/a"
+
+
+def run() -> None:
+    client = anthropic.AnthropicVertex(project_id=PROJECT_ID, region=REGION)
+    started = datetime.now(timezone.utc).isoformat()
+    all_rows: List[Dict] = []
+
+    print(f"Claude Vertex AI benchmark — project={PROJECT_ID} region={REGION} N={NUM_ITERATIONS}")
+    for model, meta in MODELS.items():
+        for max_tokens in MAX_TOKENS_CONFIGS:
+            for tag, prompt in TEST_PROMPTS:
+                for i in range(NUM_ITERATIONS):
                     try:
-                        result = benchmark_model(model, prompt, max_tokens, client)
-                        results[f"{model}_{max_tokens}"].append(result)
-                        print(f"  Iteration {iteration + 1}: {result['tokens_per_second']:.2f} tokens/s "
-                              f"({result['output_tokens']} tokens in {result['time_seconds']:.2f}s, "
-                              f"${result['cost_usd']:.6f})")
-                    except Exception as e:
-                        print(f"  Error: {e}")
-                print()
-    
-    # Calculate and display summary statistics
-    print("\n" + "=" * 80)
-    print("SUMMARY STATISTICS")
-    print("=" * 80)
-    
-    for max_tokens in MAX_TOKENS_CONFIGS:
-        print(f"\n{'=' * 80}")
-        print(f"max_tokens={max_tokens}")
-        print(f"{'=' * 80}")
-        
-        for model in models:
-            model_name = "Haiku 4.5" if "haiku" in model else "Sonnet 4.5"
-            key = f"{model}_{max_tokens}"
-            model_results = results[key]
-            
-            if not model_results:
+                        row = benchmark_streaming(client, model, prompt, max_tokens)
+                        row["prompt"] = tag
+                        all_rows.append(row)
+                        ttft = row["ttft_first_text_s"]
+                        ttft_s = f"{ttft:.2f}s" if ttft is not None else "n/a(no-text)"
+                        print(
+                            f"  {meta['label']:<10} mt={max_tokens:<5} {tag:<6} #{i+1}: "
+                            f"ttft={ttft_s} "
+                            f"decode={row['decode_tok_per_s']:.1f} tok/s "
+                            f"out={row['output_tokens']} stop={row['stop_reason']} "
+                            f"${row['cost_usd']:.5f}"
+                        )
+                    except anthropic.APIStatusError as e:
+                        print(f"  {meta['label']} mt={max_tokens} {tag} #{i+1}: API error {e.status_code}: {e.message}")
+                    except anthropic.APIConnectionError as e:
+                        print(f"  {meta['label']} mt={max_tokens} {tag} #{i+1}: connection error: {e}")
+
+    # Per-model × max_tokens summary + README-ready markdown.
+    # "Norm tok/s" divides by the model's tokenizer_factor so a denser-output
+    # tokenizer (Sonnet 5, ~1.3x) doesn't inflate apparent speed.
+    # "$/task" = mean billed cost to complete the long prompt (thinking incl.) —
+    # the cross-model efficiency unit that self-normalizes tokenizer + verbosity.
+    # cost_delay_usd_s = $/task x s/task (lower = better) — the cost-delay
+    # product, analogous to the energy-delay product in hardware benchmarking:
+    # it rewards being cheap AND fast on the same completed task.
+    summary: Dict[str, Dict] = {}
+    print("\n| Model | max_tokens | TTFT p50 (s) | Decode tok/s | Norm tok/s | Time/task (s) | $/task | $*s index |")
+    print("|---|---|---|---|---|---|---|---|")
+    for model, meta in MODELS.items():
+        factor = meta.get("tokenizer_factor", 1.0)
+        for max_tokens in MAX_TOKENS_CONFIGS:
+            rows = [r for r in all_rows if r["model"] == model and r["max_tokens"] == max_tokens]
+            if not rows:
                 continue
-            
-            tokens_per_sec = [r['tokens_per_second'] for r in model_results]
-            output_tokens = [r['output_tokens'] for r in model_results]
-            times = [r['time_seconds'] for r in model_results]
-            costs = [r['cost_usd'] for r in model_results]
-            
-            print(f"\n{model_name}:")
-            print(f"  Average tokens/second: {statistics.mean(tokens_per_sec):.2f}")
-            print(f"  Median tokens/second:  {statistics.median(tokens_per_sec):.2f}")
-            print(f"  Min tokens/second:     {min(tokens_per_sec):.2f}")
-            print(f"  Max tokens/second:     {max(tokens_per_sec):.2f}")
-            if len(tokens_per_sec) > 1:
-                print(f"  Std dev:               {statistics.stdev(tokens_per_sec):.2f}")
-            print(f"  Avg output tokens:     {statistics.mean(output_tokens):.1f}")
-            print(f"  Avg time:              {statistics.mean(times):.2f}s")
-            print(f"  Avg cost per request:  ${statistics.mean(costs):.6f}")
-            print(f"  Total cost:            ${sum(costs):.6f}")
-    
-    # Compare the models for each max_tokens configuration
-    for max_tokens in MAX_TOKENS_CONFIGS:
-        haiku_key = f"{models[0]}_{max_tokens}"
-        sonnet_key = f"{models[1]}_{max_tokens}"
-        
-        if results[haiku_key] and results[sonnet_key]:
-            haiku_avg = statistics.mean([r['tokens_per_second'] for r in results[haiku_key]])
-            sonnet_avg = statistics.mean([r['tokens_per_second'] for r in results[sonnet_key]])
-            haiku_cost = statistics.mean([r['cost_usd'] for r in results[haiku_key]])
-            sonnet_cost = statistics.mean([r['cost_usd'] for r in results[sonnet_key]])
-            
-            print(f"\n" + "=" * 80)
-            print(f"COMPARISON (max_tokens={max_tokens})")
-            print("=" * 80)
-            
-            if haiku_avg > sonnet_avg:
-                speedup = haiku_avg / sonnet_avg
-                print(f"Haiku 4.5 is {speedup:.2f}x faster than Sonnet 4.5")
-            else:
-                speedup = sonnet_avg / haiku_avg
-                print(f"Sonnet 4.5 is {speedup:.2f}x faster than Haiku 4.5")
-            
-            print(f"\nPerformance:")
-            print(f"  Haiku avg:  {haiku_avg:.2f} tokens/s")
-            print(f"  Sonnet avg: {sonnet_avg:.2f} tokens/s")
-            
-            print(f"\nCost per request:")
-            print(f"  Haiku avg:  ${haiku_cost:.6f}")
-            print(f"  Sonnet avg: ${sonnet_cost:.6f}")
-            
-            cost_ratio = sonnet_cost / haiku_cost if haiku_cost > 0 else 0
-            print(f"  Sonnet is {cost_ratio:.2f}x more expensive than Haiku")
+            s = summarize(rows)
+            s["decode_tok_per_s_normalized"] = (
+                s["decode_tok_per_s_mean"] / factor if s["decode_tok_per_s_mean"] else None
+            )
+            long_rows = [r for r in rows if r["prompt"] == "long"]
+            s["cost_per_long_task_usd"] = (
+                statistics.mean([r["cost_usd"] for r in long_rows]) if long_rows else None
+            )
+            s["time_per_long_task_s"] = (
+                statistics.mean([r["e2e_s"] for r in long_rows]) if long_rows else None
+            )
+            s["cost_delay_usd_s"] = (
+                s["cost_per_long_task_usd"] * s["time_per_long_task_s"]
+                if s["cost_per_long_task_usd"] and s["time_per_long_task_s"]
+                else None
+            )
+            summary[f"{model}|{max_tokens}"] = s
+            flags = ""
+            if s["no_text_count"]:
+                flags = f" ({s['no_text_count']}/{s['n']} no-text)"
+            print(
+                f"| {meta['label']} | {max_tokens} | {_f(s['ttft_first_text_p50_s'])}{flags} "
+                f"| {_f(s['decode_tok_per_s_mean'], '.1f')} | {_f(s['decode_tok_per_s_normalized'], '.1f')} "
+                f"| {_f(s['time_per_long_task_s'], '.1f')} "
+                f"| {_f(s['cost_per_long_task_usd'], '.5f', '$')} "
+                f"| {_f(s['cost_delay_usd_s'], '.4f')} |"
+            )
+
+    artifact = {
+        "started_utc": started,
+        "finished_utc": datetime.now(timezone.utc).isoformat(),
+        "project": PROJECT_ID,
+        "region": REGION,
+        "sdk_version": anthropic.__version__,
+        "iterations": NUM_ITERATIONS,
+        "models": {m: {k: v for k, v in meta.items()} for m, meta in MODELS.items()},
+        "rows": all_rows,
+        "summary": summary,
+        "notes": [
+            "output_tokens includes thinking tokens (billed as output).",
+            "decode_tok_per_s = output_tokens / (t_end - t_first_event), client wall clock.",
+            "ttft_first_text excludes the thinking phase; ttft_first_event includes it.",
+            "Thinking pinned: adaptive on 4.6+ family; always-on by design on Fable 5; n/a on Haiku 4.5.",
+        ],
+    }
+    with open(RESULTS_FILE, "w") as f:
+        json.dump(artifact, f, indent=2)
+    total = sum(r["cost_usd"] for r in all_rows)
+    print(f"\n{len(all_rows)} requests, total spend ${total:.2f}. Raw data: {RESULTS_FILE}")
+
 
 if __name__ == "__main__":
-    # Update PROJECT_ID and REGION at the top of the file before running
-    run_benchmark(num_iterations=3)
+    run()
