@@ -38,7 +38,7 @@ if _CA_BUNDLE and Path(_CA_BUNDLE).exists():
 else:
     _SSL_CTX = ssl.create_default_context()
 
-MODEL = "gemini-3-pro-image-preview"
+MODEL = "gemini-3-pro-image"
 LOCATION = "global"   # NOTE: NOT us-central1. Catalog metadata lies; REST 404s there.
 
 ASPECT_CHOICES = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "5:4", "4:5", "2:3", "3:2"]

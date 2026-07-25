@@ -61,8 +61,8 @@ Generate professional cinematic images via Google's **Gemini 3 Pro Image** (a.k.
 
 | Fact | Value |
 |---|---|
-| Model ID | `gemini-3-pro-image-preview` |
-| Endpoint | `POST https://aiplatform.googleapis.com/v1/projects/{P}/locations/global/publishers/google/models/gemini-3-pro-image-preview:generateContent` |
+| Model ID | `gemini-3-pro-image` |
+| Endpoint | `POST https://aiplatform.googleapis.com/v1/projects/{P}/locations/global/publishers/google/models/gemini-3-pro-image:generateContent` |
 | Status | `PUBLIC_PREVIEW` — model behavior may change before GA |
 | Aspect ratios | `16:9` (default for hero), `9:16`, `1:1`, `4:3`, `3:4`, `21:9` + 4 others |
 | Default resolution (16:9) | ~1376×768 (1K tier) |
@@ -161,7 +161,7 @@ Don't generate at 4K (or 2K) until the user has actually asked for it. A typical
 ```bash
 PROJECT="${GOOGLE_CLOUD_PROJECT:-my-gcp-project}"
 TOKEN="$(gcloud auth application-default print-access-token)"
-URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image-preview:generateContent"
+URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image:generateContent"
 
 cat > /tmp_workspace/req.json <<EOF
 {
@@ -218,3 +218,13 @@ Every recipe says **WHAT works, what to AVOID, and what to LEAVE for Pillow over
 
 - **slidedeck** (`~/.claude/skills/slidedeck/`) — Consumes hero PNGs from this skill, overlays them with native PPTX text frames for editable titles.
 - **web-research** (`~/.claude/skills/web-research/`) — Use to verify any pricing / model-version claims before citing in user-facing docs (LLM training is 1+ year stale on Vertex AI).
+
+## Model status update (verified live 2026-07-25)
+
+- **`gemini-3-pro-image-preview` is DEAD (404 on generateContent everywhere) — the model went GA
+  as `gemini-3-pro-image`.** All references in this skill were updated accordingly.
+- Newest image family on Vertex (full publisher catalog checked): **`gemini-3.1-flash-image`**
+  (+ `-preview`, `-lite`) — measured ~2.4x faster (9s vs 22s) and ~27% fewer tokens than the pro
+  model at 1K/16:9, slightly busier compositions. Use pro for hero quality, 3.1-flash for
+  iteration/volume.
+- No 3.5/3.6 image models exist on Vertex as of this date.

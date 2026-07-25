@@ -35,7 +35,7 @@ if _CA_BUNDLE and Path(_CA_BUNDLE).exists():
 else:
     _SSL_CTX = ssl.create_default_context()
 
-MODEL = "gemini-3-pro-image-preview"
+MODEL = "gemini-3-pro-image"
 LOCATION = "global"
 
 

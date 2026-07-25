@@ -4,7 +4,7 @@
 # Checks (in order):
 #   1. gcloud auth application-default print-access-token returns a valid token
 #   2. Quota project is set on ADC
-#   3. The model gemini-3-pro-image-preview is reachable (no 404)
+#   3. The model gemini-3-pro-image is reachable (no 404)
 #   4. A tiny test image generation succeeds (HTTP 200, returns an inline image)
 #
 # Outputs a real test PNG to <workspace>/tmp/nbpv/smoke-test.png on success.
@@ -76,7 +76,7 @@ fi
 # ── 3. Model reachability ─────────────────────────────────────
 echo ""
 echo "3. Checking model reachability at locations/global..."
-URL="https://aiplatform.googleapis.com/v1beta1/publishers/google/models/gemini-3-pro-image-preview"
+URL="https://aiplatform.googleapis.com/v1beta1/publishers/google/models/gemini-3-pro-image"
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "x-goog-user-project: ${PROJECT}" \
@@ -88,7 +88,7 @@ if [[ "${HTTP_CODE}" != "200" ]]; then
   fail "Workaround: use Imagen 4 (imagen-4.0-generate-001) at us-central1 — GA, no allowlist"
   exit 3
 fi
-ok "Model gemini-3-pro-image-preview is visible to project ${PROJECT}"
+ok "Model gemini-3-pro-image is visible to project ${PROJECT}"
 
 # ── 4. Real generation test ───────────────────────────────────
 echo ""
@@ -110,7 +110,7 @@ cat > "${REQ_FILE}" <<'EOF'
 }
 EOF
 
-GEN_URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image-preview:generateContent"
+GEN_URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image:generateContent"
 
 HTTP_CODE="$(curl -s -X POST \
   -H "Authorization: Bearer ${TOKEN}" \
