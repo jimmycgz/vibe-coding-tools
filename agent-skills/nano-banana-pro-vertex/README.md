@@ -18,7 +18,7 @@ gcloud auth application-default set-quota-project <YOUR_PROJECT>
 gcloud services enable aiplatform.googleapis.com
 ```
 
-> **If a user insists on API key auth:** they're likely thinking of the AI Studio Gemini API (`generativelanguage.googleapis.com`), which is a different surface from Vertex AI. Suggest they use that endpoint with their AI Studio API key — but note that preview models like `gemini-3-pro-image-preview` are typically Vertex-only at launch.
+> **If a user insists on API key auth:** they're likely thinking of the AI Studio Gemini API (`generativelanguage.googleapis.com`), which is a different surface from Vertex AI. Suggest they use that endpoint with their AI Studio API key — but note that preview models like `gemini-3-pro-image` are typically Vertex-only at launch.
 
 ## Validate auth before you build anything
 
@@ -35,7 +35,7 @@ echo "Token length: ${#TOKEN}"   # Should print >100
 curl -s -o /dev/null -w "HTTP %{http_code}\n" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "x-goog-user-project: ${PROJECT}" \
-  "https://aiplatform.googleapis.com/v1beta1/publishers/google/models/gemini-3-pro-image-preview"
+  "https://aiplatform.googleapis.com/v1beta1/publishers/google/models/gemini-3-pro-image"
 # Expected: HTTP 200
 # If 404: project not allowlisted for the preview model. Apply at:
 #   https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/image-generation
@@ -55,7 +55,7 @@ TOKEN="$(gcloud auth application-default print-access-token)"
 
 # IMPORTANT: locations/global is correct. NOT us-central1, despite what the
 # Vertex AI catalog metadata says. REST calls to us-central1 return 404.
-URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image-preview:generateContent"
+URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image:generateContent"
 
 # Use <workspace>/tmp/, never /tmp/.
 mkdir -p ./tmp/nbpv
