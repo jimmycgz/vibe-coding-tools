@@ -45,7 +45,7 @@ def clean_text(text: str) -> str:
     return text
 
 
-def user_text_from_record(rec: dict) -> str | None:
+def user_text_from_record(rec: dict):  # returns str or None (kept 3.9-compatible)
     if rec.get("type") != "user":
         return None
     msg = rec.get("message") or {}

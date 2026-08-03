@@ -35,7 +35,9 @@ if _CA_BUNDLE and Path(_CA_BUNDLE).exists():
 else:
     _SSL_CTX = ssl.create_default_context()
 
-MODEL = "gemini-3-pro-image"
+# DEFAULT, not a pin — see generate.py. Override: --model > $NBP_MODEL > default.
+DEFAULT_MODEL = "gemini-3-pro-image"
+MODEL = os.environ.get("NBP_MODEL") or DEFAULT_MODEL
 LOCATION = "global"
 
 
@@ -145,7 +147,14 @@ def main():
     ap.add_argument("--project", help="GCP project ID (defaults to GOOGLE_CLOUD_PROJECT or gcloud config).")
     ap.add_argument("--concurrency", type=int, default=3, help="Parallel workers. Default 3. API limits typically allow 5-10.")
     ap.add_argument("--out-dir", default="hero-images", help="Directory for output PNGs. NEVER /tmp.")
+    ap.add_argument("--model", default=None,
+                    help=f"Vertex image model id. Overrides $NBP_MODEL. Default {DEFAULT_MODEL} "
+                         f"— check the docs for the current id before trusting it.")
     args = ap.parse_args()
+
+    if args.model:
+        global MODEL
+        MODEL = args.model
 
     out_dir = Path(args.out_dir)
     if str(out_dir).startswith("/tmp/"):

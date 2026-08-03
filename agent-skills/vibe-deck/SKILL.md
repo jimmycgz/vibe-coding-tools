@@ -27,6 +27,44 @@ then optionally assemble them into a branded PPTX with speaker notes.
 
 ## Workflow
 
+### Phase 0 — Collect deck-wide chrome FIRST (do not skip)
+
+Before planning any content, **ask the user for the deck's global chrome and lock it into a
+`DECK_META` block that EVERY slide script imports.** Skipping this is the #1 cause of a deck that
+looks improvised — a session that doesn't ask will invent its own footer/branding per slide, and
+the pieces won't match. Ask (with sensible defaults offered) for:
+
+| Item | Why it must be decided up front | Default if user defers |
+|---|---|---|
+| **Footer text** | Runs on every content slide; must be identical everywhere | `"{Talk Title} · {Session/Venue}"` |
+| **Branding** — logo PNG path, or a text wordmark, + where it sits | A logo added late means re-rendering every slide | text wordmark in footer, no logo image |
+| **Page numbers** — on/off, start index, position | See the reconciled rule below — the delivery path decides this | on, bottom-right, title = no number, content starts at 1 |
+| **Delivery format** — PNG-final vs PPTX-assembled | Determines WHERE chrome is baked (see below) | ask; if unsure, PNG-final |
+| **Accent/brand color** | Ties section bands, rules, and title accent together | `C_BLUE` primary |
+| **Aspect ratio** | 16:9 slides vs other | 16:9 (1920×1080) |
+
+**The page-number reconciliation (resolves the apparent contradiction in Anti-Patterns):**
+- **PNG-final delivery** (slides shown/exported straight from PNGs, no PPTX step) → footer + page
+  number MUST be baked into every content-slide PNG via the shared `draw_chrome()` helper below.
+  This is the common case for a talk deck delivered as images/PDF.
+- **PPTX-assembled delivery** → do NOT bake page numbers into PNGs; `assemble_pptx.py` adds them
+  as native PPTX fields. Baking them would double them up.
+
+Write the answers into a `DECK_META` dict at the top of the shared setup, imported by every block
+script, so footer/branding/page-number logic lives in ONE place and cannot drift between slides:
+
+```python
+DECK_META = {
+    "footer": "{Talk Title} · {Conference or Venue} {Year}",
+    "wordmark": None,              # or "Your Name" for a text brand in the footer
+    "logo_png": None,             # absolute path to a logo PNG, or None
+    "page_numbers": True,          # bake into PNG (PNG-final) — False if PPTX-assembled
+    "page_start": 1,               # first CONTENT slide number (title carries none)
+    "accent": "#1976D2",
+    "delivery": "png-final",      # or "pptx"
+}
+```
+
 ### Phase 1 — Plan the Deck (Markdown Proposal)
 
 1. **Research the topic.** Read all relevant source files the user points to.
@@ -39,7 +77,23 @@ then optionally assemble them into a branded PPTX with speaker notes.
      - **Speaker Notes:** — what the presenter says (blockquote format)
    - Timing breakdown table at the end
    - Appendix for follow-ups / out-of-scope items
-3. **Get user approval** before generating images.
+3. **Include an Agenda/TOC slide as slide 2** (optional but recommended for any deck >6 slides, or
+   any talk with timed sections / a live demo). It's the "here's the flow" map — see the Agenda
+   pattern in Visual Element Patterns below. Propose it in the plan so the user can opt out.
+4. **Get user approval** before generating images. Approval covers content AND the `DECK_META`
+   chrome from Phase 0.
+
+> [!TIP]
+> **After approval, parallelize the block generation across subagents.** Once the plan + DECK_META
+> are approved and Block A's visual style is locked (see the Early User Gate below), the remaining
+> blocks are independent, well-scoped rendering jobs — the ideal subagent fan-out. Dispatch one
+> subagent per block **in parallel** (each imports the SAME `DECK_META` + design constants, so
+> chrome stays identical), and suggest running them in **Auto mode** (`--permission-mode` auto /
+> `dangerouslyskip`-free autonomy) since the work is pure local Pillow rendering into the output
+> dir — no destructive ops, no network. Each subagent runs its own PNG-first QA loop before
+> returning. The orchestrator then does the final cross-deck consistency pass (chrome matches,
+> no two adjacent slides share a layout, page numbers sequential). Keep Block A on the main
+> session for the style-approval gate; fan out B/C/… only after style is locked.
 
 ### Phase 2 — Generate Slide Images (Python/Pillow)
 
@@ -165,7 +219,44 @@ def draw_arrow_down(draw, cx, y1, y2, color, head_size=12):
     draw.rectangle([cx-3, y1, cx+3, y2], fill=color)
     draw.polygon([(cx-head_size, y2-5), (cx+head_size, y2-5),
                   (cx, y2+head_size)], fill=color)
+
+def draw_chrome(draw, page_num=None):
+    """Deck-wide footer + branding + page number. Call ONCE at the end of every
+    CONTENT slide (skip on the title slide) so every slide shares identical chrome.
+    Reads DECK_META so footer/brand/page-number logic lives in one place — this is
+    what stops per-slide improvisation. For PPTX-assembled delivery, pass page_num=None
+    and set DECK_META['page_numbers']=False (PPTX adds numbers natively)."""
+    # Footer (left)
+    if DECK_META.get("footer"):
+        draw.text((60, SLIDE_H - 42), DECK_META["footer"],
+                  fill=C_TEXT_LIGHT, font=font_small)
+    # Text wordmark (right of footer) — only if no logo image
+    if DECK_META.get("wordmark") and not DECK_META.get("logo_png"):
+        wm = DECK_META["wordmark"]
+        w = draw.textlength(wm, font=font_small)
+        draw.text((SLIDE_W - 60 - w - 90, SLIDE_H - 42), wm,
+                  fill=C_TEXT_LIGHT, font=font_small)
+    # Page number (bottom-right) — only when baking into PNG (PNG-final delivery)
+    if DECK_META.get("page_numbers") and page_num is not None:
+        n = str(page_num)
+        w = draw.textlength(n, font=font_small)
+        draw.text((SLIDE_W - 60 - w, SLIDE_H - 42), n,
+                  fill=C_TEXT_LIGHT, font=font_small)
+    # Logo image, if provided (bottom-right corner, above page number)
+    if DECK_META.get("logo_png"):
+        try:
+            logo = Image.open(DECK_META["logo_png"]).convert("RGBA")
+            lw = 180; lh = int(logo.height * lw / logo.width)
+            logo = logo.resize((lw, lh))
+            # caller must paste on the image, not the draw obj — see note
+        except Exception:
+            pass
 ```
+
+> [!NOTE]
+> `draw_chrome` draws footer/wordmark/page-number on the `draw` object. A logo *image* must be
+> `img.paste(logo, (x, y), logo)` on the Image, not the ImageDraw — do that paste right after the
+> `draw_chrome` call on slides that need it. Everything else is centralized so it can't drift.
 
 #### Visual Element Patterns
 
@@ -218,6 +309,57 @@ draw_rounded_rect(draw, (80, code_y, 1760, code_h), 10,
 # Colors: "#6A9955" for comments, "#569CD6" for XML tags,
 #         "#CE9178" for values/strings, "#DCDCAA" for highlight lines
 ```
+
+##### Agenda / TOC slide (slide 2 — the "flow" map)
+
+The map of the talk: full-width colored **section bands**, each holding numbered items with a bold
+title + a dim inline description. A top-right meta line gives the time budget; a bottom center-line
+gives the one-sentence "where the climax is." This is the pattern a session should REUSE, not
+reinvent — it's why Phase 0 collects the accent color and Phase 1 proposes this slide.
+
+```python
+# Top-right time budget (aligned to the title baseline)
+budget = "60 min: ~25 slides + ~25 demo + ~10 Q&A"
+bw = draw.textlength(budget, font=font_header)
+draw.text((1860 - bw, 48), budget, fill=C_ORANGE, font=font_header)
+
+# Sections: each = (band_label, band_color, [(n, title, desc), ...])
+SECTIONS = [
+    ("FOUNDATIONS  (~7 min)", C_BLUE, [
+        ("1", "A Clash of Titans", "Title"),
+        ("2", "Today's flow", "TOC (you are here)"),
+    ]),
+    ("THE REAL CASE  (~30 min, includes LIVE DEMO)", C_ORANGE, [...]),
+    ("ROADMAP + Q&A  (~13 min)", C_GREEN, [...]),
+]
+
+y = 190
+for band_label, band_color, items in SECTIONS:
+    # Full-width section band (rounded, filled)
+    draw_rounded_rect(draw, (60, y, 1800, 46), 8, fill=band_color, outline=band_color)
+    draw.text((84, y + 9), band_label, fill=C_WHITE, font=font_large_bold)
+    y += 46 + 24
+    for n, title, desc in items:
+        # Short color tab on the left echoing the band color
+        draw_rounded_rect(draw, (60, y + 4, 8, 30), 4, fill=band_color, outline=band_color)
+        draw.text((92, y), n + ".", fill=C_ORANGE, font=font_large_bold)   # number in accent
+        draw.text((160, y), title, fill=C_WHITE, font=font_large_bold)     # bold title
+        tw = draw.textlength(title, font=font_large_bold)
+        draw.text((160 + tw + 30, y + 4), desc, fill=C_TEXT_LIGHT, font=font_medium)  # dim desc
+        y += 52
+    y += 28   # gap between sections
+
+# Bottom center-line (the "climax is here" hint) + then draw_chrome for footer/page num
+hint = "Live demo on the dummy branch — slides 8-9 are the climax."
+hw = draw.textlength(hint, font=font_medium)
+draw.text(((SLIDE_W - hw) / 2, 1015), hint, fill=C_ORANGE, font=font_medium)
+draw_chrome(draw, page_num=1)   # the agenda IS content slide 1 → carries chrome
+```
+
+Rules for the agenda: keep it to **3 sections max**, **≤12 items total** (it's a map, not the
+deck); "you are here" marker on the agenda's own row; the bottom hint names the single most
+important beat so the room knows what to wait for. Section-band colors should be the SAME colors
+those sections' content slides use later (color = meaning, deck-wide).
 
 ##### Recommendation / Takeaway Bar
 
@@ -341,7 +483,11 @@ for i in range(N):
 
 - ❌ Never repeat the same layout on consecutive slides
 - ❌ Never use bullet lists on more than 2 slides in a 12-slide deck
-- ❌ Never hardcode page numbers in PNGs (PPTX assembly handles this)
+- ⚠️ Page numbers: bake into PNGs via `draw_chrome()` ONLY for **PNG-final** delivery; for
+  **PPTX-assembled** delivery, don't bake them (PPTX adds them natively — see Phase 0 reconciliation)
+- ❌ Never let footer / branding / page-number logic live per-slide — it MUST come from the shared
+  `DECK_META` + `draw_chrome()` so it's identical on every slide (per-slide chrome = the improvised
+  look this skill exists to prevent)
 - ❌ Never use emojis (render as boxes) — use text labels or colored badges
 - ❌ Never include company/personal info unless explicitly specified
 - ❌ Never use plain rectangles without rounded corners or shadows
@@ -384,6 +530,13 @@ After generating all PNGs, **review every single one:**
 - [ ] Consistent vertical spacing between rows/items
 - [ ] Architecture diagram connectors align with source/target boxes
 - [ ] Bottom margin: at least 30px below last element
+
+#### Deck-wide chrome consistency (cross-slide — the improvisation guard)
+- [ ] Footer text identical on every content slide (came from `DECK_META`, not retyped)
+- [ ] Page numbers present + sequential on content slides; title slide carries none (PNG-final only)
+- [ ] Branding/logo in the same position on every slide
+- [ ] Section-band colors on the agenda match those sections' content-slide colors
+- [ ] Chrome came from `draw_chrome()` — grep the block scripts: no per-slide footer/page-number literals
 
 3. Fix and regenerate any slides with issues
 4. Re-verify fixed PNGs — **never assume a fix is clean without visual re-verification**

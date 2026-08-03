@@ -38,7 +38,11 @@ if _CA_BUNDLE and Path(_CA_BUNDLE).exists():
 else:
     _SSL_CTX = ssl.create_default_context()
 
-MODEL = "gemini-3-pro-image"
+# Image model ids on Vertex turn over every few months, so this is a DEFAULT, not a pin.
+# It was correct when last verified (see "Model status" in SKILL.md) and WILL go stale.
+# Override without editing this file, in precedence order: --model > $NBP_MODEL > default.
+DEFAULT_MODEL = "gemini-3-pro-image"
+MODEL = os.environ.get("NBP_MODEL") or DEFAULT_MODEL
 LOCATION = "global"   # NOTE: NOT us-central1. Catalog metadata lies; REST 404s there.
 
 ASPECT_CHOICES = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "5:4", "4:5", "2:3", "3:2"]
@@ -157,10 +161,13 @@ def call_vertex(project: str, payload: dict, token: str) -> dict:
         body = e.read().decode()[:500]
         if e.code == 404:
             sys.exit(
-                f"ERROR: HTTP 404. Likely cause: project '{project}' is NOT allowlisted for the\n"
-                f"preview model {MODEL}. Apply for access at:\n"
-                f"  https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/image-generation\n"
-                f"Workaround: use Imagen 4 (imagen-4.0-generate-001) at us-central1 — GA, no allowlist.\n"
+                f"ERROR: HTTP 404. Two likely causes: (a) model id '{MODEL}' no longer exists —\n"
+                f"image model ids turn over; check the docs below and retry with --model <id>;\n"
+                f"or (b) project '{project}' is NOT allowlisted for it. Details:\n"
+                f"  https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models\n"
+                f"List what your project can actually reach:\n"
+                f"  gcloud ai model-garden models list --model-filter=image\n"
+                f"Cheaper GA alternative: --model gemini-3.1-flash-image  (Imagen is retired — 404)\n"
                 f"Response body: {body}"
             )
         if e.code == 403:
@@ -192,7 +199,14 @@ def main():
     ap.add_argument("--tier", default="1k", choices=list(TIER_TO_RES.keys()),
                     help="Resolution tier. Iterate at 1k (cheap) and finalize at 4k. Default 1k.")
     ap.add_argument("--out", default="hero.png", help="Output PNG path. NEVER use /tmp; use <workspace>/tmp/.")
+    ap.add_argument("--model", default=None,
+                    help=f"Vertex image model id. Overrides $NBP_MODEL. Default {DEFAULT_MODEL} "
+                         f"— check the docs for the current id before trusting it.")
     args = ap.parse_args()
+
+    if args.model:
+        global MODEL
+        MODEL = args.model
 
     project = resolve_project(args.project)
     token = get_adc_token()

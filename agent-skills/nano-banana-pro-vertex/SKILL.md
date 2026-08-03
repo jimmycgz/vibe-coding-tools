@@ -17,7 +17,7 @@ Generate professional cinematic images via Google's **Gemini 3 Pro Image** (a.k.
 
 - User wants editable text inside the image — overlay text in PowerPoint or Pillow instead, do NOT bake critical text into AI output
 - User wants logos, branded marks, or trademarked imagery — use the real asset, never AI-generate
-- Quick mockups where Imagen 4 (cheaper, GA, no preview gating) would do — see Cost Strategy below
+- Quick mockups where the cheaper flash tier (`gemini-3.1-flash-image`) would do — see Cost Strategy below
 
 ## Prerequisites
 
@@ -40,11 +40,18 @@ Generate professional cinematic images via Google's **Gemini 3 Pro Image** (a.k.
    ```
 
 4. **Project allowlisted for the preview model** (Nano Banana Pro is `PUBLIC_PREVIEW`):
-   - If `verify_setup.sh` returns 404, request access via [Vertex AI Generative AI signup](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/image-generation)
+   - If `verify_setup.sh` returns 404, check the [Google models catalog](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models) — the id may have been retired, not just gated
    - Approval typically takes 1–3 business days
-   - Until approved, fall back to **Imagen 4** (`imagen-4.0-generate-001`) — GA, no allowlist, cheaper
+   - Until approved, fall back to the flash tier: `--model gemini-3.1-flash-image` (GA, cheaper/faster).
+     **Do NOT use Imagen** — `imagen-4.0-generate-001` and the `imagegeneration@*` endpoints were
+     retired and now return 404 (verified 2026-08-03)
 
-5. **Python 3.10+ with cairosvg** (only if you need SVG → PNG conversion for downstream work)
+5. **Python 3.10+ with cairosvg** (only if you need SVG → PNG conversion for downstream work) —
+   use the shared global venv at `~/.claude/venv/`, the same one `vibe-deck` uses. It already has
+   cairosvg/Pillow/python-pptx installed (Python 3.12); don't create a separate per-workspace venv
+   for this. Invoke the binary directly — `~/.claude/venv/bin/python3 script.py` — rather than
+   `source`-activating it: activation does not survive across separate agent tool calls, which
+   reads as a missing dependency and triggers a pointless reinstall (see `vibe-deck/README.md`).
 
 ## The Six Verified Pitfalls (all observed during real builds)
 
@@ -61,9 +68,9 @@ Generate professional cinematic images via Google's **Gemini 3 Pro Image** (a.k.
 
 | Fact | Value |
 |---|---|
-| Model ID | `gemini-3-pro-image` |
-| Endpoint | `POST https://aiplatform.googleapis.com/v1/projects/{P}/locations/global/publishers/google/models/gemini-3-pro-image:generateContent` |
-| Status | `PUBLIC_PREVIEW` — model behavior may change before GA |
+| Model ID | **Default** `gemini-3-pro-image` — not a pin; override with `--model` or `$NBP_MODEL`, see Model selection below |
+| Endpoint | `POST https://aiplatform.googleapis.com/v1/projects/{P}/locations/global/publishers/google/models/{MODEL}:generateContent` |
+| Status | GA as of the last verification date below — re-check before relying on it |
 | Aspect ratios | `16:9` (default for hero), `9:16`, `1:1`, `4:3`, `3:4`, `21:9` + 4 others |
 | Default resolution (16:9) | ~1376×768 (1K tier) |
 | Max resolution | 3840×2160 (4K tier) |
@@ -161,7 +168,8 @@ Don't generate at 4K (or 2K) until the user has actually asked for it. A typical
 ```bash
 PROJECT="${GOOGLE_CLOUD_PROJECT:-my-gcp-project}"
 TOKEN="$(gcloud auth application-default print-access-token)"
-URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image:generateContent"
+MODEL="${NBP_MODEL:-gemini-3-pro-image}"   # default, not a pin — see Model selection
+URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/${MODEL}:generateContent"
 
 cat > /tmp_workspace/req.json <<EOF
 {
@@ -219,12 +227,49 @@ Every recipe says **WHAT works, what to AVOID, and what to LEAVE for Pillow over
 - **slidedeck** (`~/.claude/skills/slidedeck/`) — Consumes hero PNGs from this skill, overlays them with native PPTX text frames for editable titles.
 - **web-research** (`~/.claude/skills/web-research/`) — Use to verify any pricing / model-version claims before citing in user-facing docs (LLM training is 1+ year stale on Vertex AI).
 
-## Model status update (verified live 2026-07-25)
+## Model selection — the id is a DEFAULT, never a pin
 
-- **`gemini-3-pro-image-preview` is DEAD (404 on generateContent everywhere) — the model went GA
-  as `gemini-3-pro-image`.** All references in this skill were updated accordingly.
-- Newest image family on Vertex (full publisher catalog checked): **`gemini-3.1-flash-image`**
-  (+ `-preview`, `-lite`) — measured ~2.4x faster (9s vs 22s) and ~27% fewer tokens than the pro
-  model at 1K/16:9, slightly busier compositions. Use pro for hero quality, 3.1-flash for
-  iteration/volume.
-- No 3.5/3.6 image models exist on Vertex as of this date.
+Google turns image model ids over every few months, and a skill that hardcodes one rots silently:
+you get a 404 that reads like a permissions problem. So nothing here is pinned. Precedence:
+
+```
+--model <id>   >   $NBP_MODEL   >   DEFAULT_MODEL in the script
+```
+
+**Find what your project can actually reach — do this before trusting any id below:**
+
+```bash
+gcloud ai model-garden models list --model-filter=image
+```
+
+Or query the catalog directly for `launchStage` (`GA` / `PUBLIC_PREVIEW` / `EXPERIMENTAL`); the
+`x-goog-user-project` header is required or bare ADC fails:
+
+```bash
+curl -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+     -H "x-goog-user-project: ${PROJECT}" \
+  "https://us-central1-aiplatform.googleapis.com/v1beta1/publishers/google/models?pageSize=300"
+```
+
+Canonical catalog: <https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models>
+(the old `cloud.google.com/vertex-ai/generative-ai/docs/models` path 301s here, and the legacy
+Vertex pages carry a "no longer being updated" banner — don't cite them).
+
+### Verified live 2026-08-03 (`launchStage` from the API, not from docs prose)
+
+| Model ID | Stage | Use |
+|---|---|---|
+| `gemini-3-pro-image` | GA | **Default.** "Nano Banana Pro" — hero quality. 4K output still Preview. |
+| `gemini-3.1-flash-image` | GA | "Nano Banana 2" — cheaper/faster; iteration and volume |
+| `gemini-3.1-flash-lite-image` | GA | Cheapest tier |
+| `gemini-2.5-flash-image` | GA | ⚠️ **retires 2026-10-02** — don't build on it |
+
+**Two traps this table exists to prevent:**
+- **`imagen-4.0-generate-001` is GONE** — 404, absent from the Model Garden catalog, along with
+  the `imagegeneration@*` endpoints. Earlier versions of this skill named it as the no-allowlist
+  fallback. It isn't one. Use `gemini-3.1-flash-image` instead.
+- **`gemini-3.6-flash` does NOT generate images.** Its model card is text in/out with image, audio,
+  and video as *input only*. A newer version number is not a newer image model — check the model
+  card for image **output** before switching.
+
+Not checked: region variance (only `us-central1` queried) and whether pagination hid entries.
