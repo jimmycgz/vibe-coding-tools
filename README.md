@@ -8,6 +8,7 @@ A collection of AI agent skills, tools, and benchmarks for vibe coding workflows
 vibe-coding-tools/
 ├── agent-skills/              # Reusable agent skills
 │   ├── claude-code-statusbar/ # Color-coded Claude Code status line + popup alerts
+│   ├── distill-user/          # Mine transcript history into durable user-preference memory
 │   ├── internet-search/       # Domain-first, route-independent web search (no API keys)
 │   ├── markdown-render-qa/    # Catch Markdown that reads fine but renders wrong
 │   ├── nano-banana-pro-vertex/# Cinematic hero-image generation (Gemini 3 Pro Image on Vertex AI)
@@ -42,6 +43,7 @@ Reusable AI agent skills — drop into `.agents/skills/` for any agentic coding 
 | Skill | Description |
 |---|---|
 | [**claude-code-statusbar**](./agent-skills/claude-code-statusbar) | Color-coded Claude Code `statusLine` showing model, context size, usage bar, with escalating macOS popup alerts at 33%, 85%, 90%, and 95% context usage. |
+| [**distill-user**](./agent-skills/distill-user) | Mine your local Claude Code transcript history for what you've said more than once — repeated requests, standing checks, corrections, preferences, dislikes — and distill it into memory rules with verbatim evidence, behind one approval gate. Runs entirely locally; workspace-scoped by default, global scan is opt-in. |
 | [**internet-search**](./agent-skills/internet-search) | Domain-first, route-independent web search — prefers specific catalogs (GitHub, Stack Overflow, arXiv, Hugging Face, package registries) over generic web search, validates every hit with a live fetch, and fans out parallel workers for broad questions. Works with no WebSearch tool and no API keys (e.g. on a Vertex/Bedrock-blocked route). |
 | [**markdown-render-qa**](./agent-skills/markdown-render-qa) | Catch Markdown that reads fine as raw text but renders wrong — collapsed setext headings, ineffective single-space hard breaks, `**Field:**` blocks merging into one paragraph — plus a per-case table for choosing Markdown vs HTML. Stdlib-only linter, no dependencies. |
 | [**nano-banana-pro-vertex**](./agent-skills/nano-banana-pro-vertex) | Scriptable cinematic hero-image generation via Gemini 3 Pro Image (Nano Banana Pro) on Vertex AI — ADC auth, cost-tiered workflow (1K/2K/4K), parallel batch, PPTX-editable text-overlay sidecars. |

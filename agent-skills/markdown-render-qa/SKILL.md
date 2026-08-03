@@ -35,24 +35,42 @@ different (restructure the setext heading vs. add a real hard break).
 ## Part 2 — Run the linter
 
 ```bash
-python3 <skill>/scripts/md_lint.py path/to/doc.md
+python3 <skill>/scripts/md_lint.py path/to/doc.md          # one file
+python3 <skill>/scripts/md_lint.py docs/*.md README.md     # or many
 ```
+
+Pure Python 3 stdlib (`argparse`, `re`, `sys`) — no dependencies to install, no
+network access, no permission-allowlist changes needed.
 
 Deliberately narrow, deliberately low-noise — it does **not** flag ordinary
 soft-wrapped prose (a paragraph wrapped across lines and joined with a space
 at render time is CommonMark working as designed, not a bug). It flags only
 the well-understood, usually-unintentional failure modes:
 
-| Finding | Meaning |
-|---|---|
-| `SETEXT-MULTILINE` | multi-line title before a `===`/`---` underline — will collapse to one rendered line |
-| `LITERAL-BACKSLASH-HEADING` | trailing `\` on an ATX heading renders literally, not as a break |
-| `INEFFECTIVE-HARD-BREAK` | exactly one trailing space — needs 2+, or a backslash |
-| `FRAGILE-HARD-BREAK` (info, not an error) | a working 2-space hard break — correct, but invisible and easy to strip by accident |
-| `BOLD-LABEL-MERGE` | consecutive `**Field:**`-style lines with no blank line/hard break between them — collapse into one paragraph. Caught this exact bug live in production (a 4-line speaker/format/audience/predecessor block rendering as one line). |
+| Finding | Severity | Meaning |
+|---|---|---|
+| `SETEXT-MULTILINE` | WARN | multi-line title before a `===`/`---` underline — will collapse to one rendered line |
+| `LITERAL-BACKSLASH-HEADING` | WARN | trailing `\` on an ATX heading renders literally, not as a break |
+| `INEFFECTIVE-HARD-BREAK` | WARN | exactly one trailing space — needs 2+, or a backslash |
+| `BOLD-LABEL-MERGE` | WARN | consecutive `**Field:**`-style lines with no blank line/hard break between them — collapse into one paragraph. Caught this exact bug live in production (a 4-line speaker/format/audience/predecessor block rendering as one line). |
+| `FRAGILE-HARD-BREAK` | INFO | a working 2-space hard break — correct, but invisible and easy to strip by accident |
+
+Every finding prints as `SEVERITY path:line [KIND] explanation`, so the fix is
+usually obvious from the output alone.
 
 Skips fenced code blocks and YAML frontmatter automatically. Exit 0 = clean,
-1 = findings — wire it as a pre-commit/pre-publish gate if useful.
+1 = findings — wire it as a pre-commit/pre-publish gate if useful:
+
+```bash
+python3 <skill>/scripts/md_lint.py docs/*.md || echo "fix the above before publishing"
+```
+
+**What it deliberately does NOT check:** link validity, table alignment, heading
+hierarchy, raw-HTML correctness, or style/formatting preferences. Those are
+`markdownlint`'s job and it does them well. The overlap is small and specific:
+`markdownlint`'s `MD009` covers trailing-space breaks (see Part 4), but it has
+no rule for a setext title collapsing across lines, or for consecutive
+`**Field:**` lines merging into one paragraph. Run both; neither replaces the other.
 
 ## Part 3 — Render and look (the step no existing tool does)
 
@@ -110,10 +128,23 @@ Use this table to make the call per case, not by default:
 | Might be piped/emailed/viewed in an unknown or failing renderer | **Markdown or plain text** | Degrades gracefully; broken HTML looks visibly broken |
 | No clear signal, quick conversational answer | **Plain Markdown, minimal formatting** | Don't reach for HTML "for richness" on a short-lived interaction |
 
+## Definition of done
+
+Before calling a Markdown deliverable finished:
+
+- [ ] Format choice is deliberate — Markdown vs HTML judged against Part 5, not defaulted.
+- [ ] Linter reports clean, or every finding is understood and intentional.
+- [ ] You rendered it and actually read the rendered output — not just the source.
+- [ ] Rendered in the engine it will really be read through, if that differs from your editor.
+- [ ] Any intentional hard breaks use a visible `\` or `<br>`, not invisible trailing spaces.
+- [ ] Multi-line titles and `**Field:**` blocks confirmed to render as separate lines.
+
 ## Reference implementation
 
 - `scripts/md_lint.py` — the deterministic checker (Part 2).
-- `scripts/test-fixtures.md` — a worked example exercising all four finding
+- `scripts/test-fixtures.md` — a worked example exercising all five finding
   types plus the false-positive guards (frontmatter, fenced code, ordinary
   prose, a real thematic-break `---`) — useful as a regression check if you
   ever modify the linter.
+- `README.md` — human-facing overview: what the skill does, install, and
+  standalone CLI usage.
