@@ -8,6 +8,8 @@ A collection of AI agent skills, tools, and benchmarks for vibe coding workflows
 vibe-coding-tools/
 ├── agent-skills/              # Reusable agent skills
 │   ├── claude-code-statusbar/ # Color-coded Claude Code status line + popup alerts
+│   ├── internet-search/       # Domain-first, route-independent web search (no API keys)
+│   ├── markdown-render-qa/    # Catch Markdown that reads fine but renders wrong
 │   ├── nano-banana-pro-vertex/# Cinematic hero-image generation (Gemini 3 Pro Image on Vertex AI)
 │   ├── remove-background/     # Transparent PNG generation pipeline
 │   ├── svg-diagram-qa/        # Render-and-inspect QA for hand-authored SVG diagrams
@@ -41,6 +43,7 @@ Reusable AI agent skills — drop into `.agents/skills/` for any agentic coding 
 |---|---|
 | [**claude-code-statusbar**](./agent-skills/claude-code-statusbar) | Color-coded Claude Code `statusLine` showing model, context size, usage bar, with escalating macOS popup alerts at 33%, 85%, 90%, and 95% context usage. |
 | [**internet-search**](./agent-skills/internet-search) | Domain-first, route-independent web search — prefers specific catalogs (GitHub, Stack Overflow, arXiv, Hugging Face, package registries) over generic web search, validates every hit with a live fetch, and fans out parallel workers for broad questions. Works with no WebSearch tool and no API keys (e.g. on a Vertex/Bedrock-blocked route). |
+| [**markdown-render-qa**](./agent-skills/markdown-render-qa) | Catch Markdown that reads fine as raw text but renders wrong — collapsed setext headings, ineffective single-space hard breaks, `**Field:**` blocks merging into one paragraph — plus a per-case table for choosing Markdown vs HTML. Stdlib-only linter, no dependencies. |
 | [**nano-banana-pro-vertex**](./agent-skills/nano-banana-pro-vertex) | Scriptable cinematic hero-image generation via Gemini 3 Pro Image (Nano Banana Pro) on Vertex AI — ADC auth, cost-tiered workflow (1K/2K/4K), parallel batch, PPTX-editable text-overlay sidecars. |
 | [**remove-background**](./agent-skills/remove-background) | Remove white/light backgrounds from images to create transparent PNGs. Handles logos, icons, product photos, and multi-object images. |
 | [**svg-diagram-qa**](./agent-skills/svg-diagram-qa) | Render-to-PNG-and-inspect QA for hand-authored SVG diagrams — catches overlapping boxes, painted-over labels, off-canvas text, and viewBox cropping that well-formed XML hides. |
