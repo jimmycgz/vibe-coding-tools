@@ -32,13 +32,16 @@ TOKEN="$(gcloud auth application-default print-access-token)"
 echo "Token length: ${#TOKEN}"   # Should print >100
 
 # Test 2: project sees the model
+# MODEL is a default, not a pin — ids turn over. See "Model selection" in SKILL.md.
+MODEL="${NBP_MODEL:-gemini-3-pro-image}"
 curl -s -o /dev/null -w "HTTP %{http_code}\n" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "x-goog-user-project: ${PROJECT}" \
-  "https://aiplatform.googleapis.com/v1beta1/publishers/google/models/gemini-3-pro-image"
+  "https://aiplatform.googleapis.com/v1beta1/publishers/google/models/${MODEL}"
 # Expected: HTTP 200
-# If 404: project not allowlisted for the preview model. Apply at:
-#   https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/image-generation
+# If 404: the id may be retired, OR the project isn't allowlisted. Check which:
+#   gcloud ai model-garden models list --model-filter=image
+#   https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models
 # If 403: ADC quota project missing. Run:
 #   gcloud auth application-default set-quota-project ${PROJECT}
 ```
@@ -55,7 +58,8 @@ TOKEN="$(gcloud auth application-default print-access-token)"
 
 # IMPORTANT: locations/global is correct. NOT us-central1, despite what the
 # Vertex AI catalog metadata says. REST calls to us-central1 return 404.
-URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image:generateContent"
+MODEL="${NBP_MODEL:-gemini-3-pro-image}"   # default, not a pin
+URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/${MODEL}:generateContent"
 
 # Use <workspace>/tmp/, never /tmp/.
 mkdir -p ./tmp/nbpv

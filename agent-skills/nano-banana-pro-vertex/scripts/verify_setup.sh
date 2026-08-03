@@ -4,7 +4,7 @@
 # Checks (in order):
 #   1. gcloud auth application-default print-access-token returns a valid token
 #   2. Quota project is set on ADC
-#   3. The model gemini-3-pro-image is reachable (no 404)
+#   3. The image model ($NBP_MODEL, or the default below) is reachable (no 404)
 #   4. A tiny test image generation succeeds (HTTP 200, returns an inline image)
 #
 # Outputs a real test PNG to <workspace>/tmp/nbpv/smoke-test.png on success.
@@ -76,19 +76,22 @@ fi
 # ── 3. Model reachability ─────────────────────────────────────
 echo ""
 echo "3. Checking model reachability at locations/global..."
-URL="https://aiplatform.googleapis.com/v1beta1/publishers/google/models/gemini-3-pro-image"
+# DEFAULT, not a pin — image model ids turn over. Override: NBP_MODEL=<id> ./verify_setup.sh
+MODEL="${NBP_MODEL:-gemini-3-pro-image}"
+URL="https://aiplatform.googleapis.com/v1beta1/publishers/google/models/${MODEL}"
 HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "x-goog-user-project: ${PROJECT}" \
   "${URL}")"
 if [[ "${HTTP_CODE}" != "200" ]]; then
   fail "Publisher model lookup returned HTTP ${HTTP_CODE}"
-  fail "Likely cause: project not allowlisted for the preview model"
-  fail "Action: visit https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/image-generation"
-  fail "Workaround: use Imagen 4 (imagen-4.0-generate-001) at us-central1 — GA, no allowlist"
+  fail "Likely cause: model id '${MODEL}' is retired/renamed, or project not allowlisted for it"
+  fail "Action: list what this project can reach — gcloud ai model-garden models list --model-filter=image"
+  fail "Catalog: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models"
+  fail "Cheaper GA alternative: NBP_MODEL=gemini-3.1-flash-image (Imagen is retired — 404)"
   exit 3
 fi
-ok "Model gemini-3-pro-image is visible to project ${PROJECT}"
+ok "Model ${MODEL} is visible to project ${PROJECT}"
 
 # ── 4. Real generation test ───────────────────────────────────
 echo ""
@@ -110,7 +113,7 @@ cat > "${REQ_FILE}" <<'EOF'
 }
 EOF
 
-GEN_URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/gemini-3-pro-image:generateContent"
+GEN_URL="https://aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/global/publishers/google/models/${MODEL}:generateContent"
 
 HTTP_CODE="$(curl -s -X POST \
   -H "Authorization: Bearer ${TOKEN}" \

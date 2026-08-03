@@ -13,7 +13,7 @@
 #     "PostToolUse": [
 #       { "matcher": "Write|Edit|MultiEdit",
 #         "hooks": [ { "type": "command",
-#           "command": "bash /Users/jcui/.claude/skills/svg-diagram-qa/scripts/svg_lint_hook.sh" } ] }
+#           "command": "bash ~/.claude/skills/svg-diagram-qa/scripts/svg_lint_hook.sh" } ] }
 #     ]
 #   }
 

@@ -38,17 +38,38 @@ A Streamlined Solution to Generate Professional Presentation Slide Images (PNG) 
 
 ### Python Virtual Environment
 
-Create a venv within your workspace to isolate dependencies:
+**Use the shared global venv at `~/.claude/venv/` — do not create a per-workspace `.venv`.**
+This venv is deliberately global/cross-project (installed once, reused by every deck/image-tooling
+skill, including `nano-banana-pro-vertex`) rather than reinstalled per workspace. It already has
+Pillow, python-pptx, cairosvg, PyMuPDF, xlsxwriter, and numpy installed (Python 3.12) — confirmed
+present; there should be no need to `pip install` anything for this skill's normal use.
+
+**Preferred: invoke the venv's `python3` binary directly by full path, every time — do not `source activate`:**
 
 ```bash
-cd <your-workspace>
-python3 -m venv .venv
-source .venv/bin/activate
-pip install Pillow
+~/.claude/venv/bin/python3 generate_slides_01.py
 ```
 
+> [!WARNING]
+> **This is the primary recommendation, not a fallback.** Agent/subagent tool calls each run in a
+> fresh shell — `source ~/.claude/venv/bin/activate` in one call does NOT persist to the next call.
+> A subagent that sources the venv in one Bash call and then runs `python3` in a *separate* call
+> silently falls back to bare system Python (no packages installed), looks like a missing-dependency
+> error, and wastes time on an unnecessary `pip install`. Invoking the binary by full path sidesteps
+> this entirely — no activation state to lose, works identically in every call. (Hit exactly this
+> failure live during a real multi-block deck build — a subagent tried to pip-install packages that
+> were already present, because activation didn't survive across its tool calls.)
+>
+> If you do need `source` (e.g. for an interactive shell), chain it in the SAME command:
+> `source ~/.claude/venv/bin/activate && python3 generate_slides_01.py` — but the direct-binary-path
+> form above is more robust for anything scripted or delegated to a subagent.
+
+If a package is genuinely missing, install it into this SAME venv
+(`~/.claude/venv/bin/pip install <pkg>`) rather than spinning up a workspace-local one —
+that keeps every project working off one consistent, pre-warmed environment instead of re-installing
+on every new deck.
+
 > The PPTX assembly script (`assemble_pptx.py`) uses only Python stdlib — no extra packages needed.
-> Only PIL/Pillow is required for PNG generation.
 
 ### Working Directory
 
@@ -65,12 +86,10 @@ All temporary and work-in-progress files should live within the workspace:
 │   ├── assemble_pptx.py        # Assembly script (copied from skill)
 │   ├── Slide_01_*.png          # Generated PNGs
 │   └── My-Presentation.pptx    # Final output
-└── .venv/                      # Python venv (gitignored)
 ```
 
 Add to your `.gitignore`:
 ```
-.venv/
 tmp/
 ```
 
