@@ -11,7 +11,7 @@ It started from the cost-optimization notebook in Anthropic's cookbook (`cost_op
 - **Spend guard**: stops before any request whose worst case would pass `--ceiling-usd`.
 - **Rotated arm order** (`--order rotate`) so no arm always runs at the same point in the sequence.
 - **Offline selftest**: checks the cost formula against numbers the notebook printed and the stream parser against a canned stream; it needs no key and no network.
-- **One results table**: [build_results_table.py](build_results_table.py) builds it from the raw records, with each arm named by model and setting in words ([arms.json](arms.json)).
+- **One results table**: [build_results_table.py](build_results_table.py) builds the arm, pass-count and cost columns from the raw records (and the timing columns for a streamed run), with each arm named by model and setting in words ([arms.json](arms.json)). The notebook comparison column in the run 1 report was added by hand.
 
 ## Run it
 
@@ -24,7 +24,7 @@ python3 model_benchmark.py --live --ceiling-usd 10 --trials 2 --configs opus-hig
 python3 build_results_table.py results/run1                             # the results table, plain arm names
 ```
 
-A live run spends real money: run one claim of one arm first (`--claims CLM-001 --trials 1`). Arm ids for `--configs` are listed in [arms.json](arms.json). The explicit-breakpoint arm is in run 1 only.
+A live run spends real money: run one claim of one arm first (`--claims CLM-001 --trials 1`). Arm ids for `--configs` are listed in [arms.json](arms.json). The explicit-breakpoint arm is in run 1 only. The script also keeps the notebook's three Haiku arms as the notebook has them; they have not been run, and the Haiku model id in [models.json](models.json) has not been checked against what a key can call.
 
 ## Reports
 
