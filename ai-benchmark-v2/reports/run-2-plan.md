@@ -32,7 +32,7 @@ Serial, one request at a time, no concurrency. Trial by trial, with the arm orde
 - Trial 1: Opus high effort no cache; Opus high auto cache; Opus medium auto cache; Opus low auto cache; Sonnet high auto cache; Sonnet medium auto cache; Sonnet low auto cache; Fable high no cache; Fable high auto cache; Sonnet high no cache; Fable medium auto cache; Fable low auto cache.
 - Trial 2: Sonnet low auto cache; Fable high no cache; Fable high auto cache; Sonnet high no cache; Fable medium auto cache; Fable low auto cache; Opus high no cache; Opus high auto cache; Opus medium auto cache; Opus low auto cache; Sonnet high auto cache; Sonnet medium auto cache.
 
-Two trials allow one rotation; it moves each arm by six places and spreads time-of-day effects, it does not remove them. Each arm and trial starts with a fresh nonce, so the cache is cold at the first claim and warm from the second.
+Two trials allow one rotation; it moves each arm by six places and spreads time-of-day effects, it does not remove them. Each arm and trial starts with a fresh nonce, shared by its 10 claims. With auto cache, every claim's first turn writes the whole prefix (system prompt and tools, about 13,000 tokens in run 1) and reads nothing, so the cache is cold at the first turn of every claim and warm from the second turn of that claim. Only an explicit system breakpoint carries the prefix across claims; that arm is not in run 2. [How caching is switched](how-caching-is-switched.md) shows the code and the recorded usage.
 
 ## Timing (`--stream`)
 
@@ -44,9 +44,9 @@ All times are on the monotonic clock from just before the request is opened:
 - `first_text_s`: to the first text delta; empty when the reply has no text, which is common on a tool-use turn
 - `attempts`: how many tries the request took
 
-Per claim: `claim_wall_s` (first request to the verdict, including local tool time) and `trial_wall_s`. The results table gets one row per arm: pass counts per trial with run 1 and run 2 in separate columns, cost per task, wall seconds per claim, and the median of each first-token measure per arm.
+Per claim: `claim_wall_s` (first request to the verdict, including local tool time) and `trial_wall_s`. The results table gets one row per arm: pass counts per trial with run 1 and run 2 in separate columns, cost per task, wall seconds per claim, and the median of each first-token measure per arm, for first turns and for later turns separately.
 
-Caveats the results will carry: timing depends on network and API load; cached and cold time to first token are comparable only when the cache is warm, and the first claim of every trial is cold; two trials are too few to call a timing difference between close arms; the streaming path is new and its first live use is a one-claim smoke test.
+Caveats the results will carry: timing depends on network and API load; cached and uncached time to first token are comparable only when the cache is warm, and the first turn of every claim is cold in every cached arm, so time to first token is reported for first turns and for later turns separately; two trials are too few to call a timing difference between close arms; the streaming path is new and its first live use is a one-claim smoke test.
 
 ## Spend
 
