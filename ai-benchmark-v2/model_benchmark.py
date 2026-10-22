@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Campaign 2: the cookbook's insurance-claims eval as a plain script (stdlib only, raw HTTPS).
+"""Model benchmark: cost per task and timing on the cookbook's insurance-claims task, as a plain script (stdlib only, raw HTTPS).
 
 Re-implements, from the notebook cost_optimization.ipynb (anthropics/claude-cookbooks a162e01, notebook
 sha256 6b5955d79331c70a...), the parts the comparison needs: the adjudicate() loop (cell 15), adjudicate_cm()
@@ -9,12 +9,12 @@ not reproduced. Nothing is imported from the cookbook repo; its data files were 
 (hashes in assets/SOURCE-SHA256.txt).
 
 usage:
-  run_cost_campaign.py --dry-run [--configs opus-high-nocache,sonnet-medium-cache] [--claims CLM-001,...] [--dump FILE]
+  model_benchmark.py --dry-run [--configs opus-high-nocache,sonnet-medium-cache] [--claims CLM-001,...] [--dump FILE]
       prints every first-turn request body (key shown as <REDACTED>) and the request count; no network,
       no key read. Later turns of a tool loop depend on the model's replies and cannot be printed in advance.
-  run_cost_campaign.py --estimate [--trials N] [--configs ...]
+  model_benchmark.py --estimate [--trials N] [--configs ...]
       prints the cost arithmetic from the notebook's saved per-task costs; no network.
-  run_cost_campaign.py --live --ceiling-usd X --trials N --out DIR [--configs ...]
+  model_benchmark.py --live --ceiling-usd X --trials N --out DIR [--configs ...]
       the paid run. Refuses without both --live and --ceiling-usd. A live run spends real money.
 
 Two cost columns are recorded for every request: notebook_cost (usage_cost() exactly as the notebook wrote it:

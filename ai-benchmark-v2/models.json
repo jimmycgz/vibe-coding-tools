@@ -1,12 +1,12 @@
 {
- "_comment": "Model roles and prices for run_cost_campaign.py, in dollars per million tokens. The notebook's own ids and prices are in the notebook (cell 7). notebook_cost always uses the notebook's fixed multipliers (cache write 1.25x for 5 minutes and 2x for 1 hour, cache read 0.10x). list_cache_read_mult is per model id and feeds a second, list-price cost column only.",
+ "_comment": "Model roles and prices for model_benchmark.py, in dollars per million tokens. The notebook's own ids and prices are in the notebook (cell 7). notebook_cost always uses the notebook's fixed multipliers (cache write 1.25x for 5 minutes and 2x for 1 hour, cache read 0.10x). list_cache_read_mult is per model id and feeds a second, list-price cost column only.",
  "roles": {
   "fable": "claude-fable-5-1",
   "opus": "claude-opus-5-5",
   "sonnet": "claude-sonnet-5-5",
   "haiku": "claude-haiku-5-5"
  },
- "_roles_note": "The roles hold the ids a run used. Check each id against the models your key can call before a paid run; run_cost_campaign.py does not probe them.",
+ "_roles_note": "The roles hold the ids a run used. Check each id against the models your key can call before a paid run; model_benchmark.py does not probe them.",
  "prices": {
   "claude-fable-5": {
    "in": 10.0,
