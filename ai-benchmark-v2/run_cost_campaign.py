@@ -9,17 +9,17 @@ not reproduced. Nothing is imported from the cookbook repo; its data files were 
 (hashes in assets/SOURCE-SHA256.txt).
 
 usage:
-  run_c2.py --dry-run [--configs B0,L5,V1] [--claims CLM-001,...] [--dump FILE]
+  run_cost_campaign.py --dry-run [--configs opus-high-nocache,sonnet-medium-cache] [--claims CLM-001,...] [--dump FILE]
       prints every first-turn request body (key shown as <REDACTED>) and the request count; no network,
       no key read. Later turns of a tool loop depend on the model's replies and cannot be printed in advance.
-  run_c2.py --estimate [--trials N] [--configs ...]
+  run_cost_campaign.py --estimate [--trials N] [--configs ...]
       prints the cost arithmetic from the notebook's saved per-task costs; no network.
-  run_c2.py --live --ceiling-usd X --trials N --out DIR [--configs ...]
-      the paid run. Refuses without both --live and --ceiling-usd. Not run by the preparing worker.
+  run_cost_campaign.py --live --ceiling-usd X --trials N --out DIR [--configs ...]
+      the paid run. Refuses without both --live and --ceiling-usd. A live run spends real money.
 
 Two cost columns are recorded for every request: notebook_cost (usage_cost() exactly as the notebook wrote it:
 cache write 1.25x / 2x, cache read 0.10x, batch 0.5x) and list_cost (same, but the cache-read multiplier is the
-model's own list rate from models-c2.json, e.g. 0.05x on claude-opus-5-5).
+model's own list rate from models.json, e.g. 0.05x on claude-opus-5-5).
 """
 import argparse
 import copy
@@ -259,60 +259,60 @@ SUPPLEMENTARY = ["lookup_repair_estimate", "calculate_payout", "get_damage_photo
 # saved: the notebook's own saved per-trial $/task and requests (cells 15, 57, 60, 62, 69, 73); used by --estimate only.
 
 CONFIGS = [
-    dict(id="O0", old_id="B0", label="opus · high · cold (baseline)", kind="loop", role="opus", effort="high", cache=False,
+    dict(id="opus-high-nocache", label="opus · high · cold (baseline)", kind="loop", role="opus", effort="high", cache=False,
          cell=15, tier="core", saved=[(0.2906, 36)]),
-    dict(id="O1", old_id="L1", label="opus · effort=high", kind="loop", role="opus", effort="high", cache=True, cell=57,
+    dict(id="opus-high-cache", label="opus · effort=high", kind="loop", role="opus", effort="high", cache=True, cell=57,
          tier="core", saved=[(0.1498, 34), (0.1512, 35)]),
-    dict(id="O2", old_id="L2", label="opus · effort=medium", kind="loop", role="opus", effort="medium", cache=True, cell=57,
+    dict(id="opus-medium-cache", label="opus · effort=medium", kind="loop", role="opus", effort="medium", cache=True, cell=57,
          tier="core", saved=[(0.1367, 34), (0.1370, 34)]),
-    dict(id="O3", old_id="L3", label="opus · effort=low", kind="loop", role="opus", effort="low", cache=True, cell=57,
+    dict(id="opus-low-cache", label="opus · effort=low", kind="loop", role="opus", effort="low", cache=True, cell=57,
          tier="core", saved=[(0.1206, 33), (0.1205, 33)]),
-    dict(id="S1", old_id="L4", label="sonnet · effort=high", kind="loop", role="sonnet", effort="high", cache=True, cell=57,
+    dict(id="sonnet-high-cache", label="sonnet · effort=high", kind="loop", role="sonnet", effort="high", cache=True, cell=57,
          tier="core", saved=[(0.0526, 33), (0.0548, 32)]),
-    dict(id="S2", old_id="L5", label="sonnet · effort=medium", kind="loop", role="sonnet", effort="medium", cache=True, cell=57,
+    dict(id="sonnet-medium-cache", label="sonnet · effort=medium", kind="loop", role="sonnet", effort="medium", cache=True, cell=57,
          tier="core", saved=[(0.0500, 32), (0.0494, 33)]),
-    dict(id="S3", old_id="L6", label="sonnet · effort=low", kind="loop", role="sonnet", effort="low", cache=True, cell=57,
+    dict(id="sonnet-low-cache", label="sonnet · effort=low", kind="loop", role="sonnet", effort="low", cache=True, cell=57,
          tier="core", saved=[(0.0484, 32), (0.0519, 33)]),
-    dict(id="L7", label="haiku", kind="loop", role="haiku", effort=None, cache=True, cell=57, tier="core",
+    dict(id="haiku-cache", label="haiku", kind="loop", role="haiku", effort=None, cache=True, cell=57, tier="core",
          saved=[(0.0200, 30), (0.0189, 29)]),
-    # F0, F1: Fable arms, not in the notebook's grid.
-    # Their "saved" values are NOT the notebook's: they are B0 and L1 scaled by the price ratio Fable 5.1 ($10/$50)
-    # to claude-opus-5 ($5/$25) = 2, assuming equal token counts. Used by --estimate only.
-    dict(id="F0", label="fable · high · cold", kind="loop", role="fable", effort="high", cache=False,
+    # The two Fable arms are not in the notebook's grid.
+    # Their "saved" values are NOT the notebook's: they are the Opus high-effort cold and cached values scaled by the price
+    # ratio of Fable 5.1 ($10/$50) to claude-opus-5 ($5/$25) = 2, assuming equal token counts. Used by --estimate only.
+    dict(id="fable-high-nocache", label="fable · high · cold", kind="loop", role="fable", effort="high", cache=False,
          cell=15, tier="fable", saved=[(0.5812, 36)]),
-    dict(id="F1", label="fable · effort=high", kind="loop", role="fable", effort="high", cache=True, cell=57,
+    dict(id="fable-high-cache", label="fable · effort=high", kind="loop", role="fable", effort="high", cache=True, cell=57,
          tier="fable", saved=[(0.3024, 35)]),
-    # Run 2 arms: S0 is Sonnet high cold, F2 and F3 are Fable medium and
-    # low with auto cache. Their "saved" values are estimates from run 1 (cold/cached ratio 2.02 on Opus; Fable cached
+    # Run 2 arms: Sonnet high effort without cache, and Fable medium and low effort with
+    # auto cache. Their "saved" values are estimates from run 1 (cold/cached ratio 2.02 on Opus; Fable cached
     # x effort ratio of the Opus rows), not the notebook's. Used by --estimate only.
-    dict(id="S0", label="sonnet · high · cold", kind="loop", role="sonnet", effort="high", cache=False,
+    dict(id="sonnet-high-nocache", label="sonnet · high · cold", kind="loop", role="sonnet", effort="high", cache=False,
          cell=15, tier="run2", saved=[(0.0983, 33)]),
-    dict(id="F2", label="fable · effort=medium", kind="loop", role="fable", effort="medium", cache=True, cell=57,
+    dict(id="fable-medium-cache", label="fable · effort=medium", kind="loop", role="fable", effort="medium", cache=True, cell=57,
          tier="run2", saved=[(0.2710, 34)]),
-    dict(id="F3", label="fable · effort=low", kind="loop", role="fable", effort="low", cache=True, cell=57,
+    dict(id="fable-low-cache", label="fable · effort=low", kind="loop", role="fable", effort="low", cache=True, cell=57,
          tier="run2", saved=[(0.2650, 33)]),
-    dict(id="S2b", old_id="V1", label="  + explicit system breakpoint", kind="loop", role="sonnet", effort="medium", cache=True,
+    dict(id="sonnet-medium-breakpoint", label="  + explicit system breakpoint", kind="loop", role="sonnet", effort="medium", cache=True,
          cache_system=True, cell=69, tier="core", saved=[(0.0223, 33), (0.0228, 33)]),
-    dict(id="S2m", old_id="V2", label="  + manual → read_manual tool", kind="loop", role="sonnet", effort="medium", cache=True,
+    dict(id="sonnet-medium-manual-tool", label="  + manual → read_manual tool", kind="loop", role="sonnet", effort="medium", cache=True,
          system="lean", tools="read_manual", cell=69, tier="extended", saved=[(0.0207, 39), (0.0210, 37)]),
-    dict(id="S2t", old_id="V3", label="  + tool search deferral", kind="loop", role="sonnet", effort="medium", cache=True,
+    dict(id="sonnet-medium-tool-search", label="  + tool search deferral", kind="loop", role="sonnet", effort="medium", cache=True,
          tools="deferred", cell=69, tier="extended", saved=[(0.0543, 30), (0.0537, 30)]),
-    dict(id="S2x", old_id="V4", label="  + code execution tool", kind="loop", role="sonnet", effort="medium", cache=True,
+    dict(id="sonnet-medium-code-exec", label="  + code execution tool", kind="loop", role="sonnet", effort="medium", cache=True,
          tools="code_exec", cell=69, tier="extended", saved=[(0.0589, 32), (0.0581, 33)]),
-    dict(id="S2e", old_id="V5", label="  + context editing", kind="loop_cm", role="sonnet", effort="medium",
+    dict(id="sonnet-medium-context-edit", label="  + context editing", kind="loop_cm", role="sonnet", effort="medium",
          betas=["context-management-2025-06-27"], edits=CE_EDITS, cell=69, tier="extended",
          saved=[(0.0500, 33), (0.0497, 33)]),
-    dict(id="S2k", old_id="V6", label="  + compaction", kind="loop_cm", role="sonnet", effort="medium",
+    dict(id="sonnet-medium-compaction", label="  + compaction", kind="loop_cm", role="sonnet", effort="medium",
          betas=["context-management-2025-06-27", "compact-2026-01-12"], edits=[{"type": "compact_20260112"}],
          cell=69, tier="extended", saved=[(0.0505, 33), (0.0502, 32)]),
-    dict(id="S3a", old_id="A1", label="sonnet · low + opus advisor", kind="loop", role="sonnet", effort="low", cache=True,
+    dict(id="sonnet-low-advisor", label="sonnet · low + opus advisor", kind="loop", role="sonnet", effort="low", cache=True,
          tools="advisor", betas=["advisor-tool-2026-03-01"], cell=60, tier="extended",
          saved=[(0.0754, 34), (0.0498, 31)]),
-    dict(id="A2", label="haiku + opus advisor", kind="loop", role="haiku", effort=None, cache=True, tools="advisor",
+    dict(id="haiku-advisor", label="haiku + opus advisor", kind="loop", role="haiku", effort=None, cache=True, tools="advisor",
          betas=["advisor-tool-2026-03-01"], cell=60, tier="extended", saved=[(0.1266, 32), (0.0952, 34)]),
-    dict(id="D1", label="haiku subagents + sonnet decide", kind="decomposed", cell=62, tier="extended",
+    dict(id="haiku-subagents", label="haiku subagents + sonnet decide", kind="decomposed", cell=62, tier="extended",
          saved=[(0.0188, 120), (0.0187, 120)]),
-    dict(id="S2p", old_id="X1", label="sonnet · medium · batch (one-shot)", kind="batch_oneshot", cell=73, tier="extended",
+    dict(id="sonnet-medium-batch", label="sonnet · medium · batch (one-shot)", kind="batch_oneshot", cell=73, tier="extended",
          saved=[(0.0060, 10), (0.0194, 10)]),
 ]
 
@@ -559,13 +559,11 @@ def http(method, url, hdrs, body=None, timeout=900):
 #   first_text_s    request opened -> first TEXT delta (the benchmark's first_text_token_s; None when the reply has no text)
 
 # Arm names for the results table.
-# Arm ids: model letter plus a digit. O Opus, S Sonnet, F Fable. The digit is the setting:
-# 0 high cold, 1 high cached, 2 medium cached, 3 low cached. A trailing letter marks a notebook lever on that arm
-# (b explicit system breakpoint, m manual behind a tool, t tool search, x code execution, e context editing,
-# k compaction, a advisor, p batch). The notebook's own labels (L ladder, V levers, A, D, X) survive only as old_id.
-ALIAS = {"O0": "Opus0", "O1": "Opus1", "O2": "Opus2", "O3": "Opus3", "S0": "Sonnet0", "S1": "Sonnet1",
-         "S2": "Sonnet2", "S3": "Sonnet3", "F0": "Fable0", "F1": "Fable1", "F2": "Fable2", "F3": "Fable3"}
-RUN2_ARMS = ["O0", "O1", "O2", "O3", "S0", "S1", "S2", "S3", "F0", "F1", "F2", "F3"]
+# Arm labels and the run 2 arm list come from arms.json, so every report and table uses the same plain names.
+with open(os.path.join(HERE, "arms.json"), encoding="utf-8") as _f:
+    _ARMS = json.load(_f)["arms"]
+LABELS = {a["id"]: a["label"] for a in _ARMS}
+RUN2_ARMS = [a["id"] for a in _ARMS if a["run2"]]
 
 
 def parse_sse(lines, clock=time.monotonic, t_open=None):
@@ -828,7 +826,7 @@ def live(cfgs, claims, models, a):
                    "per_task_list": sum(v[2] for v in results.values()) / n,
                    "turns": sum(v[3] for v in results.values()),
                    "verdicts": {k: v[0] for k, v in results.items()}, "models": models["roles"],
-                   "arm_name": ALIAS.get(cfg["id"]), "streamed": bool(getattr(a, "stream", False)),
+                   "arm_name": LABELS.get(cfg["id"]), "streamed": bool(getattr(a, "stream", False)),
                    "order": getattr(a, "order", "arm"), "claim_wall_s": claim_wall,
                    "trial_wall_s": round(time.monotonic() - t_trial, 3)}
             summary.write(json.dumps(rec) + "\n")
