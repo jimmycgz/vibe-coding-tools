@@ -1,6 +1,6 @@
 # Model benchmark
 
-A fine-tuned optimized benchmark for model cost and timing, in one plain stdlib-only Python script, `model_benchmark.py`. It runs a tool-using agent task on Opus 5.5, Sonnet 5.5 and Fable 5.1 and reports cost per task and timing for each model and setting. More model families are planned. The legacy folder, [ai-benchmark](../ai-benchmark/README.md), is unchanged.
+A fine-tuned optimized benchmark for model cost and timing, in one plain stdlib-only Python script, `model_benchmark.py`. It runs a tool-using agent task on Opus 5.5, Sonnet 5.5 and Fable 5.1 and reports cost per task, and timing when run with `--stream`, for each model and setting. More model families are planned. The legacy folder, [ai-benchmark](../ai-benchmark/README.md), is unchanged.
 
 It started from the cost-optimization notebook in Anthropic's cookbook (`cost_optimization/cost_optimization.ipynb`): its insurance-claims task, its data and its cost formula are the starting point, and the credit is below.
 
@@ -24,7 +24,7 @@ python3 model_benchmark.py --live --ceiling-usd 10 --trials 2 --configs opus-hig
 python3 build_results_table.py results/run1                             # the results table, plain arm names
 ```
 
-A live run spends real money: run one claim of one arm first (`--claims CLM-001 --trials 1`). Arm ids for `--configs` are listed in [arms.json](arms.json).
+A live run spends real money: run one claim of one arm first (`--claims CLM-001 --trials 1`). Arm ids for `--configs` are listed in [arms.json](arms.json). The explicit-breakpoint arm is in run 1 only.
 
 ## Reports
 
