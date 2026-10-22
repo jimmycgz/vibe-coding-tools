@@ -1,6 +1,6 @@
 # Run 1 results (2026-10-22)
 
-Anthropic's cookbook has a notebook, `cost_optimization/cost_optimization.ipynb`, that takes an insurance-claims agent and lowers its cost per task step by step: prompt caching, effort levels, a cheaper model, and a few tool-side levers. Its headline is that Sonnet at medium effort with one explicit cache breakpoint on the system prompt is about 13 times cheaper than Opus at high effort with no cache, at the same pass rate. Run 1 re-ran that on current models.
+Anthropic's cookbook has a notebook, `cost_optimization/cost_optimization.ipynb`, that takes an insurance-claims agent and lowers its cost per task step by step: prompt caching, effort levels, a cheaper model, and a few tool-side levers. Its headline is that Sonnet at medium effort with one explicit cache breakpoint on the system prompt is about 13 times cheaper than Opus at high effort with no cache, at the same pass rate. Run 1 ran the same task on current models.
 
 Navigation: [index](../README.md) · [method](method.md) · [run 2 plan](run-2-plan.md) · [raw records](../results/run1) · [table builder](../build_results_table.py)
 

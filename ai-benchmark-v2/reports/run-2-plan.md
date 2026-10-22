@@ -6,7 +6,7 @@ Navigation: [index](../README.md) · [run 1 results](run-1-results.md) · [metho
 
 ## What run 2 does
 
-Re-runs 12 arms for 2 more trials of the notebook's 10 claims, streams every request, and records timing. Run 1's trials stay as they were, so each arm that ran in both ends with 4 trials for pass counts and cost. Timing comes from run 2 only, because run 1 did not stream. Arms are named by model and setting; the same names cover run 1 and run 2, so one table lines them up.
+Runs 12 arms for 2 more trials of the notebook's 10 claims, streams every request, and records timing. Run 1's trials stay as they were, so each arm that ran in both ends with 4 trials for pass counts and cost. Timing comes from run 2 only, because run 1 did not stream. Arms are named by model and setting; the same names cover run 1 and run 2, so one table lines them up.
 
 | Arm | In run 1 |
 |---|---|
