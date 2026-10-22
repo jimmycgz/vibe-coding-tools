@@ -31,6 +31,7 @@ A live run spends real money: run one claim of one arm first (`--claims CLM-001 
 - [Run 1 results](reports/run-1-results.md): what came back, with the caveats.
 - [Run 2 plan](reports/run-2-plan.md): 12 arms, streamed, with timing; committed before the run.
 - [Method](reports/method.md): the task, the pass criterion, how cost and timing are measured.
+- [How caching is switched](reports/how-caching-is-switched.md): the lines of code that turn the prompt cache on and off, and what the recorded usage shows for each case. Pictures: [test flow](reports/test-flow.svg) and [cache switch](reports/cache-switch.svg).
 
 Raw records are in [results/run1](results/run1).
 
