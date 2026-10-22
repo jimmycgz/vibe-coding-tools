@@ -6,7 +6,7 @@ Navigation: [script](run_cost_campaign.py) · [model ids and prices](models.json
 
 ## Result of run 1 (2026-10-22)
 
-The cost ratio held roughly, and the quality result did not repeat once. Sonnet 5.5 at medium effort with the explicit system breakpoint was about 9.7 times cheaper than Opus 5.5 at high effort with no cache (9.65), against the notebook's 12.9, which is 10.3 at today's Opus price. The breakpoint cut Sonnet medium's cost per task by 57.5 percent, from $0.0472 to $0.0200. It missed one claim of ten in both trials, on two different claims, where the notebook's got 10 of 10 in both. Two trials cannot separate a real drop from noise.
+The cost ratio held in order of magnitude, and the quality result did not repeat once. Sonnet 5.5 at medium effort with the explicit system breakpoint was 9.6 times cheaper than Opus 5.5 at high effort with no cache (9.65 before rounding), against the notebook's 12.9. The notebook's own text says "13x"; 12.9 is its table's 0.2906 over 0.0226 (12.86). At today's Opus 5.5 price the notebook's own ratio would be 10.3 against 9.6 here. The breakpoint cut Sonnet medium's cost per task by 57.5 percent, from $0.0472 to $0.0200. It missed one claim of ten in both trials, on two different claims, where the notebook's got 10 of 10 in both. Two trials cannot separate a real drop from noise.
 
 10 claims per trial, 2 trials per arm, 662 requests, all HTTP 200. Cost per task is by the notebook's formula (its own cache multipliers), in dollars, mean of the two trials. The notebook column is the mean of its two saved trials, billed at its own prices.
 
@@ -25,14 +25,14 @@ The cost ratio held roughly, and the quality result did not repeat once. Sonnet 
 
 The ids in brackets are the notebook's own labels (L for its ladder list, V for its levers list), kept once here so the arms can be matched to the notebook. The new ids are a model letter (O Opus, S Sonnet, F Fable) and a digit for the setting: 0 high effort with no cache, 1 high cached, 2 medium cached, 3 low cached. A trailing letter marks a notebook lever on that arm. Run 1's raw files keep the old ids.
 
-- **Ratio:** O0 over S2b is 9.65, about 9.7 (9.5 to 9.8 across the two S2b trials). The notebook's 12.9 used Opus at $5/$25 per million tokens; Opus 5.5 is $4/$20, and at those prices the notebook's own ratio is 10.3.
+- **Ratio:** O0 over S2b is 9.65 (9.5 to 9.8 across the two S2b trials). The notebook's 12.9 used Opus at $5/$25 per million tokens; Opus 5.5 is $4/$20, and at those prices the notebook's own ratio is 10.3 (0.2906 times 0.8, over 0.0226). I could not check that 10.3 against a run, only against the price.
 - **Cost per task was lower than the notebook's saved runs on every Opus and Sonnet arm.** Part of that gap on the Opus arms is price: Opus 5.5 is $4/$20 per million tokens against the notebook's $5/$25. Dollars were compared, not token counts, so this does not show that fewer tokens were used.
 - **Caching** about halves Opus cost. The effort steps barely move it: Opus high, medium and low cost $0.0956, $0.0931 and $0.0909.
 - **S3** kept 10 of 10 in both trials at $0.0465 per task, 4.2 times cheaper than O0. Do not rank S3 above S2 or S1: S2 missed once and S3 did not, which points to noise, and the gaps between the three are inside the spread.
 - **Misses:** S2 trial 1 missed CLM-008, S2b trial 1 missed CLM-007 and trial 2 missed CLM-010. Three misses, three different claims.
 - **Not established:** 20 adjudications per arm is small. The notebook itself says to use about 50 cases and at least 5 trials before a production decision. I understand that Sonnet 5.5's effort levels were recalibrated from Sonnet 5, so a medium on 5.5 may not be the same step; that comes from Anthropic's API reference and I have not tested it. There is no run on Sonnet 5 to separate the model from the effort calibration.
 - **Fable** is not in the notebook, so its arms have nothing to compare against. Cold Fable cost 2.8 times cold Opus 5.5.
-- **Spend:** $29.62 by the notebook formula, $28.74 at list price. 24 TLS errors were retried and recovered in the second half; a request whose reply was lost on the wire may have been billed and is not counted.
+- **Spend:** $29.62 by the notebook formula, $28.74 at list price. The run's console log showed 24 TLS errors retried and recovered in the second half. That count is the author's: the request records do not store retries, and every record has status 200 and an empty error field. Run 2 records an `attempts` field per request. A request whose reply was lost on the wire may have been billed and is not counted.
 - **Interruption:** the run was cut after O0, O1 and O2 and the other seven arms were relaunched with the same script and settings, so the raw records are in two parts.
 
 Models that ran, from the API's replies: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-fable-5-1`. No Haiku arm was run.
