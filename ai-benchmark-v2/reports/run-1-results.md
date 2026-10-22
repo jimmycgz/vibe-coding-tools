@@ -35,4 +35,4 @@ The cost ratio held in order of magnitude, and the quality result did not repeat
 
 Models that ran, from the API's replies: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-fable-5-1`. No Haiku arm was run.
 
-The raw records keep the arm ids they were recorded with. [arms.json](../arms.json) maps them to the labels above, and [build_results_table.py](../build_results_table.py) builds the table from the records through that map.
+The raw records keep the arm ids they were recorded with. [arms.json](../arms.json) maps them to the labels above, and [build_results_table.py](../build_results_table.py) builds the arm, pass-count and cost columns from the records through that map. The notebook column and the both-trials column in the table above were added by hand.
