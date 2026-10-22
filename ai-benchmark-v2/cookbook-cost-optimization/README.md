@@ -6,29 +6,29 @@ Navigation: [script](run_cost_campaign.py) · [model ids and prices](models.json
 
 ## Result of run 1 (2026-10-22)
 
-The cost ratio held. The quality result did not repeat once. Sonnet 5.5 at medium effort with the explicit system breakpoint was 9.7 times cheaper than Opus 5.5 at high effort with no cache, against the notebook's 12.9. The breakpoint cut Sonnet medium's cost per task by 57.6 percent, from $0.0472 to $0.0200. It missed one claim of ten in both trials, on two different claims, where the notebook's got 10 of 10 in both. Two trials cannot separate a real drop from noise.
+The cost ratio held roughly, and the quality result did not repeat once. Sonnet 5.5 at medium effort with the explicit system breakpoint was about 9.7 times cheaper than Opus 5.5 at high effort with no cache (9.65), against the notebook's 12.9, which is 10.3 at today's Opus price. The breakpoint cut Sonnet medium's cost per task by 57.5 percent, from $0.0472 to $0.0200. It missed one claim of ten in both trials, on two different claims, where the notebook's got 10 of 10 in both. Two trials cannot separate a real drop from noise.
 
 10 claims per trial, 2 trials per arm, 662 requests, all HTTP 200. Cost per task is by the notebook's formula (its own cache multipliers), in dollars, mean of the two trials. The notebook column is the mean of its two saved trials, billed at its own prices.
 
 | Arm | Model and setting | Trial 1 | Trial 2 | $ per task | Notebook $ per task | Both trials 10/10 |
 |---|---|---|---|---|---|---|
-| O0 (notebook B0) | Opus 5.5, high, no cache | 10/10 | 10/10 | 0.1935 | 0.2906 (one trial) | yes |
+| O0 (notebook B0) | Opus 5.5, high, no cache | 10/10 | 10/10 | 0.1934 | 0.2906 (one trial) | yes |
 | O1 (L1) | Opus 5.5, high, auto cache | 10/10 | 10/10 | 0.0956 | 0.1505 | yes |
 | O2 (L2) | Opus 5.5, medium, auto cache | 10/10 | 10/10 | 0.0931 | 0.1368 | yes |
 | O3 (L3) | Opus 5.5, low, auto cache | 10/10 | 10/10 | 0.0909 | 0.1205 | yes |
 | S1 (L4) | Sonnet 5.5, high, auto cache | 10/10 | 10/10 | 0.0486 | 0.0537 | yes |
 | S2 (L5) | Sonnet 5.5, medium, auto cache | 9/10 | 10/10 | 0.0472 | 0.0497 | no |
-| S3 (L6) | Sonnet 5.5, low, auto cache | 10/10 | 10/10 | 0.0466 | 0.0502 | yes |
+| S3 (L6) | Sonnet 5.5, low, auto cache | 10/10 | 10/10 | 0.0465 | 0.0502 | yes |
 | S2b (V1) | S2 plus an explicit system breakpoint | 9/10 | 9/10 | 0.0200 | 0.0226 | no |
 | F0 | Fable 5.1, high, no cache | 10/10 | 10/10 | 0.5415 | not in the notebook | yes |
-| F1 | Fable 5.1, high, auto cache | 10/10 | 10/10 | 0.2782 | not in the notebook | yes |
+| F1 | Fable 5.1, high, auto cache | 10/10 | 10/10 | 0.2781 | not in the notebook | yes |
 
 The ids in brackets are the notebook's own labels (L for its ladder list, V for its levers list), kept once here so the arms can be matched to the notebook. The new ids are a model letter (O Opus, S Sonnet, F Fable) and a digit for the setting: 0 high effort with no cache, 1 high cached, 2 medium cached, 3 low cached. A trailing letter marks a notebook lever on that arm. Run 1's raw files keep the old ids.
 
-- **Ratio:** O0 over S2b is 9.7 (9.5 to 9.9 across the two S2b trials). The notebook's 12.9 used Opus at $5/$25 per million tokens; Opus 5.5 is $4/$20, and at those prices the notebook's own ratio is 10.3.
-- **Cost per task was lower than the notebook's saved runs on every Opus and Sonnet arm.** Dollars were compared, not token counts.
+- **Ratio:** O0 over S2b is 9.65, about 9.7 (9.5 to 9.8 across the two S2b trials). The notebook's 12.9 used Opus at $5/$25 per million tokens; Opus 5.5 is $4/$20, and at those prices the notebook's own ratio is 10.3.
+- **Cost per task was lower than the notebook's saved runs on every Opus and Sonnet arm.** Part of that gap on the Opus arms is price: Opus 5.5 is $4/$20 per million tokens against the notebook's $5/$25. Dollars were compared, not token counts, so this does not show that fewer tokens were used.
 - **Caching** about halves Opus cost. The effort steps barely move it: Opus high, medium and low cost $0.0956, $0.0931 and $0.0909.
-- **S3** kept 10 of 10 in both trials at $0.0466 per task, 4.2 times cheaper than O0. Do not rank S3 above S2 or S1: S2 missed once and S3 did not, which points to noise, and the gaps between the three are inside the spread.
+- **S3** kept 10 of 10 in both trials at $0.0465 per task, 4.2 times cheaper than O0. Do not rank S3 above S2 or S1: S2 missed once and S3 did not, which points to noise, and the gaps between the three are inside the spread.
 - **Misses:** S2 trial 1 missed CLM-008, S2b trial 1 missed CLM-007 and trial 2 missed CLM-010. Three misses, three different claims.
 - **Not established:** 20 adjudications per arm is small. The notebook itself says to use about 50 cases and at least 5 trials before a production decision. I understand that Sonnet 5.5's effort levels were recalibrated from Sonnet 5, so a medium on 5.5 may not be the same step; that comes from Anthropic's API reference and I have not tested it. There is no run on Sonnet 5 to separate the model from the effort calibration.
 - **Fable** is not in the notebook, so its arms have nothing to compare against. Cold Fable cost 2.8 times cold Opus 5.5.
