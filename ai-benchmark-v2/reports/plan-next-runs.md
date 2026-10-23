@@ -1,6 +1,6 @@
 # Plan: a repeated agent-loop run with the breakpoint arm, and a cache timing test
 
-Status: **planned, not run. Committed before any paid call.** The cache timing test (Test B) is the one to run first; the repeated agent-loop run (Test A) is kept in the plan for later. Nothing here runs until the person running it says go, with a ceiling for each run. This plan answers two questions: does the explicit-breakpoint arm change the picture, and is there a true time saving from the prompt cache.
+Status: **planned; Test B has been run for Sonnet only (results in [cache-timing-results.md](cache-timing-results.md)); Opus, Fable and Test A have not been run.** The plan was committed before any paid call. The cache timing test (Test B) is the one to run first; the repeated agent-loop run (Test A) is kept in the plan for later. Nothing here runs until the person running it says go, with a ceiling for each run. This plan answers two questions: does the explicit-breakpoint arm change the picture, and is there a true time saving from the prompt cache.
 
 Navigation: [index](../README.md) · [run 1 results](run-1-results.md) · [how caching is switched](how-caching-is-switched.md) · [method](method.md) · [cache timing script](../cache_timing.py)
 

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 226" width="900" height="226" role="img" aria-label="Total time, by cache state">
+<title>Total time, by cache state</title>
+<desc>10 repetitions per cell, one request at a time, a different question in each state.</desc>
+<rect width="900" height="226" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="20" y="30" font-size="19" font-weight="700">Total time, by cache state</text>
+<text x="20" y="52" font-size="13" fill="#5a6472">10 repetitions per cell, one request at a time, a different question in each state.</text>
+<rect x="190" y="64" width="12" height="12" fill="#8c97a3"/><text x="208" y="75" font-size="12">no cache</text><rect x="380" y="64" width="12" height="12" fill="#e0a030"/><text x="398" y="75" font-size="12">cold cache (writes)</text><rect x="570" y="64" width="12" height="12" fill="#3b8f6b"/><text x="588" y="75" font-size="12">warm cache (reads)</text><line x1="190.0" y1="94" x2="190.0" y2="156" stroke="#dcd8cf" stroke-width="1"/>
+<text x="190.0" y="172" font-size="11" text-anchor="middle" fill="#5a6472">0</text>
+<line x1="345.0" y1="94" x2="345.0" y2="156" stroke="#dcd8cf" stroke-width="1"/>
+<text x="345.0" y="172" font-size="11" text-anchor="middle" fill="#5a6472">2</text>
+<line x1="500.0" y1="94" x2="500.0" y2="156" stroke="#dcd8cf" stroke-width="1"/>
+<text x="500.0" y="172" font-size="11" text-anchor="middle" fill="#5a6472">4</text>
+<line x1="655.0" y1="94" x2="655.0" y2="156" stroke="#dcd8cf" stroke-width="1"/>
+<text x="655.0" y="172" font-size="11" text-anchor="middle" fill="#5a6472">6</text>
+<line x1="810.0" y1="94" x2="810.0" y2="156" stroke="#dcd8cf" stroke-width="1"/>
+<text x="810.0" y="172" font-size="11" text-anchor="middle" fill="#5a6472">8</text>
+<text x="500.0" y="192" font-size="12" text-anchor="middle" fill="#5a6472">Seconds per request (median)</text>
+
+<text x="180" y="122" font-size="13" text-anchor="end">Sonnet long</text>
+<rect x="190" y="98" width="431.8" height="14" rx="2" fill="#8c97a3"/>
+<text x="626.8" y="109" font-size="11" font-weight="600">5.57</text>
+<rect x="190" y="115" width="443.6" height="14" rx="2" fill="#e0a030"/>
+<text x="638.6" y="126" font-size="11" font-weight="600">5.72</text>
+<rect x="190" y="132" width="411.9" height="14" rx="2" fill="#3b8f6b"/>
+<text x="606.9" y="143" font-size="11" font-weight="600">5.31</text>
+<text x="20" y="212" font-size="12" fill="#5a6472">Latest models: Opus 5.5, Sonnet 5.5, Fable 5.1. 13k = ~13,000-token prefix; long = plus the claims ledger. Cold writes; warm reads.</text>
+</g>
+</svg>
