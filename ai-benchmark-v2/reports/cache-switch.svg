@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1176" role="img" aria-labelledby="pct pcd" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="pct">How the cache is switched on and off, in code</title>
+  <desc id="pcd">Three side-by-side cases of the same request, showing the part that differs and what the API does with it. All three share the same base request: model, max tokens, system prompt with the nonce, tools, messages, thinking and effort. Case 1, no cache (cold): nothing extra, and the request has no cache_control field anywhere. Every turn re-reads the whole prefix, the system prompt and tools of about 13K tokens, at the full input price. Usage shows cache write 0 and cache read 0. Case 2, auto cache: one extra top-level field, cache_control with type ephemeral. The API puts a single breakpoint after the last cacheable block and moves it forward as the conversation grows. Within one claim, turn 2 reads turn 1's prefix from the cache at 0.1 times the input price in the notebook's formula. Seen in run 1: the first turn of each claim wrote the prefix again. In the script this is the cache setting on an arm. Case 3, auto cache plus an explicit breakpoint on the system prompt: the request has the same top-level cache_control as case 2, and the system field also becomes a list with one text block that carries its own cache_control. The prefix up to that block is cached on its own, so each new claim in the same trial reads the policy manual from the cache instead of writing it again. This is not measured in the current results. In the script this is the cache setting and the cache_system setting, both on. Under the columns: a new trial gets a new nonce, so the cache starts empty, and claims in the same trial share it; the cache lives 5 minutes unless it is read again; the notebook's price multipliers are 1.25 times the input price for a cache write and 0.1 times for a cache read.</desc>
+  <style>
+    .bg{fill:#ffffff}
+    .card{fill:#f3f6fb;stroke:#c3cfe3;stroke-width:1.5}
+    .ink{fill:#16202e}
+    .mute{fill:#52607a}
+    .h1{font-size:30px;font-weight:700}
+    .h2{font-size:18px;font-weight:700}
+    .b{font-size:16px}
+    .s{font-size:14px}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:14px;fill:#16202e}
+    .codeb{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:14px;fill:#16202e;font-weight:700}
+    .codem{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:14px;fill:#52607a;font-style:italic}
+    .cbox{fill:#ffffff;stroke:#c3cfe3;stroke-width:1.5}
+    .hl{fill:#fdf1e3}
+    .hl2{fill:#f8cf9f}
+    .slot{fill:none;stroke:#52607a;stroke-width:1.5;stroke-dasharray:5 4}
+    .boxn{fill:#ffffff;stroke:#52607a;stroke-width:1.5}
+    .boxa{fill:#dbe8fb;stroke:#1f5fbf;stroke-width:1.5}
+    .boxw{fill:#fde9d4;stroke:#a34a00;stroke-width:1.5}
+    .boxok{fill:#d9f2e5;stroke:#17704a;stroke-width:1.5}
+    .tA{fill:#1f5fbf}
+    .tW{fill:#a34a00}
+    .tO{fill:#17704a}
+    .badge{fill:#1f5fbf}
+    .bn{fill:#ffffff;font-size:16px;font-weight:700}
+    .rule{stroke:#c3cfe3;stroke-width:1.5}
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0e1623}
+      .card{fill:#172234;stroke:#33445f}
+      .ink{fill:#e9eef7}
+      .mute{fill:#a9b6cc}
+      .code{fill:#e9eef7}
+      .codeb{fill:#e9eef7}
+      .codem{fill:#a9b6cc}
+      .cbox{fill:#0e1623;stroke:#33445f}
+      .hl{fill:#3a2713}
+      .hl2{fill:#6b4220}
+      .slot{stroke:#a9b6cc}
+      .boxn{fill:#0e1623;stroke:#a9b6cc}
+      .boxa{fill:#1e3558;stroke:#7db2ff}
+      .boxw{fill:#4a2f16;stroke:#ffb070}
+      .boxok{fill:#173e2c;stroke:#6fdca5}
+      .tA{fill:#7db2ff}
+      .tW{fill:#ffb070}
+      .tO{fill:#6fdca5}
+      .badge{fill:#7db2ff}
+      .bn{fill:#0e1623}
+      .rule{stroke:#33445f}
+    }
+  </style>
+
+  <rect class="bg" width="1040" height="1176"/>
+  <text class="ink h1" x="30" y="50">How the cache is switched on and off, in code</text>
+  <text class="mute b" x="30" y="78">Three cases of the same request. The shaded part is what differs; the stronger shade is what is new in that case.</text>
+
+  <!-- shared base -->
+  <rect class="card" x="30" y="96" width="980" height="62" rx="12"/>
+  <text class="tA b" x="48" y="122" font-weight="700">The same in all three</text>
+  <text class="ink b" x="48" y="145">model, max tokens, system prompt (with the nonce), tools, messages, thinking and effort</text>
+
+  <!-- column 1: no cache -->
+  <g transform="translate(30,176)">
+    <rect class="card" width="300" height="828" rx="14"/>
+    <rect class="boxn" x="14" y="14" width="272" height="76" rx="10"/>
+    <circle class="badge" cx="38" cy="52" r="13"/><text class="bn" x="38" y="58" text-anchor="middle">1</text>
+    <text class="ink h2" x="62" y="58">No cache (cold)</text>
+
+    <text class="ink b" x="18" y="118">Nothing extra. The request has</text>
+    <text class="ink b" x="18" y="139">no cache_control field anywhere.</text>
+
+    <rect class="cbox" x="12" y="192" width="276" height="294" rx="8"/>
+    <rect class="slot" x="18" y="316" width="264" height="38" rx="6"/>
+    <text class="code" x="24" y="216">{</text>
+    <text class="code" x="41" y="235">"model": …,</text>
+    <text class="code" x="41" y="254">"system": "[trial …] …",</text>
+    <text class="code" x="41" y="273">"tools": […],</text>
+    <text class="code" x="41" y="292">"messages": […],</text>
+    <text class="code" x="41" y="311">…</text>
+    <text class="codem" x="41" y="340">no cache_control</text>
+    <text class="code" x="24" y="368">}</text>
+
+    <text class="tA b" x="18" y="514" font-weight="700">What the API does</text>
+    <text class="ink b" x="18" y="538">Every turn re-reads the whole</text>
+    <text class="ink b" x="18" y="559">prefix (system prompt and tools,</text>
+    <text class="ink b" x="18" y="580">about 13K tokens) at the full</text>
+    <text class="ink b" x="18" y="601">input price.</text>
+
+    <rect class="boxn" x="14" y="760" width="272" height="46" rx="10"/>
+    <text class="ink b" x="28" y="780">Usage shows cache write 0</text>
+    <text class="ink b" x="28" y="799">and cache read 0</text>
+  </g>
+
+  <!-- column 2: auto cache -->
+  <g transform="translate(370,176)">
+    <rect class="card" width="300" height="828" rx="14"/>
+    <rect class="boxa" x="14" y="14" width="272" height="76" rx="10"/>
+    <circle class="badge" cx="38" cy="52" r="13"/><text class="bn" x="38" y="58" text-anchor="middle">2</text>
+    <text class="ink h2" x="62" y="58">Auto cache</text>
+
+    <text class="ink b" x="18" y="118">One extra top-level field:</text>
+    <text class="ink b" x="18" y="139">cache_control.</text>
+
+    <rect class="cbox" x="12" y="192" width="276" height="294" rx="8"/>
+    <rect class="hl2" x="14" y="316" width="272" height="38" rx="4"/>
+    <text class="code" x="24" y="216">{</text>
+    <text class="code" x="41" y="235">"model": …,</text>
+    <text class="code" x="41" y="254">"system": "[trial …] …",</text>
+    <text class="code" x="41" y="273">"tools": […],</text>
+    <text class="code" x="41" y="292">"messages": […],</text>
+    <text class="code" x="41" y="311">…</text>
+    <text class="codeb" x="41" y="330">"cache_control":</text>
+    <text class="codeb" x="58" y="349">{"type": "ephemeral"}</text>
+    <text class="code" x="24" y="368">}</text>
+
+    <text class="tA b" x="18" y="514" font-weight="700">What the API does</text>
+    <text class="ink b" x="18" y="538">The API puts a single breakpoint</text>
+    <text class="ink b" x="18" y="559">after the last cacheable block and</text>
+    <text class="ink b" x="18" y="580">moves it forward as the</text>
+    <text class="ink b" x="18" y="601">conversation grows.</text>
+    <text class="ink b" x="18" y="631">Within one claim, turn 2 reads</text>
+    <text class="ink b" x="18" y="652">turn 1's prefix from the cache at</text>
+    <text class="ink b" x="18" y="673">0.1× the input price in the</text>
+    <text class="ink b" x="18" y="694">notebook's formula.</text>
+    <text class="mute b" x="18" y="722">Seen in run 1: the first turn of</text>
+    <text class="mute b" x="18" y="743">each claim wrote the prefix again.</text>
+
+    <rect class="boxn" x="14" y="760" width="272" height="46" rx="10"/>
+    <text class="ink b" x="28" y="780">Script: the <tspan class="mono" font-weight="700">cache</tspan> setting</text>
+    <text class="ink b" x="28" y="799">on an arm</text>
+  </g>
+
+  <!-- column 3: auto cache plus an explicit breakpoint -->
+  <g transform="translate(710,176)">
+    <rect class="card" width="300" height="828" rx="14"/>
+    <rect class="boxok" x="14" y="14" width="272" height="76" rx="10"/>
+    <circle class="badge" cx="38" cy="52" r="13"/><text class="bn" x="38" y="58" text-anchor="middle">3</text>
+    <text class="ink h2" x="62" y="42">Auto cache plus an</text>
+    <text class="ink h2" x="62" y="63">explicit breakpoint on</text>
+    <text class="ink h2" x="62" y="84">the system prompt</text>
+
+    <text class="ink b" x="18" y="118">Case 2, plus one more: the</text>
+    <text class="ink b" x="18" y="139">system field becomes a list with</text>
+    <text class="ink b" x="18" y="160">one text block, and that block</text>
+    <text class="ink b" x="18" y="181">carries its own cache_control.</text>
+
+    <rect class="cbox" x="12" y="192" width="276" height="294" rx="8"/>
+    <rect class="hl2" x="14" y="240" width="272" height="114" rx="4"/>
+    <rect class="hl" x="14" y="411" width="272" height="38" rx="4"/>
+    <text class="code" x="24" y="216">{</text>
+    <text class="code" x="41" y="235">"model": …,</text>
+    <text class="codeb" x="41" y="254">"system": [{</text>
+    <text class="codeb" x="58" y="273">"type": "text",</text>
+    <text class="codeb" x="58" y="292">"text": "[trial …] …",</text>
+    <text class="codeb" x="58" y="311">"cache_control":</text>
+    <text class="codeb" x="75" y="330">{"type": "ephemeral"}</text>
+    <text class="codeb" x="41" y="349">}],</text>
+    <text class="code" x="41" y="368">"tools": […],</text>
+    <text class="code" x="41" y="387">"messages": […],</text>
+    <text class="code" x="41" y="406">…</text>
+    <text class="codeb" x="41" y="425">"cache_control":</text>
+    <text class="codeb" x="58" y="444">{"type": "ephemeral"}</text>
+    <text class="code" x="24" y="463">}</text>
+
+    <text class="tA b" x="18" y="514" font-weight="700">What the API does</text>
+    <text class="ink b" x="18" y="538">The prefix up to the system</text>
+    <text class="ink b" x="18" y="559">block is cached on its own, so</text>
+    <text class="ink b" x="18" y="580">each new claim in the same trial</text>
+    <text class="ink b" x="18" y="601">reads the policy manual from the</text>
+    <text class="ink b" x="18" y="622">cache instead of writing it again.</text>
+    <text class="mute b" x="18" y="660">Not measured in the current results.</text>
+
+    <rect class="boxn" x="14" y="760" width="272" height="46" rx="10"/>
+    <text class="ink b" x="28" y="780">Script: <tspan class="mono" font-weight="700">cache</tspan> and <tspan class="mono" font-weight="700">cache_system</tspan></text>
+    <text class="ink b" x="28" y="799">settings, both on</text>
+  </g>
+
+  <!-- strip -->
+  <rect class="card" x="30" y="1024" width="980" height="118" rx="12"/>
+  <text class="ink b" x="48" y="1056">A new trial gets a new nonce, so the cache starts empty.</text>
+  <text class="ink b" x="48" y="1082">Claims in the same trial share it.</text>
+  <text class="ink b" x="48" y="1114">The cache lives 5 minutes unless it is read again.</text>
+  <line class="rule" x1="560" y1="1040" x2="560" y2="1126"/>
+  <text class="mute b" x="584" y="1056">The notebook's multipliers on the input price</text>
+  <rect class="boxw" x="584" y="1074" width="196" height="40" rx="10"/>
+  <text class="ink b" x="682" y="1100" text-anchor="middle">Cache write: 1.25×</text>
+  <rect class="boxok" x="796" y="1074" width="196" height="40" rx="10"/>
+  <text class="ink b" x="894" y="1100" text-anchor="middle">Cache read: 0.1×</text>
+
+  <text class="mute s" x="30" y="1164">Drawn from model_benchmark.py, function loop_body. Values in the request are left out.</text>
+</svg>

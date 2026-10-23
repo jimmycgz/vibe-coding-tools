@@ -1,0 +1,20 @@
+Copied from anthropics/claude-cookbooks, commit a162e0184e71b60290808a43961a6cbc8060123c.
+policy_manual.md is stored here as policy_manual.txt. sha256 of each file as copied:
+
+0c3d2d0edff3461af3229085a68e329ad8129dade83f89baae693e3f17ca05bf  assets/claims.csv  <-  claude-cookbooks cost_optimization/assets/claims.csv
+977a7bcbc839739807ee1a761d18a06fee3b87b357e25e4eef21909e8bab00fc  assets/damage_photos.csv  <-  claude-cookbooks cost_optimization/assets/damage_photos.csv
+2761ca79826f640e79242f266a277209722714aecad568cea083ca107a187948  assets/eval_set.csv  <-  claude-cookbooks cost_optimization/assets/eval_set.csv
+dcd4ea4ae0615f8db656bb3fefa486a5e7bffcf45350fc3542472017356591b2  assets/policy_manual.txt  <-  claude-cookbooks cost_optimization/assets/policy_manual.md
+1cada5e08650ecd7c446a6f8c63450192280eba3a34204f528bb40df2b8d6cd0  assets/prior_claims.csv  <-  claude-cookbooks cost_optimization/assets/prior_claims.csv
+4e98ee63898a7bf8bc913374589ded4f455714bd72a3203b2776edd0bf8ce164  assets/repair_parts.csv  <-  claude-cookbooks cost_optimization/assets/repair_parts.csv
+3ddc757070a86625c784a9cb59d1e66b75d3f08b32cfb12435c879dd02e0c9bc  assets/estimates/CLM-001.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-001.txt
+af00ce2f478cc158837e0c0358ac6d71a4032b48ff7db837b0197cb2b994c1fe  assets/estimates/CLM-002.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-002.txt
+04f00e466d3bf08384d67d96977f028b894e71ef4e13e3c00eaa3b940ea07269  assets/estimates/CLM-003.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-003.txt
+a1b13bc71efe37af5984a87fa5fe47480e6f6632bc2a2d786176a8987e8a0762  assets/estimates/CLM-004.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-004.txt
+8a0effd89a3bf50a856597273817c60c555d224282b5bc3b38a7652aa94775f5  assets/estimates/CLM-005.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-005.txt
+6b4bc69194b45730305c964b9631b131d0b92fcfd1808b8f8e8d4b4f2e10e0bd  assets/estimates/CLM-006.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-006.txt
+28df5432848d04ddf63786f00553dd198c2cf32371051caf74d524ab3c286864  assets/estimates/CLM-007.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-007.txt
+89a8ba7a2d287beaa94495168de32726ac95e5a4ccaca0e53ba88ccdb443786d  assets/estimates/CLM-008.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-008.txt
+1e64665ced88af4632cf94ab175152b79c05131a430cc2151f8deae61971add5  assets/estimates/CLM-009.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-009.txt
+95c908981817f3f6b8009bb6f82180c180879089342fa2107bc95852eeb7da35  assets/estimates/CLM-010.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-010.txt
+c54fd713c4b3e5fb560da2da8b8e5d08caa1ad552fad722da183f0d1c76c5ad4  assets/claims_ledger.csv  <-  claude-cookbooks cost_optimization/assets/claims_ledger.csv

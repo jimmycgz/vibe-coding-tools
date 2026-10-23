@@ -1,0 +1,20 @@
+{"rep": 1, "prefix": "long", "role": "sonnet", "order": ["cold", "warm", "none"], "claims": {"cold": "CLM-004", "warm": "CLM-007", "none": "CLM-010"}, "network": {"interface": "en0", "connect_ms": [29.5, 23.0, 21.8]}, "t": 1792723358.4657621}
+{"rep": 1, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 2, "prefix": "long", "role": "sonnet", "order": ["none", "cold", "warm"], "claims": {"cold": "CLM-005", "warm": "CLM-008", "none": "CLM-001"}, "network": {"interface": "en0", "connect_ms": [22.4, 26.2, 22.8]}, "t": 1792723375.991311}
+{"rep": 2, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 3, "prefix": "long", "role": "sonnet", "order": ["cold", "warm", "none"], "claims": {"cold": "CLM-006", "warm": "CLM-009", "none": "CLM-002"}, "network": {"interface": "en0", "connect_ms": [31.6, 22.6, 18.7]}, "t": 1792723397.581897}
+{"rep": 3, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 4, "prefix": "long", "role": "sonnet", "order": ["none", "cold", "warm"], "claims": {"cold": "CLM-007", "warm": "CLM-010", "none": "CLM-003"}, "network": {"interface": "en0", "connect_ms": [18.2, 21.3, 23.5]}, "t": 1792723414.644501}
+{"rep": 4, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 5, "prefix": "long", "role": "sonnet", "order": ["cold", "warm", "none"], "claims": {"cold": "CLM-008", "warm": "CLM-001", "none": "CLM-004"}, "network": {"interface": "en0", "connect_ms": [19.5, 22.9, 17.2]}, "t": 1792723430.336404}
+{"rep": 5, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 6, "prefix": "long", "role": "sonnet", "order": ["none", "cold", "warm"], "claims": {"cold": "CLM-009", "warm": "CLM-002", "none": "CLM-005"}, "network": {"interface": "en0", "connect_ms": [20.2, 49.6, 32.3]}, "t": 1792723446.435276}
+{"rep": 6, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 7, "prefix": "long", "role": "sonnet", "order": ["cold", "warm", "none"], "claims": {"cold": "CLM-010", "warm": "CLM-003", "none": "CLM-006"}, "network": {"interface": "en0", "connect_ms": [22.7, 25.1, 21.5]}, "t": 1792723461.90417}
+{"rep": 7, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 8, "prefix": "long", "role": "sonnet", "order": ["none", "cold", "warm"], "claims": {"cold": "CLM-001", "warm": "CLM-004", "none": "CLM-007"}, "network": {"interface": "en0", "connect_ms": [23.6, 22.3, 23.9]}, "t": 1792723476.6622279}
+{"rep": 8, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 9, "prefix": "long", "role": "sonnet", "order": ["cold", "warm", "none"], "claims": {"cold": "CLM-002", "warm": "CLM-005", "none": "CLM-008"}, "network": {"interface": "en0", "connect_ms": [25.8, 29.1, 24.4]}, "t": 1792723495.01121}
+{"rep": 9, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}
+{"rep": 10, "prefix": "long", "role": "sonnet", "order": ["none", "cold", "warm"], "claims": {"cold": "CLM-003", "warm": "CLM-006", "none": "CLM-009"}, "network": {"interface": "en0", "connect_ms": [30.2, 35.8, 26.4]}, "t": 1792723510.46132}
+{"rep": 10, "prefix": "long", "role": "sonnet", "warm_gap_s": 0.0}

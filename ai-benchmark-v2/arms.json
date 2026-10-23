@@ -1,0 +1,28 @@
+{
+ "_comment": "One line per arm: the id the script takes in --configs, the short label every report, table and chart uses, and whether the default benchmark run includes it. Labels are model, effort level, cache setting: high, medium, low = effort level; cache = automatic prompt cache; no cache = none.",
+ "arms": [
+  {"id": "opus-high-nocache", "label": "Opus high no cache", "default": true},
+  {"id": "opus-high-cache", "label": "Opus high cache", "default": true},
+  {"id": "opus-medium-cache", "label": "Opus medium cache", "default": true},
+  {"id": "opus-low-cache", "label": "Opus low cache", "default": true},
+  {"id": "sonnet-high-nocache", "label": "Sonnet high no cache", "default": true},
+  {"id": "sonnet-high-cache", "label": "Sonnet high cache", "default": true},
+  {"id": "sonnet-medium-cache", "label": "Sonnet medium cache", "default": true},
+  {"id": "sonnet-medium-breakpoint", "label": "Sonnet medium cache + breakpoint", "default": true},
+  {"id": "sonnet-low-cache", "label": "Sonnet low cache", "default": true},
+  {"id": "fable-high-nocache", "label": "Fable high no cache", "default": true},
+  {"id": "fable-high-cache", "label": "Fable high cache", "default": true},
+  {"id": "fable-medium-cache", "label": "Fable medium cache", "default": true},
+  {"id": "fable-low-cache", "label": "Fable low cache", "default": true},
+  {"id": "sonnet-medium-manual-tool", "label": "Sonnet medium cache + manual in a tool", "default": false},
+  {"id": "sonnet-medium-tool-search", "label": "Sonnet medium cache + tool search", "default": false},
+  {"id": "sonnet-medium-code-exec", "label": "Sonnet medium cache + code execution", "default": false},
+  {"id": "sonnet-medium-context-edit", "label": "Sonnet medium cache + context editing", "default": false},
+  {"id": "sonnet-medium-compaction", "label": "Sonnet medium cache + compaction", "default": false},
+  {"id": "sonnet-low-advisor", "label": "Sonnet low cache + Opus advisor", "default": false},
+  {"id": "sonnet-medium-batch", "label": "Sonnet medium Batch API", "default": false},
+  {"id": "haiku-cache", "label": "Haiku cache", "default": false},
+  {"id": "haiku-advisor", "label": "Haiku cache + Opus advisor", "default": false},
+  {"id": "haiku-subagents", "label": "Haiku subagents + Sonnet decides", "default": false}
+ ]
+}

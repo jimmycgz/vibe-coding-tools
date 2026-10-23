@@ -1,0 +1,53 @@
+{
+ "_comment": "Model roles and prices for model_benchmark.py, in dollars per million tokens. The notebook's own ids and prices are in the notebook (cell 7). notebook_cost always uses the notebook's fixed multipliers (cache write 1.25x for 5 minutes and 2x for 1 hour, cache read 0.10x). list_cache_read_mult is per model id and feeds a second, list-price cost column only.",
+ "roles": {
+  "fable": "claude-fable-5-1",
+  "opus": "claude-opus-5-5",
+  "sonnet": "claude-sonnet-5-5",
+  "haiku": "claude-haiku-5-5"
+ },
+ "_roles_note": "The roles hold the ids a run used. Check each id against the models your key can call before a paid run; model_benchmark.py does not probe them.",
+ "prices": {
+  "claude-fable-5": {
+   "in": 10.0,
+   "out": 50.0,
+   "list_cache_read_mult": 0.1
+  },
+  "claude-opus-5": {
+   "in": 5.0,
+   "out": 25.0,
+   "list_cache_read_mult": 0.1
+  },
+  "claude-sonnet-5": {
+   "in": 2.0,
+   "out": 10.0,
+   "list_cache_read_mult": 0.1
+  },
+  "claude-haiku-4-5": {
+   "in": 1.0,
+   "out": 5.0,
+   "list_cache_read_mult": 0.1
+  },
+  "claude-fable-5-1": {
+   "in": 10.0,
+   "out": 50.0,
+   "list_cache_read_mult": 0.025
+  },
+  "claude-opus-5-5": {
+   "in": 4.0,
+   "out": 20.0,
+   "list_cache_read_mult": 0.05
+  },
+  "claude-sonnet-5-5": {
+   "in": 2.0,
+   "out": 10.0,
+   "list_cache_read_mult": 0.1
+  },
+  "claude-haiku-5-5": {
+   "in": 0.1,
+   "out": 0.5,
+   "list_cache_read_mult": 0.1
+  }
+ },
+ "_haiku_note": "As in the notebook (cell 15, 'Haiku takes neither thinking nor effort'), the haiku role never sends thinking or output_config, whatever id fills it."
+}
