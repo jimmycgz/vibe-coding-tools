@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Model benchmark: cost per task and timing on the cookbook's insurance-claims task, as a plain script (stdlib only, raw HTTPS).
 
+Based on Anthropic's cost-optimisation cookbook notebook (MIT licence): https://github.com/anthropics/claude-cookbooks/blob/a162e0184e71b60290808a43961a6cbc8060123c/cost_optimization/cost_optimization.ipynb
+
 Re-implements, from the notebook cost_optimization.ipynb (anthropics/claude-cookbooks a162e01, notebook
 sha256 6b5955d79331c70a...), the parts the comparison needs: the adjudicate() loop (cell 15), adjudicate_cm()
 (cell 69), the decomposed subagent route (cells 46, 62), the batch one-shot route (cell 73), usage_cost()
@@ -480,7 +482,7 @@ def dry_run(cfgs, claims, models, dump_path, show_limit):
             show(cfg, "ALL", "batch create (%d requests)" % len(claims), "POST", API + "/messages/batches", headers(),
                  batch_body(models, claims, nonce))
     if dump_path:
-        os.makedirs(os.path.dirname(dump_path), exist_ok=True)
+        os.makedirs(os.path.dirname(dump_path) or ".", exist_ok=True)
         with open(dump_path, "w", encoding="utf-8") as f:
             for r in records:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
@@ -506,7 +508,7 @@ def estimate(cfgs, trials):
         cost = hi * 10 * trials
         total += cost
         by_tier[cfg["tier"]] = by_tier.get(cfg["tier"], 0) + cost
-        print("  %-3s %-36s saved $/task %s  mean %.4f  max %.4f  -> %.4f x 10 x %d = $%.2f" % (
+        print("  %-26s %-36s saved $/task %s  mean %.4f  max %.4f  -> %.4f x 10 x %d = $%.2f" % (
             cfg["id"], cfg["label"].strip(), "/".join("%.4f" % s[0] for s in cfg["saved"]), mean, hi, hi, trials, cost))
     for t, v in by_tier.items():
         print("  tier %-8s $%.2f" % (t, v))
@@ -535,7 +537,7 @@ def http(method, url, hdrs, body=None, timeout=900):
         raise RuntimeError("network path reached while not armed; refusing")
     data = None if body is None else json.dumps(body, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers=hdrs, method=method)
-    # Added 2026-10-22 16:4x EDT after the first live call died on a TLS "bad record mac" at turn 3 of the smoke run:
+    # Added 2026-10-22 after the first live call died on a TLS "bad record mac" at turn 3 of the smoke run:
     # transient network errors and 429/5xx/529 are retried up to 4 times with a growing pause. A request whose reply
     # was lost on the wire may still have been billed; that spend is not seen by the guard, and the count of such
     # retries is printed to stderr so the report can state it.
@@ -559,7 +561,8 @@ def http(method, url, hdrs, body=None, timeout=900):
 
 
 # ---------------------------------------------------------------- streaming and timing
-# With --stream every request is streamed and timed. Without it the non-streaming path above is used and no timing is kept.
+# With --stream, or --measure timing or both (the default), every request is streamed and timed. With --measure cost the
+# non-streaming path above is used and no timing is kept.
 # Definitions:
 #   wall_s          monotonic clock from just before the request is opened to the message_stop event
 #   ttfb_s          request opened -> first server-sent event (message_start): network, queue and prefill
@@ -572,6 +575,15 @@ with open(os.path.join(HERE, "arms.json"), encoding="utf-8") as _f:
     _ARMS = json.load(_f)["arms"]
 LABELS = {a["id"]: a["label"] for a in _ARMS}
 DEFAULT_ARMS = [a["id"] for a in _ARMS if a["default"]]
+
+
+def select_configs(spec, configs=None, defaults=None):
+    """The configurations to run: the ids in the comma-separated spec, or, with no spec, the arms flagged default in
+    arms.json (not every entry of CONFIGS, which also holds the Haiku and beta arms)."""
+    configs = CONFIGS if configs is None else configs
+    defaults = DEFAULT_ARMS if defaults is None else defaults
+    wanted = set(spec.split(",")) if spec else set(defaults)
+    return [c for c in configs if c["id"] in wanted]
 
 
 def parse_sse(lines, clock=time.monotonic, t_open=None):
@@ -885,6 +897,11 @@ def selftest(models, inject_fault=False):
         ("cell 11 system prompt chars", len(SYSTEM_PROMPT), 30395),
         ("cell 11 tools json chars", len(json.dumps(TOOLS)), 3342),
         ("cell 13 eval claims", len(EVAL_CLAIMS), 10),
+        ("no --configs: the arms.json defaults", sorted(c["id"] for c in select_configs(None)), sorted(DEFAULT_ARMS)),
+        ("no --configs: fewer than all configs", len(select_configs(None)) < len(CONFIGS), True),
+        ("no --configs: no Haiku arm", any("haiku" in c["id"] for c in select_configs(None)), False),
+        ("--configs picks exactly those ids", [c["id"] for c in select_configs("opus-high-cache,sonnet-low-cache")],
+         ["opus-high-cache", "sonnet-low-cache"]),
     ]
     if inject_fault:
         checks.append(("injected fault (must FAIL)", 1.0, 2.0))
@@ -1021,7 +1038,7 @@ def main():
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--estimate", action="store_true")
     mode.add_argument("--live", action="store_true")
-    ap.add_argument("--configs", default=None, help="comma-separated config ids; default all")
+    ap.add_argument("--configs", default=None, help="comma-separated config ids; default: the arms flagged default in arms.json")
     ap.add_argument("--claims", default=None, help="comma-separated claim ids; default all ten")
     ap.add_argument("--trials", type=int, default=2)
     ap.add_argument("--models", default=os.path.join(HERE, "models.json"))
@@ -1038,7 +1055,7 @@ def main():
     a = ap.parse_args()
     a.stream = wants_stream(a.measure, a.stream)
     models = load_models(a.models)
-    cfgs = CONFIGS if not a.configs else [c for c in CONFIGS if c["id"] in set(a.configs.split(","))]
+    cfgs = select_configs(a.configs)
     claims = EVAL_CLAIMS if not a.claims else [c for c in EVAL_CLAIMS if c["id"] in set(a.claims.split(","))]
     if not cfgs or not claims:
         raise SystemExit("no configs or claims selected")

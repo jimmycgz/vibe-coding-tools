@@ -1,6 +1,6 @@
 # Cache timing test, Sonnet (2026-10-22)
 
-Is there a true time saving from the prompt cache? This is the first run of the [cache timing test](plan-next-runs.md) planned before any paid call: Sonnet 5.5 only, on the long prefix (the benchmark's system prompt and tools plus the claims ledger, 148,271 tokens by the token counting endpoint), 10 repetitions of three requests (no cache, cold cache, warm cache), a different question in each request, one at a time. Opus and Fable have not been run.
+Is there a true time saving from the prompt cache? This is the first run of the [cache timing test](plan-next-runs.md) planned before any paid call: Sonnet 5.5 only, on the long prefix (the benchmark's system prompt and tools plus the claims ledger, 148,271 tokens by the [token counting endpoint](https://platform.claude.com/docs/en/build-with-claude/token-counting)), 10 repetitions of three requests (no cache, cold cache, warm cache), a different question in each request, one at a time. Opus and Fable have not been run.
 
 Navigation: [index](../README.md) · [plan](plan-next-runs.md) · [how caching is switched](how-caching-is-switched.md) · [raw records](../results/cache-timing-sonnet) · [script](../cache_timing.py)
 
@@ -12,6 +12,7 @@ Navigation: [index](../README.md) · [plan](plan-next-runs.md) · [how caching i
 - **Output speed was the same in all three states** (127, 128 and 134 tokens per second; the largest difference, 5.1 percent, is inside the scatter of 19.9 tokens per second), so the negative control raised no flag: output speed did not change with the cache state.
 - **The scatter is large and it has two modes.** 23 of the 30 requests took 3.3 to 5.1 seconds to the first token; 7 took 1.1 to 1.9 seconds: 3 no-cache requests, 4 warm ones and no cold ones. A fast reply with no cache shows that something other than the visible cache can make a request faster. I do not know what, and this run cannot say. That is why the median differences cannot be read as a saving or its absence.
 - **What it means for the question, on this evidence:** for Sonnet 5.5 on a 148,000-token prefix, the cache saved money and no time was shown to be saved. Ten repetitions are too few to tell a small saving from this scatter. The plan's expectation that the long prefix is where a saving shows was not confirmed.
+- **Against the plan's estimates:** the measured prefix, 148,271 tokens, was above the highest guess the plan gave (127,288); the Sonnet upper bound at that guess was $6.06 and the run cost $7.05; and the smoke set cost $0.70 against the "about $0.50" the plan expected. The plan's estimates were too low on all three counts.
 
 ## The table
 

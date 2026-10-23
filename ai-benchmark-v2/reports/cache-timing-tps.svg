@@ -24,6 +24,6 @@
 <text x="591.3" y="126" font-size="11" font-weight="600">127.8</text>
 <rect x="190" y="132" width="415.2" height="14" rx="2" fill="#3b8f6b"/>
 <text x="610.2" y="143" font-size="11" font-weight="600">133.9</text>
-<text x="20" y="212" font-size="12" fill="#5a6472">Latest models: Opus 5.5, Sonnet 5.5, Fable 5.1. 13k = ~13,000-token prefix; long = plus the claims ledger. Cold writes; warm reads.</text>
+<text x="20" y="212" font-size="12" fill="#5a6472">Latest models: Sonnet 5.5. Long = the benchmark's system prompt and tools plus the claims ledger. Cold writes; warm reads.</text>
 </g>
 </svg>

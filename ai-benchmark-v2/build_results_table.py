@@ -6,7 +6,7 @@ usage: build_results_table.py RESULTS_DIR [--out REPORTS_DIR] [--measure cost|ti
 
 --measure chooses what is tabled and charted: cost, timing or both. Cost is always recorded in the records.
 
-RESULTS_DIR holds trials-*.jsonl and, for a streamed run, requests-*.jsonl. arms.json maps arm ids to the short labels used
+RESULTS_DIR holds trials*.jsonl (the benchmark script writes trials.jsonl) and, for a streamed run, requests*.jsonl. arms.json maps arm ids to the short labels used
 everywhere. One row per arm: pass counts per trial, cost per task by the notebook's formula, and for a streamed run the
 median wall seconds per claim and per request and the median time to first event, first content and first text, for first
 turns and later turns separately.
@@ -18,7 +18,9 @@ Writes, into REPORTS_DIR (default: reports next to this file) and prints the tab
   time-per-claim.svg        median wall seconds per claim, with each trial's value marked
   time-to-first-event.svg   median time to first event, first turns and later turns side by side
 """
+import fnmatch
 import glob
+import importlib.util
 import json
 import math
 import os
@@ -34,11 +36,15 @@ FAMILY_COLOR = {"Opus": "#3b6ea5", "Sonnet": "#2f8f6b", "Fable": "#c0702a"}
 STACK = [("uncached input", "#8c97a3"), ("cache write", "#e0a030"), ("cache read", "#3b8f6b"), ("output", "#5b4aa5")]
 
 
+TRIALS_GLOB = "trials*.jsonl"      # matches trials.jsonl, which model_benchmark.py writes, and trials-<name>.jsonl
+REQUESTS_GLOB = "requests*.jsonl"
+
+
 def load(folder):
     trials, requests = [], []
-    for f in sorted(glob.glob(os.path.join(folder, "trials-*.jsonl"))):
+    for f in sorted(glob.glob(os.path.join(folder, TRIALS_GLOB))):
         trials += [json.loads(x) for x in open(f, encoding="utf-8") if x.strip()]
-    for f in sorted(glob.glob(os.path.join(folder, "requests-*.jsonl"))):
+    for f in sorted(glob.glob(os.path.join(folder, REQUESTS_GLOB))):
         requests += [json.loads(x) for x in open(f, encoding="utf-8") if x.strip()]
     return trials, requests
 
@@ -54,11 +60,17 @@ def fmt(x, nd=2):
 
 def cost_parts(r):
     """The four components of one request's cost, by the notebook's multipliers (cache write 1.25x for 5 minutes and 2x for
-    1 hour, cache read 0.10x), in dollars."""
+    1 hour, cache read 0.10x), in dollars. The write rule is the one model_benchmark.usage_cost uses: the 5-minute and
+    1-hour counts when either is non-zero, otherwise the flat cache_creation_input_tokens. Advisor iterations and batch
+    pricing are not split into parts, so a request that has them is refused."""
     u, p = r["usage"], PRICES[r["model"]]
+    if any(it.get("type") == "advisor_message" for it in u.get("iterations") or []):
+        raise ValueError("advisor iterations are not split into cost parts (request %s)" % r.get("tag"))
     cc = u.get("cache_creation") or {}
-    w5 = cc.get("ephemeral_5m_input_tokens", u.get("cache_creation_input_tokens", 0) or 0)
-    w1 = cc.get("ephemeral_1h_input_tokens", 0)
+    w5 = cc.get("ephemeral_5m_input_tokens", 0) or 0
+    w1 = cc.get("ephemeral_1h_input_tokens", 0) or 0
+    if not (w5 or w1):
+        w5 = u.get("cache_creation_input_tokens") or 0
     pin, pout = p["in"] / 1e6, p["out"] / 1e6
     return [(u.get("input_tokens") or 0) * pin, (w5 * 1.25 + w1 * 2.0) * pin,
             (u.get("cache_read_input_tokens") or 0) * 0.10 * pin, (u.get("output_tokens") or 0) * pout]
@@ -145,6 +157,23 @@ def selftest(inject_fault=False):
     check("timing: only the two time charts", sorted(charts_for(timed, "timing")), ["time-per-claim.svg", "time-to-first-event.svg"])
     check("both: all four charts", len(charts_for(timed, "both")), 4)
     check("both without timing: two charts", len(charts_for(plain, "both")), 2)
+    # The parts must add up to the script's own cost on the edge cases where the two rules once differed.
+    spec = importlib.util.spec_from_file_location("model_benchmark", os.path.join(HERE, "model_benchmark.py"))
+    mb = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mb)
+    model = next(iter(PRICES))
+    edge = [{"input_tokens": 10, "cache_creation_input_tokens": 1000, "cache_read_input_tokens": 5, "output_tokens": 7},
+            {"input_tokens": 10, "cache_creation_input_tokens": 1000, "cache_creation": {"ephemeral_5m_input_tokens": 0,
+             "ephemeral_1h_input_tokens": 0}, "output_tokens": 7},
+            {"input_tokens": 10, "cache_creation_input_tokens": 1000, "cache_creation": {"ephemeral_5m_input_tokens": 400,
+             "ephemeral_1h_input_tokens": 600}, "cache_read_input_tokens": 50, "output_tokens": 7}]
+    gaps = [abs(sum(cost_parts({"usage": u, "model": model})) - mb.usage_cost(u, model, {"prices": PRICES})) for u in edge]
+    check("cost parts add up to usage_cost on the edge cases", max(gaps) < 1e-9, True)
+    # The file names model_benchmark.py writes (trials.jsonl, requests.jsonl) and the ones kept in results/ must be found.
+    check("reads the file names the benchmark script writes",
+          [fnmatch.fnmatch(n, g) for n, g in (("trials.jsonl", TRIALS_GLOB), ("requests.jsonl", REQUESTS_GLOB))], [True, True])
+    check("reads trials-<name>.jsonl and requests-<name>.jsonl too",
+          [fnmatch.fnmatch(n, g) for n, g in (("trials-run1.jsonl", TRIALS_GLOB), ("requests-run1.jsonl", REQUESTS_GLOB))], [True, True])
     if inject_fault:
         check("injected fault (must FAIL)", 1, 2)
     print("selftest", "PASSED" if ok else "FAILED")
@@ -306,8 +335,8 @@ def main():
             sys.exit("--measure takes cost, timing or both")
     if len(argv) != 1:
         sys.exit(__doc__)
-    if not glob.glob(os.path.join(argv[0], "trials-*.jsonl")):
-        sys.exit("no trials-*.jsonl in %s; nothing written" % argv[0])
+    if not glob.glob(os.path.join(argv[0], TRIALS_GLOB)):
+        sys.exit("no %s in %s; nothing written" % (TRIALS_GLOB, argv[0]))
     rows = collect(argv[0])
     if not rows:
         sys.exit("no arm in %s matches arms.json; nothing written" % argv[0])
