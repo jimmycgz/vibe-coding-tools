@@ -1,13 +1,13 @@
 # Model benchmark
 
-A fine-tuned optimized benchmark for model cost and timing, in one plain stdlib-only Python script, `model_benchmark.py`. It runs a tool-using agent task on Opus 5.5, Sonnet 5.5 and Fable 5.1 and reports cost per task, and timing when run with `--stream`, for each model, effort level and cache setting. More model families are planned. The legacy folder, [ai-benchmark](../ai-benchmark/README.md), is unchanged.
+A fine-tuned optimized benchmark for model cost and timing, in one plain stdlib-only Python script, `model_benchmark.py`. It runs a tool-using agent task on Opus 5.5, Sonnet 5.5 and Fable 5.1 and reports cost per task and timing (`--measure cost|timing|both`), for each model, effort level and cache setting. More model families are planned. The legacy folder, [ai-benchmark](../ai-benchmark/README.md), is unchanged.
 
 It started from the cost-optimization notebook in Anthropic's cookbook (`cost_optimization/cost_optimization.ipynb`): its insurance-claims task, its data and its cost formula are the starting point, and the credit is below.
 
 ## Features
 
 - **Cost per task**, from the `usage` block of every request, by the notebook's formula and with each model's own cache-read rate. Caching (none, auto cache) and effort (high, medium, low) are arms, so the same task is priced across models and settings.
-- **Timing**, with `--stream`: time to first event, time to first content, time to first text, wall time per request, and wall time per claim. Run 1 is its first live use.
+- **Timing**: time to first event, time to first content, time to first text, wall time per request, and wall time per claim. `--measure cost|timing|both` (default both) chooses what a run measures and shows; timing streams every request, and cost is always recorded from the usage block.
 - **Spend guard**: stops before any request whose worst case would pass `--ceiling-usd`.
 - **Rotated arm order** (`--order rotate`) so no arm always runs at the same point in the sequence.
 - **Offline selftest**: checks the cost formula against numbers the notebook printed and the stream parser against a canned stream; it needs no key and no network.
