@@ -1,6 +1,6 @@
 # Plan: Gemini 3.8 Flash in the model benchmark
 
-Status: **planned; nothing has been run.** The scripts are [gemini_benchmark.py](../gemini_benchmark.py) (the agent task) and [gemini_cache_timing.py](../gemini_cache_timing.py) (the cache timing test), with prices and model ids in [gemini_models.json](../gemini_models.json). This plan is committed before any paid call. Gemini 4 Argon is in the scripts but is not part of this plan; it would get its own plan after the Flash result.
+Status: **amended 2026-10-23 (see "Amendment 1" at the end); the cache timing test was not run before the amendment, and its smoke set is reported there.** Original status: planned, nothing run. The scripts are [gemini_benchmark.py](../gemini_benchmark.py) (the agent task) and [gemini_cache_timing.py](../gemini_cache_timing.py) (the cache timing test), with prices and model ids in [gemini_models.json](../gemini_models.json). This plan is committed before any paid call. Gemini 4 Argon is in the scripts but is not part of this plan; it would get its own plan after the Flash result.
 
 Navigation: [index](../README.md) · [method](method.md) · [Claude cache timing results](cache-timing-results.md) · [plan for the next runs](plan-next-runs.md)
 
@@ -50,3 +50,33 @@ List prices from the Vertex pricing page, read 2026-10-22, standard tier, text, 
 ## What is not in this plan
 
 Explicit caching (a separate cache object with storage cost), Gemini 4 Argon, and any comparison of Gemini and Claude times on one chart. The Vertex project id and the access token are never written to a record, a report or an error message; the scripts take them from the environment and show `<PROJECT>` and `<REDACTED>` in dry runs.
+
+## Amendment 1 (2026-10-23 00:29 EDT, committed before any full cache timing set)
+
+The text above is the plan as committed before any paid call. This amendment changes the repeat request, and says why.
+
+**What the smoke set showed.** The smoke run on 2026-10-22 (23:57 EDT) sent one cache timing set on the long prefix (171,360 Gemini tokens). The repeat request, sent straight after its first request with a new question, had **0 percent** of its prompt cached (`cachedContentTokenCount` absent). Under the T rule above T could not be set (the floor is 50 percent), and the sets did not start.
+
+**What the diagnostic then showed** (Gemini 3.8 Flash, thinking LOW, one fresh prefix per probe, a first request followed by the repeat; every probe is two to three requests, so each line is a single observation):
+
+| Repeat kind | Prefix | Wait before the repeat | Cached share of the repeat |
+|---|---|---|---|
+| new question (the plan's repeat) | 171K tokens, ledger as a system part | 0 s, 30 s, then 120 s after the first request | 0 percent, 0 percent, 0 percent |
+| new question | 48K, ledger as a system part | 0 s | 0 percent |
+| new question | 48K, ledger in the user message | 0 s | 0 percent |
+| new question | 7.6K | 0 s | 0 percent |
+| identical request | 7.6K | 0 s | 53.6 percent |
+| identical request | 48K | 0 s | 93.1 percent |
+| follow-up turn | 7.8K | 0 s | 52.1 percent |
+| follow-up turn | 48K | 0 s | 92.6 percent |
+| follow-up turn | 171K (the test's prefix) | 0 s | **97.9 percent** |
+
+A follow-up turn is the first request, its own reply (the model's parts exactly as received) and a new question as a second user turn. A new question as a separate request never hit, at any size or wait tried (up to 120 s); an identical request and a follow-up turn did, and the cached part grew with the prompt. The explanation is a hypothesis only: the implicit cache seems to store whole earlier requests, and a request is served from the longest earlier request it extends.
+
+**The change.** The repeat request becomes a **follow-up turn**: the first request of its set, that request's reply, and a new question. Everything else is as planned: the first request, the second first request (the control), the alternating order, the reading rule, the 8-of-10 minimum, the negative control, the prices. The repeat's prompt is about 200 tokens longer than its first request's, and it carries a model turn.
+
+**What this warm case is.** It measures a turn that carries the earlier turn, as an agent's later turn does. It is not a new user reading a shared document, and **it is not comparable with the Claude warm cache** (a separate request with a new question after an explicit breakpoint). The results are never drawn on one chart with the Claude states, and a comparison says "a different warm case".
+
+**T, by the rule as written.** T is the lowest valid repeat share at the prefix the sets run on, minus 5 points, never below 50 percent. The only diagnostic repeat on the long prefix at the test's layout is the follow-up turn at 97.9 percent, so **T = 92.9 percent**. The other follow-up shares (52.1 percent at 7.8K, 92.6 percent at 48K) are listed above and are not used, because the rule is tied to the prefix the sets run on. T is not changed after this amendment; real hits between 87 and 93 percent would make the reading "inconclusive" and the report would say why.
+
+**Money.** The smoke and diagnostic runs cost about $1.2 in all. The full cache timing sets are estimated in the run's own `--estimate`.

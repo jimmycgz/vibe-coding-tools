@@ -13,10 +13,20 @@ cache_timing.py. Each set has three requests, each with a different claim as its
 
   first request          a fresh nonce at the head of the system instruction, so no earlier prefix matches.
                          Valid when cachedContentTokenCount is 0 or absent.
-  repeat request         the same prefix as the first request of its set (the same nonce), a different question, sent
-                         straight after it. A valid hit when cachedContentTokenCount is at least T percent of the prompt
-                         tokens, T given by --threshold (no default: the live run and --report refuse without it).
+  repeat request         a follow-up turn, sent straight after the first request of its set: that request's whole body
+  (follow-up turn)       (the same nonce, system instruction, tools, tool config and generation config), then its own
+                         reply as a model turn with the parts exactly as received (thought signatures kept), then a new
+                         user turn holding a different question. A valid hit when cachedContentTokenCount is at least T
+                         percent of the prompt tokens, T given by --threshold (no default: the live run and --report
+                         refuse without it). If the first request failed there is no reply to carry, so the repeat is
+                         not sent; the report lists it as not sent and counts it as a repeat that is not a valid hit.
   second first request   the control: another fresh nonce and a third question. Valid as a first request is.
+
+Why a follow-up turn: a live check on Vertex found that a request with the same prefix and a NEW question as its only user
+turn read nothing from the implicit cache (0 percent at about 8K, 48K and 171K prompt tokens), while a follow-up turn read
+92.6 percent at 48K (an identical repeat read 93.1 percent). So the repeat request measures a later turn of a conversation
+that carries the earlier turn. Its prompt is a little longer than its first request's (the reply and the new question,
+about 200 tokens in that check); every check below uses each request's own promptTokenCount.
 
 Order inside a set alternates: sets 1, 3, 5 ... run first request, repeat request, second first request; sets 2, 4, 6 ...
 run second first request, first request, repeat request. The repeat always comes straight after the first request of its
@@ -25,7 +35,8 @@ order effect. Claims rotate as in cache_timing.schedule: over ten sets each stat
 
 The prefix is cache_timing.py's long prefix, taken from its build_body: the nonce line and the benchmark's system prompt,
 then the claims ledger, as two parts of systemInstruction; the twelve tools as functionDeclarations with function calling
-mode NONE; the question as the only user content.
+mode NONE; the question as the only user content of a first request (the repeat request adds the reply and a second user
+turn, as above).
 
 Reading rule, fixed before the run:
   - Headline: repeat request against first request, on time to first token, paired within each set.
@@ -41,7 +52,8 @@ the pairs; the excluded pairs are printed.
 usage:
   gemini_cache_timing.py --selftest | --selftest-fault
   gemini_cache_timing.py --dry-run [--reps N] [--only flash|argon] [--thinking-level LOW]
-      prints the schedule and the first request body; the project is shown as <PROJECT>, the token as <REDACTED>
+      prints the schedule, the first request body and the shape of the repeat request (its contents roles and size, with
+      the reply shown as <first reply>); the project is shown as <PROJECT>, the token as <REDACTED>
   gemini_cache_timing.py --estimate [--reps N] [--only flash|argon]      upper-bound cost, nothing read from the cache; no network
   gemini_cache_timing.py --live --ceiling-usd X --out DIR --threshold T [--smoke] [--reps N] [--only flash|argon]
       the paid run (needs what gemini_benchmark.py --live needs in the environment); --smoke runs one set and needs no
@@ -72,7 +84,8 @@ import build_results_table as brt  # noqa: E402  (SVG helpers for the charts)
 ROLES = {"flash": "gemini-3.8-flash", "argon": "gemini-4-argon"}   # --only name -> role key in gemini_models.json
 ROLE_ORDER = ["flash", "argon"]
 STATES = ["first", "repeat", "control"]
-STATE_LABEL = {"first": "first request", "repeat": "repeat request", "control": "second first request"}
+STATE_LABEL = {"first": "first request", "repeat": "repeat request (follow-up turn)", "control": "second first request"}
+LEGEND_STEP = 230                              # chart legend spacing, wide enough for the longest label
 STATE_COLOR = {"first": "#5b4aa5", "repeat": "#3b8f6b", "control": "#8c97a3"}
 ODD_ORDER = ["first", "repeat", "control"]     # sets 1, 3, 5 ...
 EVEN_ORDER = ["control", "first", "repeat"]    # sets 2, 4, 6 ...
@@ -87,6 +100,10 @@ NO_BREAKPOINT = "none"
 # --estimate: the long prefix's size by the Anthropic counter (148,271 tokens: system prompt, tools and ledger). Gemini's
 # own count differs and is read from promptTokenCount in the smoke set.
 PREFIX_TOKENS_ESTIMATE = 148_000
+# --estimate: how much longer a repeat request's prompt is than its first request's: the first reply (at most ANSWER_TOKENS
+# of answer, plus its thought signatures) and the new question. The live check measured about 200 tokens; 1,000 leaves room
+# for a full answer and a longer question.
+FOLLOWUP_EXTRA_TOKENS = 1_000
 # Spend guard: the ledger is mostly digits and commas, about 1.7 characters a token by the Anthropic count, so the 3
 # characters a token gemini_benchmark.py's guard assumes would undercount it. 1.25 leaves room for a finer tokenizer.
 GUARD_CHARS_PER_TOKEN = 1.25
@@ -101,7 +118,9 @@ NC_LIMIT = 0.10                                # the negative control's relative
 TABLE_NAME = "gemini-cache-timing-table.md"
 MAPPING_NOTE = ("These three states do not map onto the Anthropic cold, warm and no-cache states (a Gemini first request "
                 "may be stored implicitly with no write field, and no request runs without the cache), so they are never "
-                "drawn on one chart with them.")
+                "drawn on one chart with them. The repeat request is a follow-up turn: the first request, its reply and a "
+                "new question, so it measures a turn that carries the earlier turn, not a new user reading a shared "
+                "document; it is not comparable with the Anthropic warm cache.")
 PREFIX_NOTE = "Prefix: the benchmark's system prompt and tools plus the claims ledger."
 FORBIDDEN_STATE_WORDS = re.compile(r"\bcold\b|\bwarm\b|no[- ]cache", re.I)   # the Anthropic state names, never ours
 
@@ -151,6 +170,36 @@ def build_body(nonce, claim, ledger, level=DEFAULT_THINKING_LEVEL):
             "tools": gb.gemini_tools(mb.TOOLS),
             "toolConfig": {"functionCallingConfig": {"mode": FUNCTION_CALLING_MODE}},
             "generationConfig": {"maxOutputTokens": ANSWER_TOKENS + THINKING_ALLOWANCE, "thinkingConfig": thinking}}
+
+
+def reply_parts(resp):
+    """The parts of a reply's first candidate, or None when there is no reply or it has no parts to carry."""
+    try:
+        parts = resp["candidates"][0]["content"]["parts"]
+    except (KeyError, IndexError, TypeError):
+        return None
+    return parts or None
+
+
+def followup_body(first_body, first_resp, question_parts):
+    """The repeat request: the first request's body, then the first reply as a model turn and a new user turn.
+
+    first_body is copied, so its system instruction, tools, tool config and generation config go out unchanged, nonce and
+    all. The model turn carries the reply's parts exactly as received (thought signatures included), because Gemini expects
+    earlier model turns echoed back as they came. question_parts are the parts of the new user turn: the repeat claim's
+    question, as build_body puts it in contents[0]["parts"]. Raises ValueError when the reply has no parts."""
+    parts = reply_parts(first_resp)
+    if parts is None:
+        raise ValueError("the first reply has no parts to carry into a follow-up turn")
+    body = json.loads(json.dumps(first_body))
+    body["contents"] = body["contents"] + [{"role": "model", "parts": json.loads(json.dumps(parts))},
+                                           {"role": "user", "parts": json.loads(json.dumps(question_parts))}]
+    return body
+
+
+def repeat_question_parts(nonce, claim, ledger, level=DEFAULT_THINKING_LEVEL):
+    """The user parts a first request for this claim would send: the question the repeat request asks in its new turn."""
+    return build_body(nonce, claim, ledger, level)["contents"][0]["parts"][-1:]
 
 
 # ---------------------------------------------------------------- checks and the reading rule
@@ -207,15 +256,28 @@ def dry_run(gm, only, reps, claims, level=DEFAULT_THINKING_LEVEL, show_limit=300
     for s in sched:
         print("  set %2d  %s" % (s["set"], " -> ".join("%s (%s)" % (STATE_LABEL[x], s["claims"][x]) for x in s["order"])))
     by_id = {c["id"]: c for c in claims}
-    body = build_body("<time_ns>", by_id[sched[0]["claims"]["first"]], ct.load_ledger(), level)
+    ledger = ct.load_ledger()
+    body = build_body("<time_ns>", by_id[sched[0]["claims"]["first"]], ledger, level)
     raw = json.dumps(body, ensure_ascii=False).encode("utf-8")
     print("the first request of set 1:")
     print("  POST %s" % gb.endpoint(gm["models"][role]["id"], gb.PROJECT_PLACEHOLDER, location))
     print("  headers " + json.dumps(gb.request_headers()))
     print("  body bytes %d sha256 %s (with the nonce shown as <time_ns>)" % (len(raw), hashlib.sha256(raw).hexdigest()))
     print("  body " + json.dumps(mb._elide(body, show_limit), ensure_ascii=False))
-    print("the repeat request differs from its first request only in the question; the second first request differs in the "
-          "nonce line and the question")
+    # no reply exists in a dry run, so the model turn holds a placeholder where the first reply's parts will go
+    placeholder = {"candidates": [{"content": {"role": "model", "parts": [{"text": "<first reply>"}]}}]}
+    rep = followup_body(body, placeholder, repeat_question_parts("<time_ns>", by_id[sched[0]["claims"]["repeat"]], ledger,
+                                                                 level))
+    rep_raw = json.dumps(rep, ensure_ascii=False).encode("utf-8")
+    print("the %s of set 1: the first request's body, then its reply as a model turn, then a new user turn with the "
+          "question for %s" % (STATE_LABEL["repeat"], sched[0]["claims"]["repeat"]))
+    print("  contents roles %s" % ", ".join(c["role"] for c in rep["contents"]))
+    print("  body bytes %d (the reply shown as <first reply>; the live body is longer by the reply)" % len(rep_raw))
+    print("  model turn " + json.dumps(rep["contents"][1], ensure_ascii=False))
+    print("  system instruction, tools, tool config and generation config: the same bytes as the first request's: %s"
+          % all(json.dumps(rep[k], ensure_ascii=False) == json.dumps(body[k], ensure_ascii=False)
+                for k in ("systemInstruction", "tools", "toolConfig", "generationConfig")))
+    print("the second first request differs from the first request in the nonce line and the question")
     for why in gb.readiness([{"role": role}], gm, location):
         print("note: the live run would refuse: " + why)
     print("no network call was made and no credential was read")
@@ -229,7 +291,8 @@ def estimate(gm, only, reps):
         return None
     n = 3 * reps
     cap = ANSWER_TOKENS + THINKING_ALLOWANCE
-    tin = n * PREFIX_TOKENS_ESTIMATE * p["in"] / 1e6
+    # each set's repeat request carries the first reply and a second question on top of the prefix
+    tin = (n * PREFIX_TOKENS_ESTIMATE + reps * FOLLOWUP_EXTRA_TOKENS) * p["in"] / 1e6
     out_low = n * ANSWER_TOKENS * p["out"] / 1e6
     out_cap = n * cap * p["out"] / 1e6
     out_guard = n * (cap + gb.WORST_CASE_EXTRA_THOUGHT_TOKENS) * p["out"] / 1e6
@@ -237,7 +300,8 @@ def estimate(gm, only, reps):
           "out %.3f per million, %s):" % (gm["models"][role]["id"], reps, n, p["in"], p.get("cached_in"), p["out"],
                                           p.get("location", "?")))
     print("  input: %d requests x %d prompt tokens (the Anthropic count of the long prefix; Gemini's own count is read from "
-          "the smoke set) at the full input price: $%.2f" % (n, PREFIX_TOKENS_ESTIMATE, tin))
+          "the smoke set), plus %d tokens for each of the %d follow-up turns (the first reply and the new question), at the "
+          "full input price: $%.2f" % (n, PREFIX_TOKENS_ESTIMATE, FOLLOWUP_EXTRA_TOKENS, reps, tin))
     print("  output if every reply reaches maxOutputTokens (%d a request, if that limit also bounds thinking): $%.2f -> "
           "total $%.2f" % (cap, out_cap, tin + out_cap))
     print("  output if the limit does not bound thinking (plus %d thinking tokens, the spend guard's reading): $%.2f -> "
@@ -316,15 +380,28 @@ def live(a, gm, claims, env=None, transport=None):
                                                   "thinking_level": level, "threshold": a.threshold,
                                                   "t": time.time()})) + "\n")
                 meta.flush()
-                first_end = None
+                # the first request's body and reply in this set; the repeat is built from these and never from the
+                # control, which runs before the first request in even sets
+                first_end, first_body, first_resp = None, None, None
                 for state in s["order"]:
                     claim = by_id[s["claims"][state]]
-                    if state == "repeat" and first_end is not None:
+                    tag = "%s set%d %s %s" % (s["role"], s["set"], state, claim["id"])
+                    if state == "repeat":
+                        if first_resp is None or reply_parts(first_resp) is None:
+                            why = "its first request failed" if first_resp is None else "its first reply had no parts"
+                            print(run.redact("NOT SENT %s: %s, so there is no reply to carry into a follow-up turn"
+                                             % (tag, why)), flush=True)
+                            meta.write(json.dumps({"set": s["set"], "role": s["role"], "repeat_not_sent": why}) + "\n")
+                            meta.flush()
+                            if a.smoke:
+                                raise SystemExit("smoke: the repeat request was not sent: " + why)
+                            continue
+                        body = followup_body(first_body, first_resp, repeat_question_parts(nonce[state], claim, ledger, level))
                         meta.write(json.dumps({"set": s["set"], "role": s["role"],
                                                "repeat_gap_s": round(clock() - first_end, 3)}) + "\n")
                         meta.flush()
-                    body = build_body(nonce[state], claim, ledger, level)
-                    tag = "%s set%d %s %s" % (s["role"], s["set"], state, claim["id"])
+                    else:
+                        body = build_body(nonce[state], claim, ledger, level)
                     try:
                         resp, cost = run.create(tag, cfg, body, level)
                     except RuntimeError as e:
@@ -333,7 +410,7 @@ def live(a, gm, claims, env=None, transport=None):
                             raise
                         continue
                     if state == "first":
-                        first_end = clock()
+                        first_end, first_body, first_resp = clock(), body, resp
                     u = resp.get("usageMetadata") or {}
                     ok, why, share = check_state(state, u, a.threshold)
                     t = (run.log.last or {}).get("timing") or {}
@@ -381,6 +458,42 @@ def load_requests(folder, threshold):
     return rows
 
 
+def load_sets(folder):
+    """What sets.jsonl says: the scheduled sets {(role, set): repeat claim}, why a repeat was not sent {(role, set): why},
+    and the waits between a first request ending and its repeat starting. Empty when the file is absent."""
+    sched, why_not, gaps = {}, {}, []
+    sp = os.path.join(folder, "sets.jsonl")
+    if not os.path.exists(sp):
+        return sched, why_not, gaps
+    with open(sp, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            m = json.loads(line)
+            key = (m.get("role"), m.get("set"))
+            if "order" in m:
+                sched[key] = (m.get("claims") or {}).get("repeat")
+            if "repeat_not_sent" in m:
+                why_not[key] = m["repeat_not_sent"]
+            if "repeat_gap_s" in m:
+                gaps.append(m["repeat_gap_s"])
+    return sched, why_not, gaps
+
+
+def unsent_repeats(rows, sched, why_not):
+    """Scheduled repeat requests with no record in requests.jsonl: the first request failed, or the repeat itself failed
+    before a status came back. Each is counted as a repeat that is not a valid hit."""
+    seen = {(r["role"], r["set"]) for r in rows if r["state"] == "repeat"}
+    out = []
+    for (role, s), claim in sorted(sched.items(), key=lambda kv: (ROLE_ORDER.index(kv[0][0]) if kv[0][0] in ROLE_ORDER
+                                                                   else len(ROLE_ORDER), kv[0][1])):
+        if (role, s) not in seen:
+            why = why_not.get((role, s))
+            out.append({"role": role, "set": s, "claim": claim, "tag": "%s set%d repeat %s" % (role, s, claim),
+                        "why": "not sent: " + why if why else "no record of it (it failed before a status came back)"})
+    return out
+
+
 def cells(rows):
     out = {}
     for role in ROLE_ORDER:
@@ -396,9 +509,10 @@ def med(c, key):
     return ct.quartiles([r[key] for r in c["rows"]])
 
 
-def paired(rows, role, a, b, key="ftt"):
-    """Per set, a minus b, over VALID pairs only. Returns ([(set, difference)], [(set, why excluded)])."""
-    by = {}
+def paired(rows, role, a, b, key="ftt", sets=()):
+    """Per set, a minus b, over VALID pairs only. sets: the scheduled set numbers, so a set with neither request on record
+    is still listed as excluded. Returns ([(set, difference)], [(set, why excluded)])."""
+    by = {s: {} for s in sets}
     for r in rows:
         if r["role"] == role and r["state"] in (a, b):
             by.setdefault(r["set"], {})[r["state"]] = r
@@ -438,10 +552,13 @@ def report(folder, out, threshold, gm):
     if tp:
         raise SystemExit("refusing the report: " + tp)
     rows = load_requests(folder, threshold)
+    sched, why_not, gaps = load_sets(folder)
+    unsent = unsent_repeats(rows, sched, why_not)
     cs = cells(rows)
-    roles = [r for r in ROLE_ORDER if any(k[0] == r for k in cs)]
-    L = ["Hit threshold: a repeat request is a valid hit when at least %g percent of its prompt tokens were read from the "
-         "cache (fixed before the run)." % threshold, ""]
+    roles = [r for r in ROLE_ORDER if any(k[0] == r for k in cs) or any(u["role"] == r for u in unsent)]
+    rep_label = STATE_LABEL["repeat"]
+    L = ["Hit threshold: a %s is a valid hit when at least %g percent of its own prompt tokens were read from the "
+         "cache (fixed before the run)." % (rep_label, threshold), ""]
     L += ["| Model | State | Requests | Valid | First token s (median, quartiles) | Total s (median) | "
           "Output tokens/s (median) | Thinking tokens (median) | $ per request (mean of valid) |", "|---|---|---|---|---|---|---|---|---|"]
     for (role, state), c in cs.items():
@@ -453,36 +570,43 @@ def report(folder, out, threshold, gm):
             "%.4f" % statistics.mean(r["cost"] for r in c["rows"]) if c["rows"] else "n/a"))
     L += ["", "Total spent: $%.4f over %d requests." % (sum(r["cost"] for r in rows), len(rows))]
     # hit rate per set and overall
-    L += ["", "Hit rate: whether each repeat request read its prefix from the cache.", "",
-          "| Model | Set | Repeat request | Cached share | Valid hit |", "|---|---|---|---|---|"]
+    L += ["", "Hit rate: whether each %s read its prefix from the cache." % rep_label, "",
+          "| Model | Set | Claim of the %s | Cached share | Valid hit |" % rep_label, "|---|---|---|---|---|"]
     all_rep = [r for r in rows if r["state"] == "repeat"]
-    for r in sorted(all_rep, key=lambda x: (ROLE_ORDER.index(x["role"]), x["set"])):
-        L.append("| %s | %d | %s | %s | %s |" % (model_name(gm, r["role"]), r["set"], r["claim"],
-                                                 "n/a" if r["share"] is None else "%.1f percent" % (100 * r["share"]),
-                                                 "yes" if r["ok"] else "no"))
+    hit_rows = [(r["role"], r["set"], r["claim"], "n/a" if r["share"] is None else "%.1f percent" % (100 * r["share"]),
+                 "yes" if r["ok"] else "no") for r in all_rep]
+    hit_rows += [(u["role"], u["set"], u["claim"], "not sent", "no") for u in unsent]
+    for role, s, claim, share, hit in sorted(hit_rows, key=lambda x: (ROLE_ORDER.index(x[0]), x[1])):
+        L.append("| %s | %d | %s | %s | %s |" % (model_name(gm, role), s, claim, share, hit))
     L.append("")
+
+    def n_rep(role=None):
+        # every scheduled repeat counts in the denominator, sent or not
+        return (sum(1 for r in all_rep if role in (None, r["role"])) + sum(1 for u in unsent if role in (None, u["role"])))
     for role in roles:
-        rep = [r for r in all_rep if r["role"] == role]
-        L.append("Hit rate, %s: %d of %d repeat requests were valid hits." % (model_name(gm, role),
-                                                                              sum(1 for r in rep if r["ok"]), len(rep)))
-    L.append("Hit rate, overall: %d of %d repeat requests were valid hits." % (sum(1 for r in all_rep if r["ok"]), len(all_rep)))
+        L.append("Hit rate, %s: %d of %d repeat requests were valid hits." % (
+            model_name(gm, role), sum(1 for r in all_rep if r["role"] == role and r["ok"]), n_rep(role)))
+    L.append("Hit rate, overall: %d of %d repeat requests were valid hits." % (sum(1 for r in all_rep if r["ok"]), n_rep()))
     missed = [r for r in all_rep if not r["ok"]]
     L += ["", "Missed repeat requests (left out of the medians and the pairs, shown here): %d." % len(missed)]
     L += ["- %s: cached share %s, first token %s s, total %s s; %s" % (
         r["tag"], "n/a" if r["share"] is None else "%.1f percent" % (100 * r["share"]), fmt(r["ftt"]), fmt(r["wall"]), r["why"])
         for r in missed]
+    L += ["", "Repeat requests not sent or not on record (counted above as not valid hits): %d." % len(unsent)]
+    L += ["- %s: %s" % (u["tag"], u["why"]) for u in unsent]
     # paired differences
     L += ["", "Paired differences, per set, valid pairs only (negative = the first-named was faster):", "",
           "| Model | Pair | First token s, median difference | Sets where the first-named was faster | "
           "Total s, median difference |", "|---|---|---|---|---|"]
-    pairs = (("repeat", "first", "repeat request minus first request"),
+    pairs = (("repeat", "first", "%s minus first request" % rep_label),
              ("first", "control", "first request minus second first request (noise floor)"))
     excl_lines, readings = [], []
     for role in roles:
         res = {}
+        role_sets = sorted(s for (r_, s) in sched if r_ == role)
         for a_, b_, label in pairs:
-            d1, ex = paired(rows, role, a_, b_, "ftt")
-            d2, _ = paired(rows, role, a_, b_, "wall")
+            d1, ex = paired(rows, role, a_, b_, "ftt", role_sets)
+            d2, _ = paired(rows, role, a_, b_, "wall", role_sets)
             res[a_] = [d for _, d in d1]
             L.append("| %s | %s | %s | %d of %d | %s |" % (
                 model_name(gm, role), label, "n/a" if not d1 else "%+.2f" % statistics.median(res[a_]),
@@ -492,21 +616,20 @@ def report(folder, out, threshold, gm):
         word, faster, n_pairs = reading(hits, res["repeat"])
         nf = sum(1 for x in res["first"] if x < 0)
         readings.append("| %s | %s (repeat faster in %d of %d valid pairs) | %d of %d | first faster in %d of %d valid pairs |" % (
-            model_name(gm, role), word, faster, n_pairs, hits, sum(1 for r in all_rep if r["role"] == role), nf,
-            len(res["first"])))
+            model_name(gm, role), word, faster, n_pairs, hits, n_rep(role), nf, len(res["first"])))
     L += ["", "Excluded pairs: %d." % len(excl_lines)] + excl_lines
-    L += ["", "Reading rule (fixed before the run). Headline: repeat request against first request. Fewer than %d valid hits "
+    L += ["", "Reading rule (fixed before the run). Headline: %s against first request. Fewer than %d valid hits "
           "of the 10 repeat requests: inconclusive. Otherwise seen when the repeat was faster in at least %d valid pairs, "
           "with at least %d valid pairs; else not seen. First request against second first request is a noise floor: two "
           "requests of the same state, so a count far from half shows noise, load or the network, not the cache."
-          % (MIN_HITS, MIN_FASTER, MIN_PAIRS), "",
-          "| Model | Headline: repeat request against first request | Valid hits | Noise floor: first request against second first request |",
-          "|---|---|---|---|"] + readings
+          % (rep_label, MIN_HITS, MIN_FASTER, MIN_PAIRS), "",
+          "| Model | Headline: %s against first request | Valid hits | Noise floor: first request against second first "
+          "request |" % rep_label, "|---|---|---|---|"] + readings
     # negative control, as cache_timing.py
     L += ["", "Negative control: output tokens per second should not depend on the state, since a cache read skips reading "
           "the prompt and not generating tokens. Flagged only when the largest gap between the state medians is both more "
           "than %d percent and larger than the widest interquartile range inside a state." % round(100 * NC_LIMIT), "",
-          "| Model | Tokens/s: first request, repeat request, second first request | Largest relative difference | "
+          "| Model | Tokens/s: %s | Largest relative difference | " % ", ".join(STATE_LABEL[s] for s in STATES) +
           "Widest within-state spread (interquartile range) | Flag |", "|---|---|---|---|---|"]
     for role in roles:
         by = {st: [r["tps"] for r in cs[(role, st)]["rows"] if r["tps"] is not None] for st in STATES if (role, st) in cs}
@@ -515,12 +638,8 @@ def report(folder, out, threshold, gm):
             L.append("| %s | %s | %.1f percent | %.1f tokens/s | %s |" % (
                 model_name(gm, role), ", ".join("%.1f" % statistics.median(by[st]) if by.get(st) else "n/a" for st in STATES),
                 100 * rel, iqr, "SOMETHING OTHER THAN THE CACHE VARIES" if flag else "none"))
-    sp = os.path.join(folder, "sets.jsonl")
-    if os.path.exists(sp):
-        with open(sp, encoding="utf-8") as f:
-            gaps = [json.loads(x)["repeat_gap_s"] for x in f if '"repeat_gap_s"' in x]
-        if gaps:
-            L += ["", "Longest wait between a first request ending and its repeat request starting: %.1f s." % max(gaps)]
+    if gaps:
+        L += ["", "Longest wait between a first request ending and its %s starting: %.1f s." % (rep_label, max(gaps))]
     bad = [r for r in rows if r["state"] != "repeat" and not r["ok"]]
     L += ["", "First and second first requests that failed their state check (left out of the medians): %d of %d."
           % (len(bad), len(rows) - len(all_rep))]
@@ -552,7 +671,8 @@ def states_chart(cs, roles, gm, key, title, xlabel, nd, n_sets):
     vals = [med(c, key)[1] for c in cs.values() if c["rows"] and med(c, key)[1] is not None] or [1.0]
     grid, X = brt.axis(brt.nice_max(max(vals) * 1.15), top, bottom, xlabel)
     legend = "".join('<rect x="%d" y="64" width="12" height="12" fill="%s"/><text x="%d" y="75" font-size="12">%s</text>'
-                     % (brt.LEFT + i * 190, STATE_COLOR[s], brt.LEFT + i * 190 + 18, STATE_LABEL[s]) for i, s in enumerate(STATES))
+                     % (brt.LEFT + i * LEGEND_STEP, STATE_COLOR[s], brt.LEFT + i * LEGEND_STEP + 18, brt.esc(STATE_LABEL[s]))
+                     for i, s in enumerate(STATES))
     body = [grid]
     for i, role in enumerate(roles):
         y = top + i * grp
@@ -579,20 +699,29 @@ def states_chart(cs, roles, gm, key, title, xlabel, nd, n_sets):
 FAKE_GM = {"models": {"gemini-3.8-flash": {"id": "gemini-selftest", "name": "Gemini 3.8 Flash"}},
            "prices": {"gemini-3.8-flash": gb.FAKE_PRICES}}
 FAKE_PROMPT = 150_000
+FAKE_FOLLOWUP_EXTRA = 200                      # a repeat's prompt is longer than its first request's by the reply and question
 USAGE_FIRST = {"promptTokenCount": FAKE_PROMPT, "cachedContentTokenCount": 0, "candidatesTokenCount": 120,
                "thoughtsTokenCount": 40}
 USAGE_CONTROL = {"promptTokenCount": FAKE_PROMPT, "candidatesTokenCount": 120, "thoughtsTokenCount": 40}   # the cached field left out
-USAGE_HIT = {"promptTokenCount": FAKE_PROMPT, "cachedContentTokenCount": 140_000, "candidatesTokenCount": 120,
-             "thoughtsTokenCount": 40}
-USAGE_MISS = dict(USAGE_FIRST)
+USAGE_HIT = {"promptTokenCount": FAKE_PROMPT + FAKE_FOLLOWUP_EXTRA, "cachedContentTokenCount": 140_000,
+             "candidatesTokenCount": 120, "thoughtsTokenCount": 40}
+USAGE_MISS = dict(USAGE_HIT, cachedContentTokenCount=0)
 
 
-def _fake_stream(wait_chunks, usage):
-    """wait_chunks empty chunks before the first text (one second each on the fake clock), then text, then the last chunk
-    with finishReason and usage."""
+def _reply_parts_for(s, st):
+    """The parts the fake server's reply to (set s, state st) assembles into: a signed text part, then plain text. Each
+    set and state gets its own signature, so a check can tell whose reply a follow-up turn carries."""
+    return [{"text": "Reply to the %s of set %d: I would approve." % (st, s), "thoughtSignature": "SIG-%s-%d" % (st, s)},
+            {"text": " The estimate is within policy."}]
+
+
+def _fake_stream(wait_chunks, usage, parts=None):
+    """wait_chunks empty chunks before the first text (one second each on the fake clock), then the reply's parts, the
+    last chunk carrying finishReason and usage."""
+    parts = parts or [{"text": "I would approve: the other driver was cited."}, {"text": " The estimate is within policy."}]
     lines = [gb._data({"candidates": [{"content": {"role": "model", "parts": []}}]}) for _ in range(wait_chunks)]
-    lines.append(gb._chunk([{"text": "I would approve: the other driver was cited."}]))
-    lines.append(gb._chunk([{"text": " The estimate is within policy."}], finish="STOP", usage=usage, modelVersion="gemini-selftest"))
+    lines += [gb._chunk([p]) for p in parts[:-1]]
+    lines.append(gb._chunk([parts[-1]], finish="STOP", usage=usage, modelVersion="gemini-selftest"))
     return lines
 
 
@@ -606,8 +735,21 @@ def _fake_run(project, token, redact_on, replies_for, reps, threshold=75.0):
     the reply function for each request in schedule order. Returns what the checks need."""
     out = tempfile.mkdtemp(prefix="gemini-cache-timing-selftest-")
     clk = gb._Clock()
-    replies = [replies_for(s["set"], st) for s in schedule(reps, mb.EVAL_CLAIMS) for st in s["order"]]
-    srv = gb._FakeVertex(replies, clk)
+    expected = [(s["set"], st) for s in schedule(reps, mb.EVAL_CLAIMS) for st in s["order"]]
+    srv = gb._FakeVertex([], clk)
+    pos, sent_as = [0], []
+
+    def dispatch(path, hdrs):
+        # a repeat that was not sent is skipped: the request on the wire is then a first or second first request, which
+        # has one user turn only
+        n_turns = len(srv.sent[-1]["body"]["contents"])
+        while expected[pos[0]][1] == "repeat" and n_turns == 1:
+            pos[0] += 1
+        s, st = expected[pos[0]]
+        pos[0] += 1
+        sent_as.append((s, st))
+        return replies_for(s, st)(path, hdrs)
+    srv.replies = [dispatch] * len(expected)
     transport = {"conn_factory": srv.factory, "clock": clk, "sleep": lambda s: None, "redact_on": redact_on}
     env = {"token": token, "project": project, "location": "global"}
     buf, raised, text = io.StringIO(), "", ""
@@ -617,6 +759,8 @@ def _fake_run(project, token, redact_on, replies_for, reps, threshold=75.0):
             text = report(out, out, threshold, FAKE_GM)
         except (RuntimeError, SystemExit) as e:
             raised = str(e)
+        except Exception as e:   # a crash is a failed check, not the end of the selftest
+            raised = "%s: %s" % (type(e).__name__, e)
         finally:
             gb.LIVE["armed"] = False
     files = {}
@@ -625,8 +769,8 @@ def _fake_run(project, token, redact_on, replies_for, reps, threshold=75.0):
             files[name] = f.read()
     blob = "\n".join(files.values()) + "\n" + buf.getvalue() + "\n" + raised
     leaked = any(s in blob for s in (project, token, "123456789012"))
-    return {"out": out, "files": files, "sent": srv.sent, "printed": buf.getvalue(), "raised": raised, "report": text,
-            "leaked": leaked}
+    return {"out": out, "files": files, "sent": srv.sent, "sent_as": sent_as, "printed": buf.getvalue(), "raised": raised,
+            "report": text, "leaked": leaked}
 
 
 def _ok_reply(st, miss_set=None, s=None):
@@ -634,7 +778,8 @@ def _ok_reply(st, miss_set=None, s=None):
         usage, wait = (USAGE_MISS, 3) if s == miss_set else (USAGE_HIT, 0)
     else:
         usage, wait = (USAGE_FIRST if st == "first" else USAGE_CONTROL), 3
-    return lambda p, h: (200, _fake_stream(wait, usage))
+    parts = _reply_parts_for(s or 0, st)
+    return lambda p, h: (200, _fake_stream(wait, usage, parts))
 
 
 def _echo_403(path, hdrs):
@@ -661,6 +806,7 @@ def selftest(inject_fault=False):
 
     claims = mb.EVAL_CLAIMS
     ids = sorted(c["id"] for c in claims)
+    by_id_c = {c["id"]: c for c in claims}
 
     # schedule
     sched = schedule(10, claims)
@@ -681,9 +827,12 @@ def selftest(inject_fault=False):
           all(sorted(s["claims"][st] for s in schedule(10, claims, "argon")) == ids for st in STATES), True)
     n1, n2 = fresh_nonces()
     check("nonces: the control's differs from the first request's", n1 != n2, True)
-    check("state names: only first, repeat, second first request",
+    check("state names: first, repeat (follow-up turn), second first request",
           (sorted(STATE_LABEL.values()), _outside_mapping_note(" ".join(STATE_LABEL.values()))),
-          (["first request", "repeat request", "second first request"], []))
+          (["first request", "repeat request (follow-up turn)", "second first request"], []))
+    check("mapping note: says the repeat is a follow-up turn, not comparable with Anthropic",
+          ("The repeat request is a follow-up turn: the first request, its reply and a new question" in MAPPING_NOTE,
+           "it is not comparable with the Anthropic warm cache." in MAPPING_NOTE), (True, True))
 
     # request body
     ledger = ct.load_ledger()
@@ -705,10 +854,30 @@ def selftest(inject_fault=False):
           (256 + gb.WORST_CASE_EXTRA_THOUGHT_TOKENS, {"thinkingLevel": "LOW"}))
     check("body: --thinking-level is sent as given", build_body(1, claims[0], "", "medium")["generationConfig"]["thinkingConfig"],
           {"thinkingLevel": "MEDIUM"})
-    check("body: repeat shares the first request's system text, not its question",
-          (b1["systemInstruction"] == b2["systemInstruction"], b1["contents"] == b2["contents"]), (True, False))
     check("body: second first request has another nonce line", b1["systemInstruction"] == b3["systemInstruction"], False)
     check("body: no model, stream or cache field", ("model" in b1, "stream" in b1, "cachedContent" in b1), (False, False, False))
+
+    # the follow-up turn, built from a made-up first reply whose first part carries a thought signature
+    b1_before = json.dumps(b1, sort_keys=True)
+    fake_parts = [{"text": "Approve.", "thoughtSignature": "SIG-A"}, {"text": " Within policy."}]
+    fu = followup_body(b1, {"candidates": [{"content": {"role": "model", "parts": fake_parts}}]},
+                       repeat_question_parts(11, claims[3], ledger))
+    check("follow-up: contents roles user, model, user", [c["role"] for c in fu["contents"]], ["user", "model", "user"])
+    check("follow-up: first user turn is the first request's, unchanged", fu["contents"][0], b1["contents"][0])
+    check("follow-up: model turn is the reply's parts exactly, signature kept",
+          (fu["contents"][1]["parts"], fu["contents"][1]["parts"][0].get("thoughtSignature")), (fake_parts, "SIG-A"))
+    check("follow-up: new user turn is the repeat claim's question", fu["contents"][2]["parts"], b2["contents"][0]["parts"])
+    check("follow-up: system instruction, tools, tool config, generation config byte-identical to the first request's",
+          [json.dumps(fu[k], sort_keys=True) == json.dumps(b1[k], sort_keys=True)
+           for k in ("systemInstruction", "tools", "toolConfig", "generationConfig")], [True] * 4)
+    check("follow-up: no other top-level field", sorted(fu), sorted(b1))
+    check("follow-up: the first request's body is not changed", json.dumps(b1, sort_keys=True) == b1_before, True)
+    for name, resp in (("no candidates", {}), ("empty parts", {"candidates": [{"content": {"role": "model", "parts": []}}]})):
+        try:
+            followup_body(b1, resp, b2["contents"][0]["parts"])
+            check("follow-up: refused when the reply has %s" % name, "built", "refused")
+        except ValueError:
+            check("follow-up: refused when the reply has %s" % name, "refused", "refused")
 
     # state checks on made-up usage blocks
     def u(prompt, cached=None):
@@ -744,11 +913,14 @@ def selftest(inject_fault=False):
           (ct.negative_control({"first": [20, 30, 40, 50], "repeat": [18, 28, 36, 46]}, NC_LIMIT)[1],
            ct.negative_control({"first": [40, 41, 39, 40], "repeat": [30, 31, 29, 30]}, NC_LIMIT)[1]), (False, True))
 
-    # estimate, hand-computed at the fake prices (in 1, out 4 per million): 30 x 148,000 x 1 + 30 x 49,408 x 4
+    # estimate, hand-computed at the fake prices (in 1, out 4 per million): 30 x 148,000 x 1, plus 10 follow-up turns of
+    # 1,000 tokens x 1, plus 30 x 49,408 x 4
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         est = estimate(FAKE_GM, "flash", 10)
-    check("estimate: upper bound at the fake prices", est, (30 * 148000 * 1.0 + 30 * (256 + 2 * 24576) * 4.0) / 1e6)
+    check("estimate: upper bound at the fake prices, with the follow-up growth", est,
+          (30 * 148000 * 1.0 + 10 * 1000 * 1.0 + 30 * (256 + 2 * 24576) * 4.0) / 1e6)
+    check("estimate: names the follow-up growth", "plus 1000 tokens for each of the 10 follow-up turns" in buf.getvalue(), True)
 
     # readiness refusals on the live path
     unknown = {"models": {"gemini-3.8-flash": {"id": "UNKNOWN: fill in"}}, "prices": {"gemini-3.8-flash": gb.FAKE_PRICES}}
@@ -797,8 +969,16 @@ def selftest(inject_fault=False):
         gb.load_env = real_load_env
     dry = buf.getvalue()
     check("dry run: project and token as placeholders", ("/projects/<PROJECT>/" in dry, "Bearer <REDACTED>" in dry), (True, True))
-    check("dry run: both orders printed", ("first request (%s) -> repeat request" % sched[0]["claims"]["first"] in dry,
-                                           "set  2  second first request" in dry), (True, True))
+    check("dry run: both orders printed", ("first request (%s) -> repeat request (follow-up turn)" % sched[0]["claims"]["first"]
+                                           in dry, "set  2  second first request" in dry), (True, True))
+    check("dry run: the repeat is shown as a follow-up turn with roles and size",
+          ("repeat request (follow-up turn) of set 1: the first request's body, then its reply as a model turn" in dry,
+           "contents roles user, model, user" in dry,
+           bool(re.search(r"\(the reply shown as <first reply>", dry)), bool(re.search(r"  body bytes \d+ \(the reply", dry))),
+          (True, True, True, True))
+    check("dry run: model turn is the placeholder", '  model turn {"role": "model", "parts": [{"text": "<first reply>"}]}' in dry,
+          True)
+    check("dry run: repeat keeps the first request's config", "the same bytes as the first request's: True" in dry, True)
     check("dry run: no other state names", _outside_mapping_note(dry), [])
 
     # a whole fake-transport run of 2 sets, then the report from its folder; set 2's repeat request misses
@@ -811,14 +991,34 @@ def selftest(inject_fault=False):
           [["set1", "first"], ["set1", "repeat"], ["set1", "control"], ["set2", "control"], ["set2", "first"], ["set2", "repeat"]])
     check("run: tags carry the scheduled claims",
           [r["tag"].split()[3] for r in reqs], [s["claims"][st] for s in schedule(2, claims) for st in s["order"]])
-    check("run: records carry cached and prompt tokens", [(r["cached_tokens"], r["prompt_tokens"]) for r in reqs][:2],
-          [(0, FAKE_PROMPT), (140000, FAKE_PROMPT)])
+    check("run: records carry cached and prompt tokens; the repeat's prompt is the longer one",
+          [(r["cached_tokens"], r["prompt_tokens"]) for r in reqs][:2],
+          [(0, FAKE_PROMPT), (140000, FAKE_PROMPT + FAKE_FOLLOWUP_EXTRA)])
     sysi = [x["body"]["systemInstruction"] for x in res["sent"]]
     check("run: repeat sent with its first request's prefix, control with another",
           (sysi[0] == sysi[1], sysi[2] != sysi[0], sysi[4] == sysi[5], sysi[3] != sysi[4], sysi[0] != sysi[4]),
           (True, True, True, True, True))
+    sent = {sa: x["body"] for sa, x in zip(res["sent_as"], res["sent"])}
+    check("run: the fake server saw the six scheduled requests", sorted(sent), sorted((s["set"], st) for s in schedule(2, claims)
+                                                                                       for st in s["order"]))
+    for s_ in (1, 2):
+        rb, fb = sent.get((s_, "repeat")) or {"contents": []}, sent.get((s_, "first")) or {}
+        check("run: set %d repeat contents are user, model, user" % s_, [c["role"] for c in rb["contents"]],
+              ["user", "model", "user"])
+        check("run: set %d repeat carries the first reply's parts exactly, signature kept" % s_,
+              rb["contents"][1]["parts"] if len(rb["contents"]) > 1 else None, _reply_parts_for(s_, "first"))
+        check("run: set %d repeat's system instruction, tools, tool config, generation config are the first's" % s_,
+              [rb.get(k) == fb.get(k) for k in ("systemInstruction", "tools", "toolConfig", "generationConfig")], [True] * 4)
+        check("run: set %d repeat's first user turn is the first request's, last is its own question" % s_,
+              (rb["contents"][:1] == fb.get("contents"),
+               rb["contents"][-1:] == [{"role": "user", "parts": repeat_question_parts(0, by_id_c[schedule(2, claims)[s_ - 1]
+                                                                                              ["claims"]["repeat"]], ledger)}]),
+              (True, True))
+    check("run: set 2 (control sent before the first) repeat carries the first's reply, not the control's",
+          [p.get("thoughtSignature") for p in (sent.get((2, "repeat")) or {"contents": [{}, {"parts": []}]})["contents"][1]["parts"]],
+          ["SIG-first-2", None])
     check("run: cost of a first request (gemini_cost at the fake prices)", reqs[0]["notebook_cost"], 0.15064)
-    check("run: cost of a hit", reqs[1]["notebook_cost"], 0.02464)
+    check("run: cost of a hit (its own, longer prompt)", reqs[1]["notebook_cost"], 0.02484)
     check("run: sets.jsonl has two sets and two repeat gaps",
           (len([s for s in sets if "order" in s]), [s.get("repeat_gap_s") is not None for s in sets if "repeat_gap_s" in s]),
           (2, [True, True]))
@@ -832,10 +1032,13 @@ def selftest(inject_fault=False):
     check("report: hit rate overall", "Hit rate, overall: 1 of 2 repeat requests were valid hits." in rep, True)
     check("report: reading is inconclusive with 1 hit", "| Gemini 3.8 Flash | inconclusive (repeat faster in 1 of 1 valid pairs) | 1 of 2 |" in rep, True)
     check("report: the missed repeat is listed by name", "- flash set2 repeat %s: cached share 0.0 percent" % schedule(2, claims)[1]["claims"]["repeat"] in rep, True)
-    check("report: excluded pair printed", "set 2: repeat request not valid" in rep, True)
+    check("report: excluded pair printed", "set 2: repeat request (follow-up turn) not valid" in rep, True)
     check("report: noise floor labelled as such", "first request minus second first request (noise floor)" in rep, True)
-    check("report: state rows with valid counts", ("| Gemini 3.8 Flash | repeat request | 2 | 1 |" in rep,
+    check("report: state rows with valid counts", ("| Gemini 3.8 Flash | repeat request (follow-up turn) | 2 | 1 |" in rep,
                                                    "| Gemini 3.8 Flash | second first request | 2 | 2 |" in rep), (True, True))
+    check("report: headline names the follow-up turn", "repeat request (follow-up turn) minus first request" in rep, True)
+    check("report: nothing marked not sent when every repeat went out",
+          "Repeat requests not sent or not on record (counted above as not valid hits): 0." in rep, True)
     check("report: negative control not flagged on equal speeds", "| none |" in rep, True)
     check("report: the mapping note appears once", rep.count(MAPPING_NOTE), 1)
     check("report: no other state names in the table", _outside_mapping_note(rep), [])
@@ -845,23 +1048,52 @@ def selftest(inject_fault=False):
     check("charts: note names the model and prefix only",
           all("Model: Gemini 3.8 Flash. Prefix:" in v and "Argon" not in v and "Opus" not in v for v in svgs.values()), True)
     check("charts: no other state names", [w for v in svgs.values() for w in _outside_mapping_note(v)], [])
+    check("charts: legend names the follow-up turn",
+          all(">repeat request (follow-up turn)</text>" in v for v in svgs.values()), True)
+
+    # a failed first request in an even set (control first): the repeat is not sent, counted as not a valid hit, no crash
+    def fail_first_2(s, st):
+        return _echo_403 if (s, st) == (2, "first") else _ok_reply(st, s=s)
+    ff = _fake_run("selftest-project-y", "selftest-token-y", True, fail_first_2, 2)
+    ffr = ff["report"]
+    check("failed first: no exception", ff["raised"], "")
+    check("failed first: set 2's repeat not sent, the others were",
+          ff["sent_as"], [(1, "first"), (1, "repeat"), (1, "control"), (2, "control"), (2, "first")])
+    check("failed first: printed as not sent", "NOT SENT flash set2 repeat" in ff["printed"], True)
+    check("failed first: noted in sets.jsonl",
+          '"repeat_not_sent": "its first request failed"' in ff["files"].get("sets.jsonl", ""), True)
+    check("failed first: counted in the hit rate as not a valid hit",
+          ("Hit rate, overall: 1 of 2 repeat requests were valid hits." in ffr,
+           "| Gemini 3.8 Flash | 2 | %s | not sent | no |" % schedule(2, claims)[1]["claims"]["repeat"] in ffr), (True, True))
+    check("failed first: listed as not sent with the reason",
+          ("Repeat requests not sent or not on record (counted above as not valid hits): 1." in ffr,
+           "- flash set2 repeat %s: not sent: its first request failed" % schedule(2, claims)[1]["claims"]["repeat"] in ffr),
+          (True, True))
+    check("failed first: the headline pair of set 2 is excluded",
+          "set 2: repeat request (follow-up turn) missing; first request not valid (status 403)" in ffr, True)
+    check("failed first: reading uses 2 scheduled repeats", "valid pairs) | 1 of 2 |" in ffr, True)
+    check("unsent: a scheduled repeat with no record and no note is counted too",
+          [u["why"] for u in unsent_repeats([], {("flash", 3): "CLM-X"}, {})],
+          ["no record of it (it failed before a status came back)"])
 
     # the project id and the token never reach a file, a printed line or an exception
     fake_project, fake_token = "fake-vertex-project-123", "fake-token-0123456789abcdef"
 
     def leak_replies(s, st):
-        return _echo_403 if (s, st) == (1, "first") else _ok_reply(st)
+        return _echo_403 if (s, st) == (1, "first") else _ok_reply(st, s=s)
     good = _fake_run(fake_project, fake_token, True, leak_replies, 1)
     greqs = [json.loads(x) for x in good["files"].get("requests.jsonl", "").splitlines() if x.strip()]
-    check("redaction: the 403 was recorded and the run went on", ([r["status"] for r in greqs], "FAILED flash set1 first" in good["printed"]),
-          ([403, 200, 200], True))
+    check("redaction: the 403 was recorded, its repeat not sent, the run went on",
+          ([r["status"] for r in greqs], "FAILED flash set1 first" in good["printed"], "NOT SENT flash set1 repeat" in good["printed"]),
+          ([403, 200], True, True))
     check("redaction: the error was recorded with placeholders", "projects/<PROJECT>" in json.dumps(greqs[0]["error"]), True)
     check("redaction: project, project number and token appear nowhere", good["leaked"], False)
     bad = _fake_run(fake_project, fake_token, False, leak_replies, 1)
     check("redaction: the leak check finds them when redaction is skipped", bad["leaked"], True)
     if inject_fault:
         check("injected fault: redaction skipped, nothing leaks (must FAIL)", bad["leaked"], False)
-    print("temporary folders (left for the OS temp cleaner): %s %s %s %s" % (tmp0, res["out"], good["out"], bad["out"]))
+    print("temporary folders (left for the OS temp cleaner): %s %s %s %s %s" % (tmp0, res["out"], ff["out"], good["out"],
+                                                                               bad["out"]))
     print("selftest", "PASSED" if ok else "FAILED")
     return 0 if ok else 1
 
