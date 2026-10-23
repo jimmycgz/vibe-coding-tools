@@ -25,12 +25,14 @@ import argparse
 import copy
 import csv
 import hashlib
+import http.client
 import json
 import os
 import ssl
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -623,33 +625,49 @@ def parse_sse(lines, clock=time.monotonic, t_open=None):
     return msg, tm
 
 
-def stream_http(url, hdrs, body, timeout=900):
+def stream_http(url, hdrs, body, timeout=900, conn_factory=None, clock=time.monotonic):
     """POST with stream:true. Returns (status, response dict or error text, timing, attempts). Retries transient network
     errors and 429/5xx/529 up to 4 times; a retry after bytes were received may bill the partial stream twice, so the
-    number of attempts is returned and logged, and the timing is that of the successful attempt only."""
+    number of attempts is returned and logged, and the timing is that of the successful attempt only.
+
+    The connection is opened first and its time is recorded as connect_s (DNS, TCP and TLS). The timing clock starts after the
+    connection is open, just before the request is sent, so the first-event, first-token and total times do not carry the
+    connection setup, which varies from request to request. Sending the request body (the whole prompt) is inside the clock."""
     if not LIVE["armed"]:
         raise RuntimeError("network path reached while not armed; refusing")
     data = json.dumps(dict(body, stream=True), ensure_ascii=False).encode("utf-8")
+    u = urllib.parse.urlparse(url)
+    factory = conn_factory or (lambda: http.client.HTTPSConnection(u.netloc, timeout=timeout))
     for attempt in range(1, 6):
-        req = urllib.request.Request(url, data=data, headers=hdrs, method="POST")
-        t_open = time.monotonic()
+        conn = factory()
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                msg, tm = parse_sse(r, time.monotonic, t_open)
-                return r.status, msg, tm, attempt
-        except urllib.error.HTTPError as e:
-            txt = e.read().decode("utf-8", "replace")
-            if e.code in (429, 500, 502, 503, 529) and attempt < 5:
-                print("RETRY %d: HTTP %s" % (attempt, e.code), file=sys.stderr)
-                time.sleep(5 * attempt)
-                continue
-            return e.code, txt, None, attempt
-        except (urllib.error.URLError, ssl.SSLError, ConnectionError, TimeoutError, OSError, RuntimeError) as e:
+            t_connect = clock()
+            conn.connect()
+            connect_s = clock() - t_connect
+            t_open = clock()
+            conn.request("POST", u.path, body=data, headers=hdrs)
+            r = conn.getresponse()
+            if r.status != 200:
+                txt = r.read().decode("utf-8", "replace")
+                if r.status in (429, 500, 502, 503, 529) and attempt < 5:
+                    print("RETRY %d: HTTP %s" % (attempt, r.status), file=sys.stderr)
+                    time.sleep(5 * attempt)
+                    continue
+                return r.status, txt, None, attempt
+            msg, tm = parse_sse(r, clock, t_open)
+            tm["connect_s"] = connect_s
+            return 200, msg, tm, attempt
+        except (ssl.SSLError, ConnectionError, TimeoutError, OSError, RuntimeError, http.client.HTTPException) as e:
             if attempt < 5:
                 print("RETRY %d: %s" % (attempt, type(e).__name__), file=sys.stderr)
                 time.sleep(5 * attempt)
                 continue
             raise
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 class Run:
@@ -867,6 +885,46 @@ def selftest(models, inject_fault=False):
         ok = False
     except RuntimeError as e:
         print("PASS network path refuses while not armed: %s" % e)
+    class _Clk:
+        t = 0.0
+
+        def __call__(self):
+            return self.t
+    clk = _Clk()
+
+    class _Resp:
+        status = 200
+
+        def __iter__(self):
+            for ev in (b"data: " + json.dumps({"type": "message_start", "message": {"id": "m", "content": [], "usage": {"input_tokens": 1}}}).encode(),
+                       b"data: " + json.dumps({"type": "message_delta", "delta": {"stop_reason": "end_turn"}, "usage": {"output_tokens": 2}}).encode(),
+                       b"data: " + json.dumps({"type": "message_stop"}).encode()):
+                clk.t += 1.0
+                yield ev
+
+    class _Conn:
+        def connect(self):
+            clk.t += 0.30          # DNS, TCP and TLS take 0.30 s on this fake connection
+
+        def request(self, *a, **k):
+            pass
+
+        def getresponse(self):
+            return _Resp()
+
+        def close(self):
+            pass
+    LIVE["armed"] = True
+    try:
+        _s, _m, _tm, _a = stream_http(API + "/messages", {}, {}, conn_factory=_Conn, clock=clk)
+    finally:
+        LIVE["armed"] = False
+    for name, got, want in (("timing clock starts after the connection is open (first event)", round(_tm["ttfb_s"], 2), 1.0),
+                            ("connection time recorded on its own", round(_tm["connect_s"], 2), 0.3),
+                            ("total time excludes the connection", round(_tm["wall_s"], 2), 3.0)):
+        good = got == want
+        ok &= good
+        print("%-4s %-32s got %s want %s" % ("PASS" if good else "FAIL", name, got, want))
     try:
         stream_http(API + "/messages", {}, {})
         print("FAIL streaming path ran while not armed")
