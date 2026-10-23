@@ -120,6 +120,14 @@ def tokens_per_second(out_tokens, wall_s, first_text_s):
     return (out_tokens - 1) / (wall_s - first_text_s)
 
 
+def reading(d_none_warm, d_cold_warm, k=8):
+    """The reading rule fixed in the plan. Headline: warm against no cache, seen when warm was faster in at least k paired
+    repetitions. Stricter, secondary: warm was also faster than cold in at least k. Returns (headline, strict, counts)."""
+    a = sum(1 for x in d_none_warm if x < 0)
+    b = sum(1 for x in d_cold_warm if x < 0)
+    return a >= k and len(d_none_warm) > 0, (a >= k and b >= k), (a, len(d_none_warm), b, len(d_cold_warm))
+
+
 def quartiles(xs):
     xs = sorted(x for x in xs if x is not None)
     if len(xs) < 2:
@@ -244,7 +252,7 @@ def load_requests(folder):
         ok, why = check_state(state, u) if r["status"] == 200 else (False, "status %s" % r["status"])
         rows.append({"role": role, "prefix": prefix, "rep": int(rep[3:]), "state": state, "claim": claim, "ok": ok, "why": why,
                      "model": r["resolved_model"] or r["model"], "ttfb": t.get("ttfb_s"), "first_text": t.get("first_text_s"),
-                     "first_delta": t.get("first_delta_s"), "wall": t.get("wall_s"), "out": u.get("output_tokens"),
+                     "first_delta": t.get("first_delta_s"), "wall": t.get("wall_s"), "connect": t.get("connect_s"), "out": u.get("output_tokens"),
                      "tps": tokens_per_second(u.get("output_tokens"), t.get("wall_s"), t.get("first_text_s")),
                      "cost": r["notebook_cost"], "prefix_tokens": (u.get("input_tokens") or 0) + (u.get("cache_creation_input_tokens") or 0)
                      + (u.get("cache_read_input_tokens") or 0)})
@@ -281,14 +289,14 @@ def report(folder, out):
     rows = load_requests(folder)
     cs = cells(rows)
     names = {"opus": "Opus", "sonnet": "Sonnet", "fable": "Fable"}
-    head = "| Model | Prefix | State | Checked ok | First token s (median, quartiles) | First event s (median) | Wall s (median) | Output tokens/s (median) | $ per request |"
-    lines = [head, "|" + "---|" * 9]
+    head = "| Model | Prefix | State | Checked ok | First token s (median, quartiles) | First event s (median) | Wall s (median) | Output tokens/s (median) | Connect s (median, not in the times) | $ per request |"
+    lines = [head, "|" + "---|" * 10]
     for (role, prefix, state), c in cs.items():
         q = metric(c, "first_text") if any(r["first_text"] is not None for r in c["rows"]) else metric(c, "first_delta")
-        lines.append("| %s | %s | %s | %d of %d | %s | %s | %s | %s | %.4f |" % (
+        lines.append("| %s | %s | %s | %d of %d | %s | %s | %s | %s | %s | %.4f |" % (
             names[role], prefix, STATE_LABEL[state], c["ok"], c["n"],
             "n/a" if q[1] is None else "%.2f (%.2f to %.2f)" % (q[1], q[0], q[2]),
-            brt.fmt(metric(c, "ttfb")[1]), brt.fmt(metric(c, "wall")[1]), brt.fmt(metric(c, "tps")[1], 1),
+            brt.fmt(metric(c, "ttfb")[1]), brt.fmt(metric(c, "wall")[1]), brt.fmt(metric(c, "tps")[1], 1), brt.fmt(metric(c, "connect")[1], 3),
             statistics.mean(r["cost"] for r in c["rows"]) if c["rows"] else 0.0))
     diffs = ["", "Paired differences, per repetition, same model and prefix (negative = the second is faster):", "",
              "| Model | Prefix | Pair | First token s, median difference | Repetitions where the second was faster | Wall s, median difference |", "|---|---|---|---|---|---|"]
@@ -301,6 +309,17 @@ def report(folder, out):
                     diffs.append("| %s | %s | %s to %s | %+.2f | %d of %d | %s |" % (
                         names[role], prefix, STATE_LABEL[a_].split(" (")[0], STATE_LABEL[b_].split(" (")[0], statistics.median(d1),
                         sum(1 for x in d1 if x < 0), len(d1), "n/a" if not d2 else "%+.2f" % statistics.median(d2)))
+    read = ["", "Reading rule (fixed before the run): the headline is warm against no cache; a saving is seen when warm was faster in at least 8 of the 10 paired repetitions. The stricter rule also needs warm faster than cold in at least 8.", "",
+            "| Model | Prefix | Headline: warm faster than no cache | Stricter: also faster than cold |", "|---|---|---|---|"]
+    for role in MODEL_ROLES:
+        for prefix in PREFIXES:
+            dn = paired(rows, role, prefix, "none", "warm", "first_text") or paired(rows, role, prefix, "none", "warm", "first_delta")
+            dc = paired(rows, role, prefix, "cold", "warm", "first_text") or paired(rows, role, prefix, "cold", "warm", "first_delta")
+            if dn:
+                h, st, (a_, n_, b_, m_) = reading(dn, dc)
+                read.append("| %s | %s | %s (%d of %d) | %s (%d of %d) |" % (names[role], prefix, "seen" if h else "not seen", a_, n_,
+                                                                          "seen" if st else "not seen", b_, m_))
+    diffs += read
     failed = [r for c in cs.values() for r in c["failed"]]
     fl = ["", "Requests that failed their state check (left out of the medians): %d of %d." % (len(failed), len(rows))]
     fl += ["- %s %s rep %d %s: %s" % (names[r["role"]], r["prefix"], r["rep"], r["state"], r["why"]) for r in failed[:30]]
@@ -383,6 +402,9 @@ def selftest(inject_fault=False):
     check("tokens per second", round(tokens_per_second(101, 5.0, 1.0), 2), 25.0)
     check("tokens per second without text", tokens_per_second(100, 5.0, None), None)
     check("quartiles", quartiles([1, 2, 3, 4, 5]), (2.0, 3, 4.0))
+    check("reading rule: 8 of 10 faster than no cache is the headline", reading([-1] * 8 + [1, 1], [-1] * 4 + [1] * 6)[:2], (True, False))
+    check("reading rule: 7 of 10 is not seen", reading([-1] * 7 + [1] * 3, [-1] * 10)[:2], (False, False))
+    check("reading rule: both at 8 is the stricter reading", reading([-1] * 9 + [1], [-1] * 8 + [1] * 2)[:2], (True, True))
     b0 = build_body("m", "13k", "n", claims[0], "none", "")
     b1 = build_body("m", "13k", "n", claims[0], "warm", "")
     b2 = build_body("m", "long", "n", claims[0], "cold", "LEDGER")
