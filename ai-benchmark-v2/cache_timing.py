@@ -131,13 +131,17 @@ def reading(d_none_warm, d_cold_warm, k=8):
 
 def negative_control(tps_by_state, limit=0.10):
     """Output tokens per second should not depend on the cache state: a cache read skips prefill and does not change how fast
-    tokens are generated. Returns (largest relative difference between the state medians, flagged). Flagged means something other
-    than the cache varies between the states, and the report says so."""
-    meds = [statistics.median(v) for v in tps_by_state.values() if v]
-    if len(meds) < 2:
-        return None, False
-    rel = (max(meds) - min(meds)) / max(meds)
-    return rel, rel > limit
+    tokens are generated. Returns (largest relative difference between the state medians, flagged, widest within-state
+    interquartile range). Flagged only when the difference is both more than `limit` of the larger median AND larger than the
+    widest within-state interquartile range, so ordinary scatter inside a state is not read as a difference between states."""
+    groups = [v for v in tps_by_state.values() if v]
+    if len(groups) < 2:
+        return None, False, None
+    meds = [statistics.median(v) for v in groups]
+    iqr = max((quartiles(v)[2] - quartiles(v)[0]) for v in groups)
+    gap = max(meds) - min(meds)
+    rel = gap / max(meds)
+    return rel, (rel > limit and gap > iqr), iqr
 
 
 def quartiles(xs):
@@ -352,15 +356,15 @@ def report(folder, out, measure="both"):
                         names[role], prefix, "seen" if h else "not seen", a_, n_, "seen" if st else "not seen", b_, m_,
                         "seen" if dw and slower >= 8 else "not seen", slower, len(dw)))
         ctrl = ["", "Negative control: output tokens per second should not depend on the cache state, since a cache read skips reading the prompt and not "
-                "generating tokens. If the state medians differ by more than 10 percent, something other than the cache is varying, and that is flagged.", "",
-                "| Model | Prefix | Tokens/s: no cache, cold, warm | Largest relative difference | Flag |", "|---|---|---|---|---|"]
+                "generating tokens. The flag is raised only when the largest difference between the state medians is both more than 10 percent and larger than the widest scatter inside a state (its interquartile range), and the spread is printed beside it so a reader can see for themselves.", "",
+                "| Model | Prefix | Tokens/s: no cache, cold, warm | Largest relative difference | Widest within-state spread (interquartile range) | Flag |", "|---|---|---|---|---|---|"]
         for role in MODEL_ROLES:
             for prefix in PREFIXES:
                 by = {st: [r["tps"] for r in cs[(role, prefix, st)]["rows"] if r["tps"] is not None] for st in STATES if (role, prefix, st) in cs}
-                rel, flag = negative_control(by)
+                rel, flag, iqr = negative_control(by)
                 if rel is not None:
-                    ctrl.append("| %s | %s | %s | %.1f percent | %s |" % (names[role], prefix, ", ".join(
-                        "%.1f" % statistics.median(by[st]) if by.get(st) else "n/a" for st in STATES), 100 * rel,
+                    ctrl.append("| %s | %s | %s | %.1f percent | %.1f tokens/s | %s |" % (names[role], prefix, ", ".join(
+                        "%.1f" % statistics.median(by[st]) if by.get(st) else "n/a" for st in STATES), 100 * rel, iqr,
                         "SOMETHING OTHER THAN THE CACHE VARIES" if flag else "none"))
         diffs += read + ctrl
         gaps = []
@@ -455,7 +459,8 @@ def selftest(inject_fault=False):
     check("reading rule: 8 of 10 faster than no cache is the headline", reading([-1] * 8 + [1, 1], [-1] * 4 + [1] * 6)[:2], (True, False))
     check("reading rule: 7 of 10 is not seen", reading([-1] * 7 + [1] * 3, [-1] * 10)[:2], (False, False))
     check("negative control: equal speeds are not flagged", negative_control({"none": [30, 31], "cold": [30, 30], "warm": [31, 29]})[1], False)
-    check("negative control: a 25 percent difference is flagged", negative_control({"none": [40, 40], "cold": [30, 30], "warm": [40, 40]})[1], True)
+    check("negative control: a 13 percent gap inside wide scatter is not flagged", negative_control({"none": [20, 30, 40, 50, 35], "cold": [18, 28, 36, 46, 31], "warm": [22, 32, 42, 52, 37]})[1], False)
+    check("negative control: a 25 percent gap with tight scatter is flagged", negative_control({"none": [40, 41, 39, 40], "cold": [30, 31, 29, 30], "warm": [40, 40, 41, 39]})[1], True)
     check("reading rule: both at 8 is the stricter reading", reading([-1] * 9 + [1], [-1] * 8 + [1] * 2)[:2], (True, True))
     b0 = build_body("m", "13k", "n", claims[0], "none", "")
     b1 = build_body("m", "13k", "n", claims[0], "warm", "")
