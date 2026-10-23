@@ -6,6 +6,8 @@ Navigation: [index](../README.md) · [method](method.md) · [how caching is swit
 
 ## Result
 
+**All 12 arms passed 10 of 10, so only cost and time separate them: caching about halves the cost per task on all three models (Opus 2.0 times, Sonnet 1.9, Fable 2.0), effort moves it 5 to 8 percent, and a claim takes Sonnet 8.0 to 8.8 s, Opus 8.8 to 11.9 s and Fable 13.0 to 19.2 s.**
+
 All 12 arms passed 10 of 10 claims in both trials: 24 of 24 trials, 240 adjudications. **No arm is separated on quality**, so the differences below are cost and time. Ten claims did not separate the arms; the notebook itself says to use about 50 cases and at least 5 trials before a production decision.
 
 - **Caching about halves the cost on all three models.** No cache against cache, both at high effort: Opus $0.1972 to $0.0972 (2.0 times), Sonnet $0.0919 to $0.0487 (1.9 times), Fable $0.5329 to $0.2720 (2.0 times).
@@ -46,17 +48,25 @@ How to read the timing columns:
 
 ## The charts
 
+**Cost per task: caching halves it on every model (Opus $0.1972 to $0.0972, Sonnet $0.0919 to $0.0487, Fable $0.5329 to $0.2720), and Fable with cache still costs about 5.6 times Sonnet with cache.**
+
 ![Cost per task](cost-per-task.svg)
 
 [Cost per task](cost-per-task.svg): the table's cost column as bars.
+
+**What the cost is made of: in the cached arms the cache write is 66 to 77 percent of the cost and the read only 11 to 13 percent; without a cache, uncached input is 88 to 93 percent.**
 
 ![What the cost per task is made of](cost-breakdown.svg)
 
 [What the cost is made of](cost-breakdown.svg): uncached input, cache write, cache read and output, by the notebook's multipliers. The four parts add up to the recorded cost of every request.
 
+**Time per claim: Sonnet takes 8.0 to 8.8 s, Opus 11.2 to 11.9 s (8.8 s at low effort) and Fable 13.0 to 19.2 s; the dots mark each trial's own median.**
+
 ![Time per claim](time-per-claim.svg)
 
 [Time per claim](time-per-claim.svg): median seconds, with the median of each trial marked so the spread shows.
+
+**Time to first event: Fable's first event arrives sooner than the others (0.8 to 1.1 s against 1.4 to 2.0 s), although its claims take longer.**
 
 ![Time to first event](time-to-first-event.svg)
 
@@ -65,6 +75,8 @@ How to read the timing columns:
 Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none.
 
 ## How much to trust the differences
+
+**With two trials per arm, time differences under about 30 percent between close arms cannot be separated, and cost per task differed between trials by up to 10 percent on the no-cache arms and under 6 percent on the cached ones.**
 
 - **Two trials per arm.** For each arm the median claim time differed between its two trials by up to 30 percent (ratio of trial 2 to trial 1 between 0.76 and 1.30), so timing differences smaller than about 30 percent between close arms are not separable here. Fable against Sonnet is far outside that. The effort effect on time is plausible; confirming it needs more trials.
 - **Cost per task between trials** differed by up to 10 percent on the no-cache arms (Opus with no cache $0.2065 and $0.1878) and under 6 percent on the cached ones. The Sonnet cost difference between effort levels is of that size; the Opus and Fable ones are larger.

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 317" width="900" height="317" role="img" aria-label="Time to first event">
+<title>Time to first event</title>
+<desc>10 claims per trial, 2 trials per arm. First turns and later turns side by side.</desc>
+<rect width="900" height="317" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="20" y="30" font-size="19" font-weight="700">Time to first event</text>
+<text x="20" y="52" font-size="13" fill="#5a6472">10 claims per trial, 2 trials per arm. First turns and later turns side by side.</text>
+<rect x="190" y="64" width="12" height="12" fill="#667"/><text x="208" y="75" font-size="12">first turn of a claim</text><rect x="590" y="64" width="12" height="12" fill="#667" fill-opacity="0.45"/><text x="608" y="75" font-size="12">later turns</text><line x1="190.0" y1="94" x2="190.0" y2="232" stroke="#dcd8cf" stroke-width="1"/>
+<text x="190.0" y="248" font-size="11" text-anchor="middle" fill="#5a6472">0</text>
+<line x1="345.0" y1="94" x2="345.0" y2="232" stroke="#dcd8cf" stroke-width="1"/>
+<text x="345.0" y="248" font-size="11" text-anchor="middle" fill="#5a6472">2</text>
+<line x1="500.0" y1="94" x2="500.0" y2="232" stroke="#dcd8cf" stroke-width="1"/>
+<text x="500.0" y="248" font-size="11" text-anchor="middle" fill="#5a6472">4</text>
+<line x1="655.0" y1="94" x2="655.0" y2="232" stroke="#dcd8cf" stroke-width="1"/>
+<text x="655.0" y="248" font-size="11" text-anchor="middle" fill="#5a6472">6</text>
+<line x1="810.0" y1="94" x2="810.0" y2="232" stroke="#dcd8cf" stroke-width="1"/>
+<text x="810.0" y="248" font-size="11" text-anchor="middle" fill="#5a6472">8</text>
+<text x="500.0" y="268" font-size="12" text-anchor="middle" fill="#5a6472">Seconds from sending the request to the first server event (median)</text>
+
+<text x="180" y="116" font-size="13" text-anchor="end">Gemini 3.8 Flash high</text>
+<rect x="190" y="98" width="282.4" height="14" rx="2" fill="#8a4fa0" fill-opacity="1.0"/>
+<text x="477.4" y="109" font-size="11" font-weight="600">3.64</text>
+<rect x="190" y="115" width="418.9" height="14" rx="2" fill="#8a4fa0" fill-opacity="0.45"/>
+<text x="613.9" y="126" font-size="11" font-weight="600">5.40</text>
+<text x="180" y="162" font-size="13" text-anchor="end">Gemini 3.8 Flash medium</text>
+<rect x="190" y="144" width="223.2" height="14" rx="2" fill="#8a4fa0" fill-opacity="1.0"/>
+<text x="418.2" y="155" font-size="11" font-weight="600">2.88</text>
+<rect x="190" y="161" width="346.4" height="14" rx="2" fill="#8a4fa0" fill-opacity="0.45"/>
+<text x="541.4" y="172" font-size="11" font-weight="600">4.47</text>
+<text x="180" y="208" font-size="13" text-anchor="end">Gemini 3.8 Flash low</text>
+<rect x="190" y="190" width="152.5" height="14" rx="2" fill="#8a4fa0" fill-opacity="1.0"/>
+<text x="347.5" y="201" font-size="11" font-weight="600">1.97</text>
+<rect x="190" y="207" width="131.9" height="14" rx="2" fill="#8a4fa0" fill-opacity="0.45"/>
+<text x="326.9" y="218" font-size="11" font-weight="600">1.70</text>
+<text x="20" y="288" font-size="12" fill="#5a6472">Gemini arms: high, medium, low = thinking level. The Gemini cache is implicit, on for every project and not switchable by a user, so there is no</text>
+<text x="20" y="303" font-size="12" fill="#5a6472">no-cache arm; the cached share is what the usage block reported.</text>
+</g>
+</svg>

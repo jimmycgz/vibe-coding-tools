@@ -1,5 +1,5 @@
 {
- "_comment": "One line per arm: the id the script takes in --configs, the short label every report, table and chart uses, and whether the default benchmark run includes it. Labels are model, effort level, cache setting: high, medium, low = effort level; cache = automatic prompt cache; no cache = none.",
+ "_comment": "One line per arm: the id the script takes in --configs, the short label every report, table and chart uses, and whether the default benchmark run includes it. Labels are model, effort level, cache setting: high, medium, low = effort level; cache = automatic prompt cache; no cache = none. The Gemini arms belong to gemini_benchmark.py: high, medium, low = thinking level, and the Gemini cache is implicit and cannot be switched off, so their labels have no cache word. They are not in the default run of model_benchmark.py.",
  "arms": [
   {"id": "opus-high-nocache", "label": "Opus high no cache", "default": true},
   {"id": "opus-high-cache", "label": "Opus high cache", "default": true},
@@ -23,6 +23,12 @@
   {"id": "sonnet-medium-batch", "label": "Sonnet medium Batch API", "default": false},
   {"id": "haiku-cache", "label": "Haiku cache", "default": false},
   {"id": "haiku-advisor", "label": "Haiku cache + Opus advisor", "default": false},
-  {"id": "haiku-subagents", "label": "Haiku subagents + Sonnet decides", "default": false}
+  {"id": "haiku-subagents", "label": "Haiku subagents + Sonnet decides", "default": false},
+  {"id": "gemini-flash-high", "label": "Gemini 3.8 Flash high", "default": false},
+  {"id": "gemini-flash-medium", "label": "Gemini 3.8 Flash medium", "default": false},
+  {"id": "gemini-flash-low", "label": "Gemini 3.8 Flash low", "default": false},
+  {"id": "gemini-argon-high", "label": "Gemini 4 Argon high", "default": false},
+  {"id": "gemini-argon-medium", "label": "Gemini 4 Argon medium", "default": false},
+  {"id": "gemini-argon-low", "label": "Gemini 4 Argon low", "default": false}
  ]
 }
