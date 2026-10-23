@@ -25,7 +25,7 @@ import argparse
 import copy
 import csv
 import hashlib
-import http.client
+import http.client as _httpclient   # not `import http.client`: this file defines a function named http
 import json
 import os
 import ssl
@@ -631,6 +631,10 @@ def parse_sse(lines, clock=time.monotonic, t_open=None):
     return msg, tm
 
 
+def _default_connection(netloc, timeout):
+    return _httpclient.HTTPSConnection(netloc, timeout=timeout)
+
+
 def stream_http(url, hdrs, body, timeout=900, conn_factory=None, clock=time.monotonic):
     """POST with stream:true. Returns (status, response dict or error text, timing, attempts). Retries transient network
     errors and 429/5xx/529 up to 4 times; a retry after bytes were received may bill the partial stream twice, so the
@@ -643,7 +647,7 @@ def stream_http(url, hdrs, body, timeout=900, conn_factory=None, clock=time.mono
         raise RuntimeError("network path reached while not armed; refusing")
     data = json.dumps(dict(body, stream=True), ensure_ascii=False).encode("utf-8")
     u = urllib.parse.urlparse(url)
-    factory = conn_factory or (lambda: http.client.HTTPSConnection(u.netloc, timeout=timeout))
+    factory = conn_factory or (lambda: _default_connection(u.netloc, timeout))
     for attempt in range(1, 6):
         conn = factory()
         try:
@@ -663,7 +667,7 @@ def stream_http(url, hdrs, body, timeout=900, conn_factory=None, clock=time.mono
             msg, tm = parse_sse(r, clock, t_open)
             tm["connect_s"] = connect_s
             return 200, msg, tm, attempt
-        except (ssl.SSLError, ConnectionError, TimeoutError, OSError, RuntimeError, http.client.HTTPException) as e:
+        except (ssl.SSLError, ConnectionError, TimeoutError, OSError, RuntimeError, _httpclient.HTTPException) as e:
             if attempt < 5:
                 print("RETRY %d: %s" % (attempt, type(e).__name__), file=sys.stderr)
                 time.sleep(5 * attempt)
@@ -930,6 +934,13 @@ def selftest(models, inject_fault=False):
         _s, _m, _tm, _a = stream_http(API + "/messages", {}, {}, conn_factory=_Conn, clock=clk)
     finally:
         LIVE["armed"] = False
+    try:
+        _c = _default_connection("api.anthropic.com", 5)
+        _built = type(_c).__name__
+    except Exception as e:
+        _built = "ERROR " + type(e).__name__
+    print("%-4s %-32s got %s want %s" % ("PASS" if _built == "HTTPSConnection" else "FAIL", "default connection can be built", _built, "HTTPSConnection"))
+    ok &= _built == "HTTPSConnection"
     for name, got, want in (("timing clock starts after the connection is open (first event)", round(_tm["ttfb_s"], 2), 1.0),
                             ("connection time recorded on its own", round(_tm["connect_s"], 2), 0.3),
                             ("total time excludes the connection", round(_tm["wall_s"], 2), 3.0)):

@@ -84,7 +84,7 @@ def load_ledger():
         return f.read()
 
 
-def build_body(model_id, prefix, nonce, claim, state, ledger, thinking="disabled", tool_choice="none"):
+def build_body(model_id, prefix, nonce, claim, state, ledger, thinking="between_tools", tool_choice="none"):
     blocks = [{"type": "text", "text": "[set %s]\n\n%s" % (nonce, mb.SYSTEM_PROMPT)}]
     if prefix == "long":
         blocks.append({"type": "text", "text": "Historical claims ledger (CSV), reference data:\n" + ledger})
@@ -95,8 +95,8 @@ def build_body(model_id, prefix, nonce, claim, state, ledger, thinking="disabled
             "output_config": {"effort": "low"}}
     if tool_choice == "none":
         body["tool_choice"] = {"type": "none"}
-    if thinking == "disabled":
-        body["thinking"] = {"type": "disabled"}
+    if thinking in ("disabled", "between_tools"):
+        body["thinking"] = {"type": thinking}
     return body
 
 
@@ -476,6 +476,8 @@ def selftest(inject_fault=False):
     b1 = build_body("m", "13k", "n", claims[0], "warm", "")
     b2 = build_body("m", "long", "n", claims[0], "cold", "LEDGER")
     check("no cache: no cache_control anywhere", "cache_control" in json.dumps(b0), False)
+    check("thinking setting is sent as given", (build_body("m", "13k", "n", claims[0], "none", "", "disabled")["thinking"], build_body("m", "13k", "n", claims[0], "none", "", "omit").get("thinking")), ({"type": "disabled"}, None))
+    check("default thinking setting", b0["thinking"], {"type": "between_tools"})
     check("warm: breakpoint on the last system block", b1["system"][-1].get("cache_control"), {"type": "ephemeral"})
     check("long: ledger is the last system block and carries the breakpoint", (b2["system"][-1]["text"].startswith("Historical"), "cache_control" in b2["system"][-1], "cache_control" in b2["system"][0]), (True, True, False))
     check("the prefix is the same in all three states", json.dumps(b0["system"][0]["text"]) == json.dumps(b1["system"][0]["text"]), True)
@@ -507,7 +509,8 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--smoke", action="store_true", help="live: one set (first active model, first active prefix, repetition 1) to check the request shape")
     ap.add_argument("--measure", choices=["cost", "timing", "both"], default="both", help="report: what to table and chart (cost is always recorded)")
-    ap.add_argument("--thinking", choices=["disabled", "omit"], default="disabled")
+    ap.add_argument("--thinking", choices=["between_tools", "disabled", "omit"], default="between_tools",
+                    help="between_tools is how Sonnet 5.5 turns thinking off (it rejects disabled); the smoke test finds what each model accepts")
     ap.add_argument("--tool-choice", choices=["none", "omit"], default="none")
     a = ap.parse_args()
     if a.selftest or a.selftest_fault:
