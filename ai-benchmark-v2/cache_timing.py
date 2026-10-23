@@ -38,7 +38,8 @@ import build_results_table as brt  # noqa: E402  (SVG helpers for the charts)
 
 LEDGER_PATH = os.path.join(HERE, "assets", "claims_ledger.csv")
 MODEL_ROLES = ["opus", "sonnet", "fable"]
-PREFIXES = ["13k", "long"]
+ALL_PREFIXES = ["13k", "long"]
+PREFIXES = ["long"]            # the active prefixes; --prefixes long|13k|both sets them (default: long only)
 STATES = ["none", "cold", "warm"]
 STATE_LABEL = {"none": "no cache", "cold": "cold cache (writes)", "warm": "warm cache (reads)"}
 STATE_COLOR = {"none": "#8c97a3", "cold": "#e0a030", "warm": "#3b8f6b"}
@@ -56,20 +57,21 @@ def rotated(items, k):
     return items[k:] + items[:k]
 
 
-def schedule(reps, claims):
+def schedule(reps, claims, prefixes=None):
     """The fixed run order. For each repetition, each prefix, each model (model order rotated every repetition and prefix), one
     'set' of three requests with three DIFFERENT claims. The order inside a set alternates: cold then warm then no cache on even
-    repetitions, no cache then cold then warm on odd ones (cold always precedes warm). Which of the three claims goes to which
-    state rotates with the repetition, the model and the prefix, so no state always gets the same question."""
+    repetitions, no cache then cold then warm on odd ones (cold always precedes warm). Over the ten
+    repetitions each state sees every claim exactly once for a given model and prefix, so no state always gets the same question."""
     out, n = [], len(claims)
     for r in range(reps):
-        for p, prefix in enumerate(PREFIXES):
+        for prefix in (prefixes or PREFIXES):
+            p = ALL_PREFIXES.index(prefix)
             for m, role in enumerate(rotated(MODEL_ROLES, r + p)):
                 mi = MODEL_ROLES.index(role)
                 base = (r + mi + 2 * p) % n
-                trio = [claims[(base + 3 * i) % n]["id"] for i in range(3)]   # three distinct claims (3*i mod 10 is distinct)
-                shift = (r + mi + p) % 3
-                assign = dict(zip(STATES, rotated(trio, shift)))
+                # three distinct claims in a set (offsets 0, 3, 6 are distinct mod 10); over the 10 repetitions each state
+                # sees every claim exactly once for a given model and prefix, so no state always gets the same question
+                assign = {"cold": claims[base]["id"], "warm": claims[(base + 3) % n]["id"], "none": claims[(base + 6) % n]["id"]}
                 order = ["cold", "warm", "none"] if r % 2 == 0 else ["none", "cold", "warm"]
                 out.append({"rep": r + 1, "prefix": prefix, "role": role, "order": order, "claims": assign})
     return out
@@ -183,15 +185,15 @@ def prefix_tokens_guess():
 def estimate(models, reps):
     g = prefix_tokens_guess()
     lines = ["Upper-bound arithmetic, notebook multipliers (no cache 1x, cold write 1.25x, warm read 0.10x), %d reps, 3 models, "
-             "output at most 256 tokens a request:" % reps]
-    out_cost = sum(reps * 2 * 3 * 256 * models["prices"][models["roles"][r]]["out"] / 1e6 for r in MODEL_ROLES)
+             "prefix(es) %s, output at most 256 tokens a request:" % (reps, "+".join(PREFIXES))]
+    out_cost = sum(reps * len(PREFIXES) * 3 * 256 * models["prices"][models["roles"][r]]["out"] / 1e6 for r in MODEL_ROLES)
     totals = {}
     for key in ("long_low", "long_mid", "long_high"):
         tot = 0.0
         for role in MODEL_ROLES:
             pin = models["prices"][models["roles"][role]]["in"] / 1e6
-            for p in (g["13k"], g[key]):
-                tot += reps * p * pin * (1 + 1.25 + 0.10)
+            for prefix in PREFIXES:
+                tot += reps * (g["13k"] if prefix == "13k" else g[key]) * pin * (1 + 1.25 + 0.10)
         totals[key] = tot + out_cost
         lines.append("  prefix guess: 13k = %d tokens, long = %d tokens -> $%.2f" % (g["13k"], g[key], totals[key]))
     lines.append("  (the ledger is %d characters; its token count is a range, measured with count_tokens after the go)"
@@ -228,7 +230,7 @@ def run_live(a, models, claims):
     by_id = {c["id"]: c for c in claims}
     sched = schedule(a.reps, claims)
     if a.smoke:
-        sched = [s for s in sched if s["rep"] == 1 and s["prefix"] == "13k" and s["role"] == "sonnet"][:1]
+        sched = [s for s in sched if s["rep"] == 1 and s["prefix"] == PREFIXES[0] and s["role"] == "sonnet"][:1]
     meta = open(os.path.join(a.out, "sets.jsonl"), "a", encoding="utf-8")
     for s in sched:
         nonce = time.time_ns()
@@ -284,7 +286,7 @@ def load_requests(folder):
 def cells(rows):
     out = {}
     for role in MODEL_ROLES:
-        for prefix in PREFIXES:
+        for prefix in ALL_PREFIXES:
             for state in STATES:
                 rs = [r for r in rows if r["role"] == role and r["prefix"] == prefix and r["state"] == state]
                 if not rs:
@@ -333,7 +335,7 @@ def report(folder, out, measure="both"):
         diffs = ["", "Paired differences, per repetition, same model and prefix (negative = the second is faster):", "",
                  "| Model | Prefix | Pair | First token s, median difference | Repetitions where the second was faster | Wall s, median difference |", "|---|---|---|---|---|---|"]
         for role in MODEL_ROLES:
-            for prefix in PREFIXES:
+            for prefix in ALL_PREFIXES:
                 for a_, b_ in (("cold", "warm"), ("none", "warm"), ("none", "cold")):
                     d1 = paired(rows, role, prefix, a_, b_, "first_text") or paired(rows, role, prefix, a_, b_, "first_delta")
                     d2 = paired(rows, role, prefix, a_, b_, "wall")
@@ -345,7 +347,7 @@ def report(folder, out, measure="both"):
                 "Stricter, secondary: warm also faster than cold in at least 8. Separately, the cost of writing: cold slower than no cache in at least 8.", "",
                 "| Model | Prefix | Headline: warm faster than no cache | Stricter: also faster than cold | Cold slower than no cache (the cost of a write) |", "|---|---|---|---|---|"]
         for role in MODEL_ROLES:
-            for prefix in PREFIXES:
+            for prefix in ALL_PREFIXES:
                 dn = paired(rows, role, prefix, "none", "warm", "first_text") or paired(rows, role, prefix, "none", "warm", "first_delta")
                 dc = paired(rows, role, prefix, "cold", "warm", "first_text") or paired(rows, role, prefix, "cold", "warm", "first_delta")
                 dw = paired(rows, role, prefix, "none", "cold", "first_text") or paired(rows, role, prefix, "none", "cold", "first_delta")
@@ -359,7 +361,7 @@ def report(folder, out, measure="both"):
                 "generating tokens. The flag is raised only when the largest difference between the state medians is both more than 10 percent and larger than the widest scatter inside a state (its interquartile range), and the spread is printed beside it so a reader can see for themselves.", "",
                 "| Model | Prefix | Tokens/s: no cache, cold, warm | Largest relative difference | Widest within-state spread (interquartile range) | Flag |", "|---|---|---|---|---|---|"]
         for role in MODEL_ROLES:
-            for prefix in PREFIXES:
+            for prefix in ALL_PREFIXES:
                 by = {st: [r["tps"] for r in cs[(role, prefix, st)]["rows"] if r["tps"] is not None] for st in STATES if (role, prefix, st) in cs}
                 rel, flag, iqr = negative_control(by)
                 if rel is not None:
@@ -388,7 +390,7 @@ def report(folder, out, measure="both"):
 
 
 def states_chart(cs, key, title, xlabel, nd):
-    groups = [(role, prefix) for role in MODEL_ROLES for prefix in PREFIXES if any((role, prefix, s) in cs for s in STATES)]
+    groups = [(role, prefix) for role in MODEL_ROLES for prefix in ALL_PREFIXES if any((role, prefix, s) in cs for s in STATES)]
     names = {"opus": "Opus", "sonnet": "Sonnet", "fable": "Fable"}
     grp = 3 * 16 + 14
     top, bottom = 94, 94 + grp * len(groups)
@@ -424,6 +426,7 @@ def states_chart(cs, key, title, xlabel, nd):
 def selftest(inject_fault=False):
     claims = mb.EVAL_CLAIMS
     sched = schedule(10, claims)
+    both = schedule(10, claims, ALL_PREFIXES)
     ok = True
 
     def check(name, got, want):
@@ -431,8 +434,11 @@ def selftest(inject_fault=False):
         good = got == want
         ok &= good
         print("%-4s %-44s got %s want %s" % ("PASS" if good else "FAIL", name, got, want))
-    check("sets", len(sched), 10 * 2 * 3)
-    check("requests", 3 * len(sched), 180)
+    check("default sets (long prefix only)", len(sched), 10 * 3)
+    check("default requests", 3 * len(sched), 90)
+    check("sets with both prefixes", len(both), 10 * 2 * 3)
+    check("requests with both prefixes", 3 * len(both), 180)
+    check("default is the long prefix only", {s["prefix"] for s in sched}, {"long"})
     check("three different claims in every set", all(len(set(s["claims"].values())) == 3 for s in sched), True)
     check("cold always before warm", all(s["order"].index("cold") < s["order"].index("warm") for s in sched), True)
     per = {(r, p): sum(1 for s in sched if s["role"] == r and s["prefix"] == p) for r in MODEL_ROLES for p in PREFIXES}
@@ -443,7 +449,7 @@ def selftest(inject_fault=False):
             seen[st][cid] = seen[st].get(cid, 0) + 1
     spread = {st: (min(seen[st].values()), max(seen[st].values()), len(seen[st])) for st in STATES}
     print("     claims per state (min, max, how many distinct):", spread)
-    check("every state sees at least 8 distinct claims", all(v[2] >= 8 for v in spread.values()), True)
+    check("every state sees every claim equally often", all(v[0] == v[1] == 3 and v[2] == 10 for v in spread.values()), True)
     first_orders = {tuple(s["order"]) for s in sched}
     check("two alternating orders", len(first_orders), 2)
     check("model order rotates", len({tuple(rotated(MODEL_ROLES, r)) for r in range(3)}), 3)
@@ -490,10 +496,11 @@ def main():
     g.add_argument("--live", action="store_true")
     g.add_argument("--report", metavar="DIR")
     ap.add_argument("--reps", type=int, default=10)
+    ap.add_argument("--prefixes", choices=["long", "13k", "both"], default="long", help="which prefix sizes to test (default: long, the 13k system prompt and tools plus the claims ledger)")
     ap.add_argument("--models", default=os.path.join(HERE, "models.json"))
     ap.add_argument("--ceiling-usd", type=float, default=None)
     ap.add_argument("--out", default=None)
-    ap.add_argument("--smoke", action="store_true", help="live: one set (Sonnet, 13k prefix, repetition 1) to check the request shape")
+    ap.add_argument("--smoke", action="store_true", help="live: one set (Sonnet, first active prefix, repetition 1) to check the request shape")
     ap.add_argument("--measure", choices=["cost", "timing", "both"], default="both", help="report: what to table and chart (cost is always recorded)")
     ap.add_argument("--thinking", choices=["disabled", "omit"], default="disabled")
     ap.add_argument("--tool-choice", choices=["none", "omit"], default="none")
@@ -501,6 +508,7 @@ def main():
     if a.selftest or a.selftest_fault:
         return selftest(inject_fault=a.selftest_fault)
     models = mb.load_models(a.models)
+    PREFIXES[:] = ALL_PREFIXES if a.prefixes == "both" else [a.prefixes]
     if a.report:
         report(a.report, a.out or a.report, a.measure)
         return 0
