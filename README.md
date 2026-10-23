@@ -24,9 +24,9 @@ vibe-coding-tools/
 
 A fine-tuned benchmark that scores frontier models on quality, cost and timing on the same task. Standard-library Python only.
 
-- **Fine-tuned eval set:** 10 labelled insurance claims worked by a tool-using agent (12 tools, up to 6 turns per claim), so every run reports a pass rate. The task comes from Anthropic's cookbook; credits are in the v2 README.
+- **Fine-tuned eval set:** 10 labelled, fictional insurance claims worked by a tool-using agent (12 tools, up to 6 turns per claim), so every run reports a pass rate. The task comes from Anthropic's cookbook; credits are in the v2 README.
 - **Cost per task**, broken down into uncached input, cache write, cache read and output, across models, effort levels and prompt-cache settings.
-- **Timing:** time to first token, output tokens per second, and time per request and per claim, with the connection kept out of the clock.
+- **Timing:** time to first event, output tokens per second, and time per request and per claim, with the connection kept out of the clock.
 - **Prompt cache test:** no-cache, cold and warm requests on a long prompt, with every cache hit proven from the API's usage block.
 - **Repeatable:** a plan committed before each paid run, a spend guard, and one command that builds the results table and charts.
 
