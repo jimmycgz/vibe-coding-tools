@@ -855,7 +855,7 @@ def selftest(inject_fault=False):
     check("records: usage is the raw usageMetadata", recs[1]["usage"], USAGE_T2)
 
     # the project id and the token never reach a file, a printed line or an exception
-    fake_project, fake_token = "fake-employer-project-123", "fake-token-0123456789abcdef"
+    fake_project, fake_token = "fake-vertex-project-123", "fake-token-0123456789abcdef"
     res = _leak_run(fake_project, fake_token, redact_on=True)
     reqs = [json.loads(x) for x in res["files"].get("requests.jsonl", "").splitlines() if x.strip()]
     check("redaction: run wrote both files and stopped on the 403",
