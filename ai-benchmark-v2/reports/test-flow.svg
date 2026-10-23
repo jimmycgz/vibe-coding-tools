@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1100" role="img" aria-labelledby="tft tfd" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
   <title id="tft">How one benchmark run works</title>
-  <desc id="tfd">The test flow of the benchmark script in six stages. 1, Inputs: 10 fictional insurance claims with the expected answer for each; the agent's system prompt, which includes the policy manual, and 12 tools, together about 13K tokens; the model list and prices in models.json. 2, Arms: a list of model-and-setting combinations, for example Opus 5.5 with high effort and no cache, or Sonnet 5.5 with medium effort and auto cache; run 2 runs them one after another with the order rotated between trials. 3, Trial: a fresh nonce, written as trial and the time at the top of the system prompt, so no cache from an earlier trial can be hit; each arm runs the 10 claims. 4, Claim loop, for one claim: build the request, send it (streamed in run 2), receive tool calls, run each tool locally on the fictional data, append the result, and repeat, at most 6 turns. The loop ends at the first terminal tool: approve, deny, route to supervisor, or refer to the special investigation unit. It also ends at a reply with no tool call, or after turn 6. 5, Per request record: usage tokens (input, cache write, cache read, output), cost, and in run 2 the time to first event, first content, first text and wall time. Before every request a spend guard runs and stops the run if the worst case would pass the ceiling. 6, Score and report: the verdict is compared with the expected answer for a pass count over the 10 claims; per-trial results are written to JSON lines; a table builder turns them into one results table with cost, pass counts and timing.</desc>
+  <desc id="tfd">The test flow of the benchmark script in six stages. 1, Inputs: 10 fictional insurance claims with the expected answer for each; the agent's system prompt, which includes the policy manual, and 12 tools, together about 13K tokens; the model list and prices in models.json. 2, Arms: a list of model-and-setting combinations, for example Opus high no cache, or Sonnet medium cache; run 1 runs them one after another with the order rotated between trials. 3, Trial: a fresh nonce, written as trial and the time at the top of the system prompt, so no cache from an earlier trial can be hit; each arm runs the 10 claims. 4, Claim loop, for one claim: build the request, send it (streamed in run 1), receive tool calls, run each tool locally on the fictional data, append the result, and repeat, at most 6 turns. The loop ends at the first terminal tool: approve, deny, route to supervisor, or refer to the special investigation unit. It also ends at a reply with no tool call, or after turn 6. 5, Per request record: usage tokens (input, cache write, cache read, output), cost, and in run 1 the time to first event, first content, first text and wall time. Before every request a spend guard runs and stops the run if the worst case would pass the ceiling. 6, Score and report: the verdict is compared with the expected answer for a pass count over the 10 claims; per-trial results are written to JSON lines; the table builder writes one results table and four charts of cost and timing.</desc>
   <style>
     .bg{fill:#ffffff}
     .card{fill:#f3f6fb;stroke:#c3cfe3;stroke-width:1.5}
@@ -84,11 +84,10 @@
     <text class="ink b" x="18" y="78">A list of model-and-setting</text>
     <text class="ink b" x="18" y="99">combinations, for example:</text>
     <rect class="boxa" x="18" y="112" width="264" height="34" rx="8"/>
-    <text class="ink b" x="30" y="134">Opus 5.5, high effort, no cache</text>
+    <text class="ink b" x="30" y="134">Opus high no cache</text>
     <rect class="boxa" x="18" y="154" width="264" height="56" rx="8"/>
-    <text class="ink b" x="30" y="176">Sonnet 5.5, medium effort,</text>
-    <text class="ink b" x="30" y="197">auto cache</text>
-    <text class="ink b" x="18" y="242">Run 2 runs them one after</text>
+    <text class="ink b" x="30" y="187">Sonnet medium cache</text>
+    <text class="ink b" x="18" y="242">Run 1 runs them one after</text>
     <text class="ink b" x="18" y="263">another, with the order rotated</text>
     <text class="ink b" x="18" y="284">between trials.</text>
   </g>
@@ -127,7 +126,7 @@
     <rect class="boxa" x="214" y="100" width="164" height="84" rx="10"/>
     <text class="ink b" x="296" y="128" text-anchor="middle">Send it</text>
     <text class="ink b" x="296" y="148" text-anchor="middle">(streamed in</text>
-    <text class="ink b" x="296" y="168" text-anchor="middle">run 2)</text>
+    <text class="ink b" x="296" y="168" text-anchor="middle">run 1)</text>
 
     <rect class="boxa" x="408" y="100" width="164" height="84" rx="10"/>
     <text class="ink b" x="490" y="138" text-anchor="middle">Receive</text>
@@ -173,7 +172,7 @@
     <circle class="dot" cx="22" cy="130" r="4"/>
     <text class="ink b" x="36" y="136">Cost</text>
     <circle class="dot" cx="22" cy="165" r="4"/>
-    <text class="ink b" x="36" y="171">In run 2, also timing: time to first event,</text>
+    <text class="ink b" x="36" y="171">In run 1, also timing: time to first event,</text>
     <text class="ink b" x="36" y="192">first content, first text, and wall time</text>
     <rect class="boxw" x="18" y="212" width="424" height="72" rx="10"/>
     <text class="tW b" x="32" y="238" font-weight="700">Spend guard</text>
@@ -195,8 +194,8 @@
     <circle class="dot" cx="22" cy="130" r="4"/>
     <text class="ink b" x="36" y="136">Per-trial results are written to JSON lines</text>
     <circle class="dot" cx="22" cy="165" r="4"/>
-    <text class="ink b" x="36" y="171">A table builder turns them into one results</text>
-    <text class="ink b" x="36" y="192">table with cost, pass counts and timing</text>
+    <text class="ink b" x="36" y="171">The table builder writes one results table and</text>
+    <text class="ink b" x="36" y="192">four charts: cost, pass counts and timing</text>
   </g>
 
   <text class="mute s" x="30" y="1080">Drawn from model_benchmark.py, version 2 of the benchmark.</text>

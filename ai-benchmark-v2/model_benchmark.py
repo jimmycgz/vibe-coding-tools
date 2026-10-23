@@ -282,15 +282,15 @@ CONFIGS = [
          cell=15, tier="fable", saved=[(0.5812, 36)]),
     dict(id="fable-high-cache", label="fable · effort=high", kind="loop", role="fable", effort="high", cache=True, cell=57,
          tier="fable", saved=[(0.3024, 35)]),
-    # Run 2 arms: Sonnet high effort without cache, and Fable medium and low effort with
-    # auto cache. Their "saved" values are estimates from run 1 (cold/cached ratio 2.02 on Opus; Fable cached
+    # Arms added to the notebook's grid: Sonnet high effort without cache, and Fable medium and low effort with
+    # auto cache. Their "saved" values are estimates from the Opus rows (cold/cached ratio 2.02 on Opus; Fable cached
     # x effort ratio of the Opus rows), not the notebook's. Used by --estimate only.
     dict(id="sonnet-high-nocache", label="sonnet · high · cold", kind="loop", role="sonnet", effort="high", cache=False,
-         cell=15, tier="run2", saved=[(0.0983, 33)]),
+         cell=15, tier="added", saved=[(0.0983, 33)]),
     dict(id="fable-medium-cache", label="fable · effort=medium", kind="loop", role="fable", effort="medium", cache=True, cell=57,
-         tier="run2", saved=[(0.2710, 34)]),
+         tier="added", saved=[(0.2710, 34)]),
     dict(id="fable-low-cache", label="fable · effort=low", kind="loop", role="fable", effort="low", cache=True, cell=57,
-         tier="run2", saved=[(0.2650, 33)]),
+         tier="added", saved=[(0.2650, 33)]),
     dict(id="sonnet-medium-breakpoint", label="  + explicit system breakpoint", kind="loop", role="sonnet", effort="medium", cache=True,
          cache_system=True, cell=69, tier="core", saved=[(0.0223, 33), (0.0228, 33)]),
     dict(id="sonnet-medium-manual-tool", label="  + manual → read_manual tool", kind="loop", role="sonnet", effort="medium", cache=True,
@@ -550,8 +550,8 @@ def http(method, url, hdrs, body=None, timeout=900):
             raise
 
 
-# ---------------------------------------------------------------- streaming and timing (run 2)
-# Added 2026-10-22 for run 2. Run 1 did not stream; the non-streaming path above is unchanged and is what run 1 used.
+# ---------------------------------------------------------------- streaming and timing
+# With --stream every request is streamed and timed. Without it the non-streaming path above is used and no timing is kept.
 # Definitions:
 #   wall_s          monotonic clock from just before the request is opened to the message_stop event
 #   ttfb_s          request opened -> first server-sent event (message_start): network, queue and prefill
@@ -559,11 +559,11 @@ def http(method, url, hdrs, body=None, timeout=900):
 #   first_text_s    request opened -> first TEXT delta (the benchmark's first_text_token_s; None when the reply has no text)
 
 # Arm names for the results table.
-# Arm labels and the run 2 arm list come from arms.json, so every report and table uses the same plain names.
+# Arm labels and the default arm list come from arms.json, so every report and table uses the same short names.
 with open(os.path.join(HERE, "arms.json"), encoding="utf-8") as _f:
     _ARMS = json.load(_f)["arms"]
 LABELS = {a["id"]: a["label"] for a in _ARMS}
-RUN2_ARMS = [a["id"] for a in _ARMS if a["run2"]]
+DEFAULT_ARMS = [a["id"] for a in _ARMS if a["default"]]
 
 
 def parse_sse(lines, clock=time.monotonic, t_open=None):
@@ -793,9 +793,9 @@ def live(cfgs, claims, models, a):
     LIVE["armed"] = True
     run = Run(a, models, env)
     summary = open(os.path.join(a.out, "trials.jsonl"), "a", encoding="utf-8")
-    plan = [(cfg, trial) for cfg in cfgs for trial in range(1, a.trials + 1)]  # run 1 order: arm by arm
+    plan = [(cfg, trial) for cfg in cfgs for trial in range(1, a.trials + 1)]  # default order: arm by arm
     if getattr(a, "order", "arm") == "rotate":
-        # Run 2: trial by trial, with the arm order rotated by a whole share of the list each trial, so an arm is not
+        # Rotated order: trial by trial, with the arm order rotated by a whole share of the list each trial, so an arm is not
         # always run at the same time of day or at the same place in the sequence. Serial; no concurrency.
         plan = []
         for trial in range(1, a.trials + 1):
@@ -945,9 +945,9 @@ def main():
     ap.add_argument("--ceiling-usd", type=float, default=None)
     ap.add_argument("--out", default=None)
     ap.add_argument("--stream", action="store_true",
-                    help="run 2: stream every request and record ttfb_s, first_delta_s, first_text_s and wall_s per request")
+                    help="stream every request and record ttfb_s, first_delta_s, first_text_s and wall_s per request")
     ap.add_argument("--order", choices=["arm", "rotate"], default="arm",
-                    help="arm: arm by arm (run 1). rotate: trial by trial, arm order rotated each trial (run 2)")
+                    help="arm: arm by arm. rotate: trial by trial, arm order rotated each trial")
     a = ap.parse_args()
     models = load_models(a.models)
     cfgs = CONFIGS if not a.configs else [c for c in CONFIGS if c["id"] in set(a.configs.split(","))]

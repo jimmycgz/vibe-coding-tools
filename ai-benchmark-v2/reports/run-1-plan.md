@@ -1,8 +1,8 @@
-# Run 2 plan (committed before the run)
+# Run 1 plan (committed before the run, when it was called run 2)
 
-Status: **run on 2026-10-22; the results are in [run-2-results.md](run-2-results.md).** This file was committed before any run 2 request was made, so the git history shows the plan came first, and the text below is unchanged from then apart from this status line. It extends the design in the [method](method.md); run 1's raw records are in [results/run1](../results/run1).
+Status: **run on 2026-10-22; the results are in [run-1-results.md](run-1-results.md).** Run as "run 2" on 2026-10-22 and renamed run 1 when the earlier partial run was dropped. This file was committed before any request of this run was made, so the git history shows the plan came first. The text below is as committed, with two kinds of change: arm labels shortened to the ones in [arms.json](../arms.json), and file names and links updated. In the text below, "run 1" means the earlier run that was dropped and "run 2" means this run.
 
-Navigation: [index](../README.md) · [run 1 results](run-1-results.md) · [method](method.md)
+Navigation: [index](../README.md) · [run 1 results](run-1-results.md) · [method](method.md) · [how caching is switched](how-caching-is-switched.md)
 
 ## What run 2 does
 
@@ -10,18 +10,18 @@ Runs 12 arms for 2 more trials of the notebook's 10 claims, streams every reques
 
 | Arm | In run 1 |
 |---|---|
-| Opus 5.5, high effort, no cache | yes |
-| Opus 5.5, high effort, auto cache | yes |
-| Opus 5.5, medium effort, auto cache | yes |
-| Opus 5.5, low effort, auto cache | yes |
-| Sonnet 5.5, high effort, no cache | new |
-| Sonnet 5.5, high effort, auto cache | yes |
-| Sonnet 5.5, medium effort, auto cache | yes |
-| Sonnet 5.5, low effort, auto cache | yes |
-| Fable 5.1, high effort, no cache | yes |
-| Fable 5.1, high effort, auto cache | yes |
-| Fable 5.1, medium effort, auto cache | new |
-| Fable 5.1, low effort, auto cache | new |
+| Opus high no cache | yes |
+| Opus high cache | yes |
+| Opus medium cache | yes |
+| Opus low cache | yes |
+| Sonnet high no cache | new |
+| Sonnet high cache | yes |
+| Sonnet medium cache | yes |
+| Sonnet low cache | yes |
+| Fable high no cache | yes |
+| Fable high cache | yes |
+| Fable medium cache | new |
+| Fable low cache | new |
 
 The arm with an explicit system breakpoint is not in run 2. Ids: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-fable-5-1`. No Haiku arm.
 
@@ -29,8 +29,8 @@ The arm with an explicit system breakpoint is not in run 2. Ids: `claude-opus-5-
 
 Serial, one request at a time, no concurrency. Trial by trial, with the arm order rotated by half the list in trial 2 (`--order rotate`), so an arm is not always run at the same point in the sequence. The two orders are fixed here:
 
-- Trial 1: Opus high effort no cache; Opus high auto cache; Opus medium auto cache; Opus low auto cache; Sonnet high auto cache; Sonnet medium auto cache; Sonnet low auto cache; Fable high no cache; Fable high auto cache; Sonnet high no cache; Fable medium auto cache; Fable low auto cache.
-- Trial 2: Sonnet low auto cache; Fable high no cache; Fable high auto cache; Sonnet high no cache; Fable medium auto cache; Fable low auto cache; Opus high no cache; Opus high auto cache; Opus medium auto cache; Opus low auto cache; Sonnet high auto cache; Sonnet medium auto cache.
+- Trial 1: Opus high no cache; Opus high cache; Opus medium cache; Opus low cache; Sonnet high cache; Sonnet medium cache; Sonnet low cache; Fable high no cache; Fable high cache; Sonnet high no cache; Fable medium cache; Fable low cache.
+- Trial 2: Sonnet low cache; Fable high no cache; Fable high cache; Sonnet high no cache; Fable medium cache; Fable low cache; Opus high no cache; Opus high cache; Opus medium cache; Opus low cache; Sonnet high cache; Sonnet medium cache.
 
 Two trials allow one rotation; it moves each arm by six places and spreads time-of-day effects, it does not remove them. Each arm and trial starts with a fresh nonce, shared by its 10 claims. With auto cache, every claim's first turn writes the whole prefix (system prompt and tools, about 13,000 tokens in run 1) and reads nothing, so the cache is cold at the first turn of every claim and warm from the second turn of that claim. Only an explicit system breakpoint carries the prefix across claims; that arm is not in run 2. [How caching is switched](how-caching-is-switched.md) shows the code and the recorded usage.
 
@@ -54,7 +54,7 @@ Cap of $100 for the whole run (`--ceiling-usd 100`), enforced before each reques
 
 ## Steps and stop rules
 
-1. Smoke test: one claim (CLM-001) of Sonnet 5.5 at low effort with auto cache, streamed. It must return a verdict, the four timing fields and a `usage` block that prices the same way as the non-streaming path.
+1. Smoke test: one claim (CLM-001) of Sonnet low cache, streamed. It must return a verdict, the four timing fields and a `usage` block that prices the same way as the non-streaming path.
 2. The 12 arms, 2 trials, rotated order.
 3. If a restart cuts a trial, the unfinished arms are relaunched with the same settings and the results say so, as in run 1.
 4. A claim that cannot finish after retries stops the run and is reported; it is not skipped.
