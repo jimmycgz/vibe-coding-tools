@@ -60,8 +60,8 @@ def rotated(items, k):
 
 def schedule(reps, claims, prefixes=None, roles=None):
     """The fixed run order. For each repetition, each prefix, each model (model order rotated every repetition and prefix), one
-    'set' of three requests with three DIFFERENT claims. The order inside a set alternates: cold then warm then no cache on even
-    repetitions, no cache then cold then warm on odd ones (cold always precedes warm). Over the ten
+    'set' of three requests with three DIFFERENT claims. The order inside a set alternates: cold then warm then no cache in
+    repetitions 1, 3, 5 ..., no cache then cold then warm in repetitions 2, 4, 6 ... (cold always precedes warm). Over the ten
     repetitions each state sees every claim exactly once for a given model and prefix, so no state always gets the same question."""
     out, n = [], len(claims)
     for r in range(reps):
