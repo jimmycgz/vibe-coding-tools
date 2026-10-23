@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 432" width="640" height="432" role="img" aria-label="Cost per task by effort level">
+<title>Cost per task by effort level</title>
+<desc>10 claims per trial, 2 trials per arm.</desc>
+<rect width="640" height="432" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="54" y="28" font-size="20" font-weight="700">Cost per task by effort level</text>
+<text x="54" y="50" font-size="14" fill="#5a6472">10 claims per trial, 2 trials per arm.</text>
+<rect x="54" y="62" width="14" height="14" fill="#667" fill-opacity="0.4"/><text x="74" y="75" font-size="14">low</text><rect x="150" y="62" width="14" height="14" fill="#667" fill-opacity="0.7"/><text x="170" y="75" font-size="14">medium</text><rect x="246" y="62" width="14" height="14" fill="#667" fill-opacity="1.0"/><text x="266" y="75" font-size="14">high</text><text x="342" y="75" font-size="14" fill="#5a6472">effort (Claude) or thinking level (Gemini)</text><rect x="54" y="86" width="14" height="14" fill="none" stroke="#b3382c" stroke-width="2" stroke-dasharray="5 3"/><text x="74" y="99" font-size="14">fewer than 10 of 10 claims passed in a trial</text>
+<line x1="54" y1="350.0" x2="630" y2="350.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="355.0" font-size="14" text-anchor="end" fill="#5a6472">0.00</text>
+<line x1="54" y1="307.6" x2="630" y2="307.6" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="312.6" font-size="14" text-anchor="end" fill="#5a6472">0.03</text>
+<line x1="54" y1="265.2" x2="630" y2="265.2" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="270.2" font-size="14" text-anchor="end" fill="#5a6472">0.05</text>
+<line x1="54" y1="222.8" x2="630" y2="222.8" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="227.8" font-size="14" text-anchor="end" fill="#5a6472">0.08</text>
+<line x1="54" y1="180.4" x2="630" y2="180.4" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="185.4" font-size="14" text-anchor="end" fill="#5a6472">0.10</text>
+<line x1="54" y1="138.0" x2="630" y2="138.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="143.0" font-size="14" text-anchor="end" fill="#5a6472">0.12</text>
+<text x="54" y="124" font-size="14" fill="#5a6472">US$ per task</text>
+<rect x="57.0" y="195.5" width="54" height="154.5" rx="3" fill="#3b6ea5" fill-opacity="0.4"/>
+<text x="84.0" y="185.5" font-size="14" font-weight="700" text-anchor="middle">0.0911</text>
+<text x="84.0" y="370" font-size="14" text-anchor="middle">low</text>
+<text x="84.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="117.0" y="191.9" width="54" height="158.1" rx="3" fill="#3b6ea5" fill-opacity="0.7"/>
+<text x="144.0" y="181.9" font-size="14" font-weight="700" text-anchor="middle">0.0932</text>
+<text x="144.0" y="370" font-size="14" text-anchor="middle">medium</text>
+<text x="144.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="177.0" y="185.1" width="54" height="164.9" rx="3" fill="#3b6ea5" fill-opacity="1.0"/>
+<text x="204.0" y="175.1" font-size="14" font-weight="700" text-anchor="middle">0.0972</text>
+<text x="204.0" y="370" font-size="14" text-anchor="middle">high</text>
+<text x="204.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<text x="144.0" y="416" font-size="15" font-weight="700" text-anchor="middle">Opus 5.5</text>
+<rect x="255.0" y="271.2" width="54" height="78.8" rx="3" fill="#2f8f6b" fill-opacity="0.4"/>
+<text x="282.0" y="261.2" font-size="14" font-weight="700" text-anchor="middle">0.0465</text>
+<text x="282.0" y="370" font-size="14" text-anchor="middle">low</text>
+<text x="282.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="315.0" y="267.3" width="54" height="82.7" rx="3" fill="#2f8f6b" fill-opacity="0.7"/>
+<text x="342.0" y="257.3" font-size="14" font-weight="700" text-anchor="middle">0.0488</text>
+<text x="342.0" y="370" font-size="14" text-anchor="middle">medium</text>
+<text x="342.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="375.0" y="267.5" width="54" height="82.5" rx="3" fill="#2f8f6b" fill-opacity="1.0"/>
+<text x="402.0" y="257.5" font-size="14" font-weight="700" text-anchor="middle">0.0487</text>
+<text x="402.0" y="370" font-size="14" text-anchor="middle">high</text>
+<text x="402.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<text x="342.0" y="416" font-size="15" font-weight="700" text-anchor="middle">Sonnet 5.5</text>
+<rect x="453.0" y="314.6" width="54" height="35.4" rx="3" fill="#8a4fa0" fill-opacity="0.4" stroke="#b3382c" stroke-width="2" stroke-dasharray="5 3"/>
+<text x="480.0" y="304.6" font-size="14" font-weight="700" text-anchor="middle">0.0209</text>
+<text x="480.0" y="370" font-size="14" text-anchor="middle">low</text>
+<text x="480.0" y="390" font-size="14" text-anchor="middle" font-weight="700" fill="#b3382c">7, 8</text>
+<rect x="513.0" y="305.8" width="54" height="44.2" rx="3" fill="#8a4fa0" fill-opacity="0.7"/>
+<text x="540.0" y="295.8" font-size="14" font-weight="700" text-anchor="middle">0.0261</text>
+<text x="540.0" y="370" font-size="14" text-anchor="middle">medium</text>
+<text x="540.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="573.0" y="296.9" width="54" height="53.1" rx="3" fill="#8a4fa0" fill-opacity="1.0"/>
+<text x="600.0" y="286.9" font-size="14" font-weight="700" text-anchor="middle">0.0313</text>
+<text x="600.0" y="370" font-size="14" text-anchor="middle">high</text>
+<text x="600.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<text x="540.0" y="416" font-size="15" font-weight="700" text-anchor="middle">Gemini 3.8 Flash</text>
+</g>
+</svg>
