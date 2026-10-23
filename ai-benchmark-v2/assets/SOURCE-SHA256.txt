@@ -17,3 +17,4 @@ a1b13bc71efe37af5984a87fa5fe47480e6f6632bc2a2d786176a8987e8a0762  assets/estimat
 89a8ba7a2d287beaa94495168de32726ac95e5a4ccaca0e53ba88ccdb443786d  assets/estimates/CLM-008.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-008.txt
 1e64665ced88af4632cf94ab175152b79c05131a430cc2151f8deae61971add5  assets/estimates/CLM-009.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-009.txt
 95c908981817f3f6b8009bb6f82180c180879089342fa2107bc95852eeb7da35  assets/estimates/CLM-010.txt  <-  claude-cookbooks cost_optimization/assets/estimates/CLM-010.txt
+c54fd713c4b3e5fb560da2da8b8e5d08caa1ad552fad722da183f0d1c76c5ad4  assets/claims_ledger.csv  <-  claude-cookbooks cost_optimization/assets/claims_ledger.csv
