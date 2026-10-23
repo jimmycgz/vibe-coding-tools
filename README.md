@@ -28,6 +28,7 @@ A fine-tuned benchmark that scores frontier models on quality, cost and timing o
 - **Cost per task**, broken down into uncached input, cache write, cache read and output, across models, effort levels and prompt-cache settings.
 - **Timing:** time to first event, output tokens per second, and time per request and per claim, with the connection kept out of the clock.
 - **Prompt cache test:** no-cache, cold and warm requests on a long prompt, with every cache hit proven from the API's usage block.
+- **Gemini:** the same task and a cache test built for an implicit cache, on Gemini 3.8 Flash through Vertex AI, with the project id and token kept out of every record.
 - **Repeatable:** a plan committed before each paid run, a spend guard, and one command that builds the results table and charts.
 
 Results, reports and references: [ai-benchmark-v2/README.md](./ai-benchmark-v2/README.md).

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 254" width="900" height="254" role="img" aria-label="Time per claim">
+<title>Time per claim</title>
+<desc>10 claims per trial, 2 trials per arm. Dots mark each trial's own median.</desc>
+<rect width="900" height="254" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="20" y="30" font-size="19" font-weight="700">Time per claim</text>
+<text x="20" y="52" font-size="13" fill="#5a6472">10 claims per trial, 2 trials per arm. Dots mark each trial's own median.</text>
+<rect x="190" y="64" width="12" height="12" fill="#667"/><text x="208" y="75" font-size="12">median of both trials</text><circle cx="380" cy="70" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/><text x="392" y="75" font-size="12">median of one trial</text><line x1="190.0" y1="94" x2="190.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="190.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">0</text>
+<line x1="345.0" y1="94" x2="345.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="345.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">10</text>
+<line x1="500.0" y1="94" x2="500.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="500.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">20</text>
+<line x1="655.0" y1="94" x2="655.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="655.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">30</text>
+<line x1="810.0" y1="94" x2="810.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="810.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">40</text>
+<text x="500.0" y="220" font-size="12" text-anchor="middle" fill="#5a6472">Seconds per claim, first request to verdict (median)</text>
+
+<text x="180" y="113" font-size="13" text-anchor="end">Gemini 3.8 Flash high</text>
+<rect x="190" y="99" width="433.6" height="20" rx="3" fill="#8a4fa0" fill-opacity="0.85"/>
+<circle cx="635.6" cy="109" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="583.2" cy="109" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="647.6" y="113" font-size="12" font-weight="600">28.0</text>
+<text x="180" y="143" font-size="13" text-anchor="end">Gemini 3.8 Flash medium</text>
+<rect x="190" y="129" width="310.6" height="20" rx="3" fill="#8a4fa0" fill-opacity="0.85"/>
+<circle cx="504.0" cy="139" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="498.9" cy="139" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="516.0" y="143" font-size="12" font-weight="600">20.0</text>
+<text x="180" y="173" font-size="13" text-anchor="end">Gemini 3.8 Flash low</text>
+<rect x="190" y="159" width="177.9" height="20" rx="3" fill="#8a4fa0" fill-opacity="0.85"/>
+<circle cx="354.8" cy="169" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="371.4" cy="169" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="383.4" y="173" font-size="12" font-weight="600">11.5</text>
+<text x="20" y="240" font-size="12" fill="#5a6472">Gemini arms: high, medium, low = thinking level. The Gemini cache is implicit, on for every project and not switchable by a user, so there is no no-cache arm; the cached share is what the usage block reported.</text>
+</g>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 254" width="900" height="254" role="img" aria-label="What the cost per task is made of">
+<title>What the cost per task is made of</title>
+<desc>10 claims per trial, 2 trials per arm.</desc>
+<rect width="900" height="254" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="20" y="30" font-size="19" font-weight="700">What the cost per task is made of</text>
+<text x="20" y="52" font-size="13" fill="#5a6472">10 claims per trial, 2 trials per arm.</text>
+<rect x="190" y="64" width="12" height="12" fill="#8c97a3"/><text x="208" y="75" font-size="12">uncached input</text><rect x="340" y="64" width="12" height="12" fill="#e0a030"/><text x="358" y="75" font-size="12">cache write</text><rect x="490" y="64" width="12" height="12" fill="#3b8f6b"/><text x="508" y="75" font-size="12">cache read</text><rect x="640" y="64" width="12" height="12" fill="#5b4aa5"/><text x="658" y="75" font-size="12">output</text><line x1="190.0" y1="94" x2="190.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="190.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">0.00</text>
+<line x1="345.0" y1="94" x2="345.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="345.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">0.01</text>
+<line x1="500.0" y1="94" x2="500.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="500.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">0.02</text>
+<line x1="655.0" y1="94" x2="655.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="655.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">0.03</text>
+<line x1="810.0" y1="94" x2="810.0" y2="184" stroke="#dcd8cf" stroke-width="1"/>
+<text x="810.0" y="200" font-size="11" text-anchor="middle" fill="#5a6472">0.04</text>
+<text x="500.0" y="220" font-size="12" text-anchor="middle" fill="#5a6472">Cost per task (US$, notebook formula)</text>
+
+<text x="180" y="113" font-size="13" text-anchor="end">Gemini 3.8 Flash high</text>
+<rect x="190.0" y="99" width="250.0" height="20" fill="#8c97a3"/>
+<rect x="440.0" y="99" width="17.6" height="20" fill="#3b8f6b"/>
+<rect x="457.6" y="99" width="217.7" height="20" fill="#5b4aa5"/>
+<text x="681.2" y="113" font-size="12" font-weight="600">0.0313</text>
+<text x="180" y="143" font-size="13" text-anchor="end">Gemini 3.8 Flash medium</text>
+<rect x="190.0" y="129" width="245.7" height="20" fill="#8c97a3"/>
+<rect x="435.7" y="129" width="16.5" height="20" fill="#3b8f6b"/>
+<rect x="452.1" y="129" width="142.2" height="20" fill="#5b4aa5"/>
+<text x="600.3" y="143" font-size="12" font-weight="600">0.0261</text>
+<text x="180" y="173" font-size="13" text-anchor="end">Gemini 3.8 Flash low</text>
+<rect x="190.0" y="159" width="261.2" height="20" fill="#8c97a3"/>
+<rect x="451.2" y="159" width="14.9" height="20" fill="#3b8f6b"/>
+<rect x="466.0" y="159" width="47.4" height="20" fill="#5b4aa5"/>
+<text x="519.4" y="173" font-size="12" font-weight="600">0.0209</text>
+<text x="20" y="240" font-size="12" fill="#5a6472">Gemini arms: high, medium, low = thinking level. The Gemini cache is implicit, on for every project and not switchable by a user, so there is no no-cache arm; the cached share is what the usage block reported.</text>
+</g>
+</svg>

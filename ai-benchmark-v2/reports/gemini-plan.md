@@ -1,6 +1,6 @@
 # Plan: Gemini 3.8 Flash in the model benchmark
 
-Status: **amended 2026-10-23 (see "Amendment 1" at the end); the cache timing test was not run before the amendment, and its smoke set is reported there.** Original status: planned, nothing run. The scripts are [gemini_benchmark.py](../gemini_benchmark.py) (the agent task) and [gemini_cache_timing.py](../gemini_cache_timing.py) (the cache timing test), with prices and model ids in [gemini_models.json](../gemini_models.json). This plan is committed before any paid call. Gemini 4 Argon is in the scripts but is not part of this plan; it would get its own plan after the Flash result.
+Status: **amended 2026-10-23 (see "Amendment 1" at the end); the cache timing test was not run before the amendment, and its smoke set is reported there.** Original status: planned, nothing run. The results are in [gemini-results.md](gemini-results.md). The scripts are [gemini_benchmark.py](../gemini_benchmark.py) (the agent task) and [gemini_cache_timing.py](../gemini_cache_timing.py) (the cache timing test), with prices and model ids in [gemini_models.json](../gemini_models.json). This plan is committed before any paid call. Gemini 4 Argon is in the scripts but is not part of this plan; it would get its own plan after the Flash result.
 
 Navigation: [index](../README.md) · [method](method.md) · [Claude cache timing results](cache-timing-results.md) · [plan for the next runs](plan-next-runs.md)
 

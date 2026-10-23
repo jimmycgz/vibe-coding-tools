@@ -434,6 +434,16 @@ def live(a, gm, claims, env=None, transport=None):
 
 # ---------------------------------------------------------------- report
 
+def blank_before_lists(lines):
+    """A Markdown list must follow a blank line; the report builds its lines in pieces, so add the blank where it is missing."""
+    out = []
+    for ln in lines:
+        if ln.startswith("- ") and out and out[-1].strip() and not out[-1].startswith("- "):
+            out.append("")
+        out.append(ln)
+    return out
+
+
 def load_requests(folder, threshold):
     rows = []
     with open(os.path.join(folder, "requests.jsonl"), encoding="utf-8") as f:
@@ -649,7 +659,7 @@ def report(folder, out, threshold, gm):
     levels = sorted({r["level"] for r in rows if r["level"]})
     L += ["", note_for(gm, roles) + " Thinking level: %s; time to first token includes that thinking." % (", ".join(levels) or "n/a"),
           "", MAPPING_NOTE]
-    text = "\n".join(L) + "\n"
+    text = "\n".join(blank_before_lists(L)) + "\n"
     os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, TABLE_NAME), "w", encoding="utf-8") as f:
         f.write(text)
@@ -1019,6 +1029,8 @@ def selftest(inject_fault=False):
           ["SIG-first-2", None])
     check("run: cost of a first request (gemini_cost at the fake prices)", reqs[0]["notebook_cost"], 0.15064)
     check("run: cost of a hit (its own, longer prompt)", reqs[1]["notebook_cost"], 0.02484)
+    check("report: a list gets a blank line before it, a list inside a list does not",
+          blank_before_lists(["text:", "- a", "- b", "", "more", "- c"]), ["text:", "", "- a", "- b", "", "more", "", "- c"])
     check("run: sets.jsonl has two sets and two repeat gaps",
           (len([s for s in sets if "order" in s]), [s.get("repeat_gap_s") is not None for s in sets if "repeat_gap_s" in s]),
           (2, [True, True]))
