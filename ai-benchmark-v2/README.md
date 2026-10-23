@@ -1,6 +1,6 @@
 # Model benchmark
 
-A fine-tuned optimized benchmark for model cost and timing, in one plain stdlib-only Python script, `model_benchmark.py`. It runs a tool-using agent task on Opus 5.5, Sonnet 5.5 and Fable 5.1 and reports cost per task and timing (`--measure cost|timing|both`), for each model, effort level and cache setting. More model families are planned. The legacy folder, [ai-benchmark](../ai-benchmark/README.md), is unchanged.
+A fine-tuned optimized benchmark for model cost and timing, in plain stdlib-only Python scripts: `model_benchmark.py`, `cache_timing.py` and `build_results_table.py`. The first runs a tool-using agent task on Opus 5.5, Sonnet 5.5 and Fable 5.1 and reports cost per task and timing (`--measure cost|timing|both`), for each model, effort level and cache setting. More model families are planned. The legacy folder, [ai-benchmark](../ai-benchmark/README.md), is unchanged.
 
 It started from the cost-optimization notebook in Anthropic's cookbook (`cost_optimization/cost_optimization.ipynb`): its insurance-claims task, its data and its cost formula are the starting point, and the credit is below.
 

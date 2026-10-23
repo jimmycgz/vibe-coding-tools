@@ -77,7 +77,7 @@ Included via git submodule from [anthropics/skills](https://github.com/anthropic
 
 ## [Model Benchmark v2](./ai-benchmark-v2)
 
-A fine-tuned optimized benchmark for model cost and timing, tested October 2026 on Opus 5.5, Sonnet 5.5 and Fable 5.1. One stdlib-only Python script; `--measure cost|timing|both`.
+A fine-tuned optimized benchmark for model cost and timing, tested October 2026 on Opus 5.5, Sonnet 5.5 and Fable 5.1. Stdlib-only Python scripts; `--measure cost|timing|both`.
 
 **Key findings (Oct 2026):**
 
@@ -85,7 +85,7 @@ A fine-tuned optimized benchmark for model cost and timing, tested October 2026 
 - Cache timing, Sonnet 5.5, 148,000-token prompt, 10 paired sets: a warm cache read cost 9.2 times less than no cache. Median time to first token was about 8 percent lower warm (3.31 s against 3.61 s), but warm was faster in 7 of 10 pairs, short of the 8 set before the run, so a time saving is not established. Output speed did not change with the cache.
 - Switching model writes a new cache. In a small separate check (10 requests), changing effort on Sonnet 5.5 kept the cache on the system prompt.
 
-**Strategy:** Sonnet is the worked example, to keep cost and time down. The same script can run Opus and Fable (`--only`) and longer prompts (`--prefixes`); those runs have not been done.
+**Strategy:** Sonnet is the worked example, to keep cost and time down. The cache timing script can run Opus and Fable (`--only`) and either prompt size (`--prefixes`); the Opus and Fable runs have not been done.
 
 See [ai-benchmark-v2/README.md](./ai-benchmark-v2/README.md) for the method, the data and the charts.
 
