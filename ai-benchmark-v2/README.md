@@ -7,7 +7,7 @@ It started from the cost-optimization notebook in Anthropic's cookbook (`cost_op
 ## Features
 
 - **Cost per task**, from the `usage` block of every request, by the notebook's formula and with each model's own cache-read rate. Caching (none, auto cache) and effort (high, medium, low) are arms, so the same task is priced across models and settings.
-- **Timing**, with `--stream`: time to first event, time to first content, time to first text, wall time per request, and wall time per claim. The first live use of the timing path is run 2, which has not run yet.
+- **Timing**, with `--stream`: time to first event, time to first content, time to first text, wall time per request, and wall time per claim. Run 2 is its first live use.
 - **Spend guard**: stops before any request whose worst case would pass `--ceiling-usd`.
 - **Rotated arm order** (`--order rotate`) so no arm always runs at the same point in the sequence.
 - **Offline selftest**: checks the cost formula against numbers the notebook printed and the stream parser against a canned stream; it needs no key and no network.
@@ -29,11 +29,12 @@ A live run spends real money: run one claim of one arm first (`--claims CLM-001 
 ## Reports
 
 - [Run 1 results](reports/run-1-results.md): what came back, with the caveats.
-- [Run 2 plan](reports/run-2-plan.md): 12 arms, streamed, with timing; committed before the run.
+- [Run 2 results](reports/run-2-results.md): 12 arms, streamed, with timing, in one table.
+- [Run 2 plan](reports/run-2-plan.md): the plan, committed before the run.
 - [Method](reports/method.md): the task, the pass criterion, how cost and timing are measured.
 - [How caching is switched](reports/how-caching-is-switched.md): the lines of code that turn the prompt cache on and off, and what the recorded usage shows for each case. Pictures: [test flow](reports/test-flow.svg) and [cache switch](reports/cache-switch.svg).
 
-Raw records are in [results/run1](results/run1).
+Raw records are in [results/run1](results/run1) and [results/run2](results/run2).
 
 ## Licence and credit
 

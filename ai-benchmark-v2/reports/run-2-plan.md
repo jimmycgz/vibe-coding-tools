@@ -1,6 +1,6 @@
 # Run 2 plan (committed before the run)
 
-Status: **planned, not run.** This file is committed before any run 2 request is made, so the git history shows the plan came first. It extends the design in the [method](method.md); run 1's raw records are in [results/run1](../results/run1).
+Status: **run on 2026-10-22; the results are in [run-2-results.md](run-2-results.md).** This file was committed before any run 2 request was made, so the git history shows the plan came first, and the text below is unchanged from then apart from this status line. It extends the design in the [method](method.md); run 1's raw records are in [results/run1](../results/run1).
 
 Navigation: [index](../README.md) · [run 1 results](run-1-results.md) · [method](method.md)
 
