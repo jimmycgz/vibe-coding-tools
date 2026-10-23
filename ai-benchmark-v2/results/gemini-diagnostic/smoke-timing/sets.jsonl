@@ -1,0 +1,2 @@
+{"set": 1, "role": "flash", "model": "gemini-3.8-flash", "order": ["first", "repeat", "control"], "claims": {"first": "CLM-001", "repeat": "CLM-004", "control": "CLM-007"}, "nonces": {"first": 1792727866482670000, "repeat": 1792727866482670000, "control": 1792727866482671000}, "thinking_level": "LOW", "threshold": null, "t": 1792727866.482673}
+{"set": 1, "role": "flash", "repeat_gap_s": 0.0}

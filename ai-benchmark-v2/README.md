@@ -1,6 +1,6 @@
 # Model benchmark
 
-A fine-tuned optimized benchmark for model cost and timing, in plain stdlib-only Python scripts: `model_benchmark.py`, `cache_timing.py` and `build_results_table.py`. The first runs a tool-using agent task on Opus 5.5, Sonnet 5.5 and Fable 5.1 and reports cost per task and timing (`--measure cost|timing|both`), for each model, effort level and cache setting. The second tests the prompt cache one request at a time. The third builds the table and charts. More model families are planned. The legacy folder, [ai-benchmark](../ai-benchmark/README.md), is unchanged.
+A fine-tuned optimized benchmark for model cost and timing, in plain stdlib-only Python scripts: `model_benchmark.py`, `cache_timing.py` and `build_results_table.py`. The first runs a tool-using agent task on Opus 5.5, Sonnet 5.5 and Fable 5.1 and reports cost per task and timing (`--measure cost|timing|both`), for each model, effort level and cache setting. The second tests the prompt cache one request at a time. The third builds the table and charts. Two more scripts run the same two tests on Gemini 3.8 Flash through Vertex AI: `gemini_benchmark.py` and `gemini_cache_timing.py`. The legacy folder, [ai-benchmark](../ai-benchmark/README.md), is unchanged.
 
 Based on Anthropic's cost-optimisation cookbook notebook (MIT licence): [cost_optimization.ipynb](https://github.com/anthropics/claude-cookbooks/blob/main/cost_optimization/cost_optimization.ipynb), copied at the commit-pinned version [a162e01](https://github.com/anthropics/claude-cookbooks/blob/a162e0184e71b60290808a43961a6cbc8060123c/cost_optimization/cost_optimization.ipynb). Its insurance-claims task, its data and its cost formula are the starting point, and the credit is below.
 
@@ -35,6 +35,11 @@ Cache timing script, [cache_timing.py](cache_timing.py):
 - **A reading rule fixed before the run**, a paired comparison over the repetitions, and a negative control (output speed should not depend on the cache state).
 - **Table and charts by default**: `--report DIR` writes the table and three charts.
 
+Gemini scripts, [gemini_benchmark.py](gemini_benchmark.py) and [gemini_cache_timing.py](gemini_cache_timing.py), with [gemini_models.json](gemini_models.json) for ids and list prices:
+
+- **The same agent task on Gemini 3.8 Flash** (and Gemini 4 Argon when named) at high, medium and low thinking, through Vertex AI's streaming API, with function calling, the model's parts echoed back unchanged, and the same timing fields. Credentials come from the environment only; the project id and the access token are redacted from every record, dry run and error text, with a selftest and a fault case for it.
+- **A cache timing test built for an implicit cache**: Gemini's cache cannot be switched off and reports no write, so the states are a first request, a repeat request that is a follow-up turn, and a second first request as a control. The hit threshold comes from a rule written before the run, and a reading with fewer than 8 valid repeat hits is "inconclusive".
+
 Table and chart builder, [build_results_table.py](build_results_table.py): one command writes the results table and four charts (cost per task, what the cost is made of, time per claim, time to first event) from the raw records, with each arm named by model, effort level and cache setting. Standard library only; the charts are hand-written SVG.
 
 ## Achievements
@@ -43,6 +48,7 @@ Table and chart builder, [build_results_table.py](build_results_table.py): one c
 - **The agent run** ([results](reports/run-1-results.md)): 10 claims, 2 trials per setting, every setting 10 of 10. The automatic prompt cache about halves cost per task on all three models; effort level moves cost 5 to 8 percent. Time per claim: Sonnet 8.0 to 8.8 s, Opus 8.8 to 11.9 s, Fable 13.0 to 19.2 s.
 - **The cache timing result** ([results](reports/cache-timing-results.md)): Sonnet 5.5, 148,000-token prompt, 10 paired sets. A warm cache read cost 9.2 times less than no cache. Median time to first token was about 8 percent lower warm (3.31 s against 3.61 s), but warm was faster in 7 of 10 pairs, short of the 8 set before the run, so a time saving is not established. Output speed did not change with the cache.
 - **The cache-rewrite facts**: automatic caching never hit across different questions (180 of 180 first turns of cached arms wrote the prefix again and read nothing), so a hit with a new question needs an explicit breakpoint at the end of the shared prefix ([how caching is switched](reports/how-caching-is-switched.md)). Switching model writes a new cache. In a small separate check (10 requests, records not published), changing effort on Sonnet 5.5 kept the cache on the system prompt.
+- **Gemini 3.8 Flash** ([results](reports/gemini-results.md)): at medium thinking it passed every claim at about half Sonnet 5.5's cost per task ($0.0261 against $0.0488) and took 2.5 times as long per claim (20.0 s against 8.0 s), and at low thinking it failed the pass bar (7 and 8 of 10). On a 171K-token prefix a follow-up turn cost 8.0 times less than a first request and was faster in all 7 valid pairs, but the pre-registered reading is "not seen" because 8 valid pairs were needed. A new question sent as a separate request never hit Gemini's implicit cache, at any size or wait tried; a follow-up turn did, at 52 to 98 percent.
 - **The Sonnet quality finding.** In the published run every setting scored 10 of 10. In an earlier run cut short by a restart, whose records are not published, Sonnet 5.5 at medium effort missed one claim in 3 of 4 trials: one of two with automatic cache, and both with the explicit breakpoint (medium effort as defined in that run's plan; the request records store only a body hash). Sonnet 5.5 at low effort did not miss in any trial of either run. The cookbook's own saved run, on Sonnet 5, had low effort at 9 of 10 and 8 of 10. So medium effort, not low, is where Sonnet 5.5 fell short of 100 percent here.
 
 ## Run it
@@ -67,9 +73,10 @@ A live run spends real money: run one claim of one arm first (`--claims CLM-001 
 - [Method](reports/method.md): the task, the pass criterion, how cost and timing are measured.
 - [Cache timing results, Sonnet](reports/cache-timing-results.md): is there a time saving from the cache? Cost saving clear, time saving not seen; with charts.
 - [Plan for the next runs](reports/plan-next-runs.md): the plan for the cache timing test ([cache_timing.py](cache_timing.py)), run for Sonnet only, and for a repeated agent-loop run with the explicit-breakpoint arm, not run.
+- [Gemini 3.8 Flash results](reports/gemini-results.md): the agent task, the cache timing test and what the diagnostic found about Gemini's implicit cache. [Plan and amendment](reports/gemini-plan.md).
 - [How caching is switched](reports/how-caching-is-switched.md): the code that turns the prompt cache on and off, and what the recorded usage shows for each case. Pictures: [test flow](reports/test-flow.svg) and [cache switch](reports/cache-switch.svg).
 
-Raw records are in [results/run1](results/run1) (the agent run) and [results/cache-timing-sonnet](results/cache-timing-sonnet) (the cache timing test).
+Raw records are in [results/run1](results/run1) (the agent run) and [results/cache-timing-sonnet](results/cache-timing-sonnet) (the cache timing test), and for Gemini in [results/gemini-flash-loop](results/gemini-flash-loop), [results/gemini-flash-cache-timing](results/gemini-flash-cache-timing) and [results/gemini-diagnostic](results/gemini-diagnostic).
 
 ## Licence and credit
 
