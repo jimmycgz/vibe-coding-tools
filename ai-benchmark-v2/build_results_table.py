@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Builds the results table and the charts from the raw records, in one command, standard library only.
 
-usage: build_results_table.py RESULTS_DIR [--out REPORTS_DIR]
+usage: build_results_table.py RESULTS_DIR [--out REPORTS_DIR] [--measure cost|timing|both]   (default both)
+       build_results_table.py --selftest | --selftest-fault
+
+--measure chooses what is tabled and charted: cost, timing or both. Cost is always recorded in the records.
 
 RESULTS_DIR holds trials-*.jsonl and, for a streamed run, requests-*.jsonl. arms.json maps arm ids to the short labels used
 everywhere. One row per arm: pass counts per trial, cost per task by the notebook's formula, and for a streamed run the
@@ -86,21 +89,66 @@ def collect(folder):
     return rows
 
 
-def table(rows):
-    timed = any(r["timed"] for r in rows)
-    head = ["Arm", "Trials", "$ per task"]
+def table(rows, measure="both"):
+    """measure: cost, timing or both. Timing columns need streamed records; without them the table says so."""
+    cost, timing = measure in ("cost", "both"), measure in ("timing", "both")
+    timed = timing and any(r["timed"] for r in rows)
+    head = ["Arm", "Trials"] + (["$ per task"] if cost else [])
     if timed:
         head += ["Wall s per claim", "Wall s per request", "First event s, first / later turns",
                  "First content s, first / later turns", "First text s, first / later turns"]
     out = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     for r in rows:
-        cells = [r["label"], r["passes"], "%.4f" % r["cost"]]
+        cells = [r["label"], r["passes"]] + (["%.4f" % r["cost"]] if cost else [])
         if timed:
             cells += [fmt(r["claim_wall"]), fmt(r["req_wall"])]
             cells += ["%s / %s" % (fmt(r[k + "_first"]), fmt(r[k + "_later"])) for k in ("event", "content", "text")]
         out.append("| " + " | ".join(cells) + " |")
-    return ("\n".join(out) + "\n\n" + NOTE + " Times are medians over all requests of the arm; wall time per claim runs "
-            "from a claim's first request to its verdict.\n")
+    note = NOTE + (" Times are medians over all requests of the arm; wall time per claim runs from a claim's first request to "
+                   "its verdict." if timed else "")
+    if timing and not timed:
+        note += " The records hold no timing: nothing was streamed."
+    return "\n".join(out) + "\n\n" + note + "\n"
+
+
+def charts_for(rows, measure="both"):
+    sub = "10 claims per trial, 2 trials per arm."
+    out = {}
+    if measure in ("cost", "both"):
+        out["cost-per-task.svg"] = bars_chart(rows, "Cost per task", sub)
+        out["cost-breakdown.svg"] = stacked_chart(rows, "What the cost per task is made of", sub)
+    if measure in ("timing", "both") and any(r["timed"] for r in rows):
+        out["time-per-claim.svg"] = claim_chart(rows, "Time per claim", sub + " Dots mark each trial's own median.")
+        out["time-to-first-event.svg"] = first_event_chart(rows, "Time to first event", sub + " First turns and later turns side by side.")
+    return out
+
+
+def selftest(inject_fault=False):
+    """Checks the three modes on made-up rows: what each shows, and what it leaves out."""
+    base = {"label": "Opus high no cache", "family": "Opus", "passes": "10/10, 10/10", "cost": 0.2, "parts": [0.18, 0, 0, 0.02],
+            "claim_wall": 11.0, "claim_wall_by_trial": [10.5, 11.5], "req_wall": 3.0, "event_first": 1.5, "event_later": 1.4,
+            "content_first": 1.6, "content_later": 2.0, "text_first": None, "text_later": 2.5}
+    timed = [dict(base, timed=True)]
+    plain = [dict(base, timed=False)]
+    ok = True
+
+    def check(name, got, want):
+        nonlocal ok
+        good = got == want
+        ok &= good
+        print("%-4s %-52s got %s want %s" % ("PASS" if good else "FAIL", name, got, want))
+    check("cost: table has a cost column and no timing", ("$ per task" in table(timed, "cost"), "Wall s per claim" in table(timed, "cost")), (True, False))
+    check("timing: table has timing and no cost column", ("$ per task" in table(timed, "timing"), "Wall s per claim" in table(timed, "timing")), (False, True))
+    check("both: table has both", ("$ per task" in table(timed, "both"), "Wall s per claim" in table(timed, "both")), (True, True))
+    check("timing without streamed records says so", "hold no timing" in table(plain, "timing"), True)
+    check("cost: only the two cost charts", sorted(charts_for(timed, "cost")), ["cost-breakdown.svg", "cost-per-task.svg"])
+    check("timing: only the two time charts", sorted(charts_for(timed, "timing")), ["time-per-claim.svg", "time-to-first-event.svg"])
+    check("both: all four charts", len(charts_for(timed, "both")), 4)
+    check("both without timing: two charts", len(charts_for(plain, "both")), 2)
+    if inject_fault:
+        check("injected fault (must FAIL)", 1, 2)
+    print("selftest", "PASSED" if ok else "FAILED")
+    return 0 if ok else 1
 
 
 # ------------------------------------------------------------------ the charts (hand-written SVG)
@@ -241,12 +289,21 @@ def main():
     argv = sys.argv[1:]
     if "--help" in argv or "-h" in argv:
         print(__doc__)
-        return
+        return 0
+    if "--selftest" in argv or "--selftest-fault" in argv:
+        return selftest(inject_fault="--selftest-fault" in argv)
     out = os.path.join(HERE, "reports")
     if "--out" in argv:
         i = argv.index("--out")
         out = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
+    measure = "both"
+    if "--measure" in argv:
+        i = argv.index("--measure")
+        measure = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+        if measure not in ("cost", "timing", "both"):
+            sys.exit("--measure takes cost, timing or both")
     if len(argv) != 1:
         sys.exit(__doc__)
     if not glob.glob(os.path.join(argv[0], "trials-*.jsonl")):
@@ -254,21 +311,16 @@ def main():
     rows = collect(argv[0])
     if not rows:
         sys.exit("no arm in %s matches arms.json; nothing written" % argv[0])
-    text = table(rows)
-    sub = "10 claims per trial, 2 trials per arm."
-    charts = {
-        "cost-per-task.svg": bars_chart(rows, "Cost per task", sub),
-        "cost-breakdown.svg": stacked_chart(rows, "What the cost per task is made of", sub),
-        "time-per-claim.svg": claim_chart(rows, "Time per claim", sub + " Dots mark each trial's own median."),
-        "time-to-first-event.svg": first_event_chart(rows, "Time to first event", sub + " First turns and later turns side by side."),
-    }
+    text = table(rows, measure)
+    charts = charts_for(rows, measure)
     os.makedirs(out, exist_ok=True)  # everything is built before anything is written
     open(os.path.join(out, "results-table.md"), "w", encoding="utf-8").write(text)
     print(text)
     for name, svg in charts.items():
         open(os.path.join(out, name), "w", encoding="utf-8").write(svg)
-    print("wrote results-table.md and %d charts into %s" % (len(charts), out), file=sys.stderr)
+    print("wrote results-table.md and %d charts into %s (measure: %s)" % (len(charts), out, measure), file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

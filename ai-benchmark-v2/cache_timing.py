@@ -19,7 +19,8 @@ usage:
   cache_timing.py --dry-run                      prints the schedule and the request shapes; no network, no key
   cache_timing.py --estimate                     upper-bound cost arithmetic; no network
   cache_timing.py --live --ceiling-usd X --out DIR [--smoke] [--reps N] [--thinking disabled|omit] [--tool-choice none|omit]
-  cache_timing.py --report DIR                   builds the table and charts from DIR/requests.jsonl
+  cache_timing.py --report DIR [--measure cost|timing|both]   builds the table and charts from DIR/requests.jsonl
+                                                 (default both; cost is always recorded in the records)
 """
 import argparse
 import json
@@ -128,6 +129,17 @@ def reading(d_none_warm, d_cold_warm, k=8):
     return a >= k and len(d_none_warm) > 0, (a >= k and b >= k), (a, len(d_none_warm), b, len(d_cold_warm))
 
 
+def negative_control(tps_by_state, limit=0.10):
+    """Output tokens per second should not depend on the cache state: a cache read skips prefill and does not change how fast
+    tokens are generated. Returns (largest relative difference between the state medians, flagged). Flagged means something other
+    than the cache varies between the states, and the report says so."""
+    meds = [statistics.median(v) for v in tps_by_state.values() if v]
+    if len(meds) < 2:
+        return None, False
+    rel = (max(meds) - min(meds)) / max(meds)
+    return rel, rel > limit
+
+
 def quartiles(xs):
     xs = sorted(x for x in xs if x is not None)
     if len(xs) < 2:
@@ -220,8 +232,12 @@ def run_live(a, models, claims):
         meta.write(json.dumps({"rep": s["rep"], "prefix": s["prefix"], "role": s["role"], "order": s["order"], "claims": s["claims"],
                                "network": ctx, "t": time.time()}) + "\n")
         meta.flush()
+        cold_end = None
         for state in s["order"]:
             claim = by_id[s["claims"][state]]
+            if state == "warm" and cold_end is not None:
+                meta.write(json.dumps({"rep": s["rep"], "prefix": s["prefix"], "role": s["role"], "warm_gap_s": round(time.monotonic() - cold_end, 2)}) + "\n")
+                meta.flush()
             body = build_body(models["roles"][s["role"]], s["prefix"], nonce, claim, state, ledger, a.thinking, a.tool_choice)
             tag = "%s %s rep%d %s %s" % (s["role"], s["prefix"], s["rep"], state, claim["id"])
             try:
@@ -231,6 +247,8 @@ def run_live(a, models, claims):
                 if a.smoke:
                     raise
                 continue
+            if state == "cold":
+                cold_end = time.monotonic()
             u = resp["usage"]
             ok, why = check_state(state, u)
             with open(os.path.join(a.out, "requests.jsonl"), encoding="utf-8") as f:
@@ -285,51 +303,83 @@ def paired(rows, role, prefix, a, b, key):
     return d
 
 
-def report(folder, out):
+def report(folder, out, measure="both"):
     rows = load_requests(folder)
+    cost_on, time_on = measure in ("cost", "both"), measure in ("timing", "both")
     cs = cells(rows)
     names = {"opus": "Opus", "sonnet": "Sonnet", "fable": "Fable"}
-    head = "| Model | Prefix | State | Checked ok | First token s (median, quartiles) | First event s (median) | Wall s (median) | Output tokens/s (median) | Connect s (median, not in the times) | $ per request |"
-    lines = [head, "|" + "---|" * 10]
+    cols = ["Model", "Prefix", "State", "Checked ok"]
+    if time_on:
+        cols += ["First token s (median, quartiles)", "First event s (median)", "Wall s (median)", "Output tokens/s (median)",
+                 "Connect s (median, not in the times)"]
+    if cost_on:
+        cols += ["$ per request"]
+    lines = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
     for (role, prefix, state), c in cs.items():
         q = metric(c, "first_text") if any(r["first_text"] is not None for r in c["rows"]) else metric(c, "first_delta")
-        lines.append("| %s | %s | %s | %d of %d | %s | %s | %s | %s | %s | %.4f |" % (
-            names[role], prefix, STATE_LABEL[state], c["ok"], c["n"],
-            "n/a" if q[1] is None else "%.2f (%.2f to %.2f)" % (q[1], q[0], q[2]),
-            brt.fmt(metric(c, "ttfb")[1]), brt.fmt(metric(c, "wall")[1]), brt.fmt(metric(c, "tps")[1], 1), brt.fmt(metric(c, "connect")[1], 3),
-            statistics.mean(r["cost"] for r in c["rows"]) if c["rows"] else 0.0))
-    diffs = ["", "Paired differences, per repetition, same model and prefix (negative = the second is faster):", "",
-             "| Model | Prefix | Pair | First token s, median difference | Repetitions where the second was faster | Wall s, median difference |", "|---|---|---|---|---|---|"]
-    for role in MODEL_ROLES:
-        for prefix in PREFIXES:
-            for a_, b_ in (("cold", "warm"), ("none", "warm"), ("none", "cold")):
-                d1 = paired(rows, role, prefix, a_, b_, "first_text") or paired(rows, role, prefix, a_, b_, "first_delta")
-                d2 = paired(rows, role, prefix, a_, b_, "wall")
-                if d1:
-                    diffs.append("| %s | %s | %s to %s | %+.2f | %d of %d | %s |" % (
-                        names[role], prefix, STATE_LABEL[a_].split(" (")[0], STATE_LABEL[b_].split(" (")[0], statistics.median(d1),
-                        sum(1 for x in d1 if x < 0), len(d1), "n/a" if not d2 else "%+.2f" % statistics.median(d2)))
-    read = ["", "Reading rule (fixed before the run): the headline is warm against no cache; a saving is seen when warm was faster in at least 8 of the 10 paired repetitions. The stricter rule also needs warm faster than cold in at least 8.", "",
-            "| Model | Prefix | Headline: warm faster than no cache | Stricter: also faster than cold |", "|---|---|---|---|"]
-    for role in MODEL_ROLES:
-        for prefix in PREFIXES:
-            dn = paired(rows, role, prefix, "none", "warm", "first_text") or paired(rows, role, prefix, "none", "warm", "first_delta")
-            dc = paired(rows, role, prefix, "cold", "warm", "first_text") or paired(rows, role, prefix, "cold", "warm", "first_delta")
-            if dn:
-                h, st, (a_, n_, b_, m_) = reading(dn, dc)
-                read.append("| %s | %s | %s (%d of %d) | %s (%d of %d) |" % (names[role], prefix, "seen" if h else "not seen", a_, n_,
-                                                                          "seen" if st else "not seen", b_, m_))
-    diffs += read
+        row = [names[role], prefix, STATE_LABEL[state], "%d of %d" % (c["ok"], c["n"])]
+        if time_on:
+            row += ["n/a" if q[1] is None else "%.2f (%.2f to %.2f)" % (q[1], q[0], q[2]), brt.fmt(metric(c, "ttfb")[1]),
+                      brt.fmt(metric(c, "wall")[1]), brt.fmt(metric(c, "tps")[1], 1), brt.fmt(metric(c, "connect")[1], 3)]
+        if cost_on:
+            row += ["%.4f" % (statistics.mean(r["cost"] for r in c["rows"]) if c["rows"] else 0.0)]
+        lines.append("| " + " | ".join(row) + " |")
+    diffs = []
+    if time_on:
+        diffs = ["", "Paired differences, per repetition, same model and prefix (negative = the second is faster):", "",
+                 "| Model | Prefix | Pair | First token s, median difference | Repetitions where the second was faster | Wall s, median difference |", "|---|---|---|---|---|---|"]
+        for role in MODEL_ROLES:
+            for prefix in PREFIXES:
+                for a_, b_ in (("cold", "warm"), ("none", "warm"), ("none", "cold")):
+                    d1 = paired(rows, role, prefix, a_, b_, "first_text") or paired(rows, role, prefix, a_, b_, "first_delta")
+                    d2 = paired(rows, role, prefix, a_, b_, "wall")
+                    if d1:
+                        diffs.append("| %s | %s | %s to %s | %+.2f | %d of %d | %s |" % (
+                            names[role], prefix, STATE_LABEL[a_].split(" (")[0], STATE_LABEL[b_].split(" (")[0], statistics.median(d1),
+                            sum(1 for x in d1 if x < 0), len(d1), "n/a" if not d2 else "%+.2f" % statistics.median(d2)))
+        read = ["", "Reading rule (fixed before the run). Headline: warm against no cache; a saving is seen when warm was faster in at least 8 of the 10 paired repetitions. "
+                "Stricter, secondary: warm also faster than cold in at least 8. Separately, the cost of writing: cold slower than no cache in at least 8.", "",
+                "| Model | Prefix | Headline: warm faster than no cache | Stricter: also faster than cold | Cold slower than no cache (the cost of a write) |", "|---|---|---|---|---|"]
+        for role in MODEL_ROLES:
+            for prefix in PREFIXES:
+                dn = paired(rows, role, prefix, "none", "warm", "first_text") or paired(rows, role, prefix, "none", "warm", "first_delta")
+                dc = paired(rows, role, prefix, "cold", "warm", "first_text") or paired(rows, role, prefix, "cold", "warm", "first_delta")
+                dw = paired(rows, role, prefix, "none", "cold", "first_text") or paired(rows, role, prefix, "none", "cold", "first_delta")
+                if dn:
+                    h, st, (a_, n_, b_, m_) = reading(dn, dc)
+                    slower = sum(1 for x in dw if x > 0)
+                    read.append("| %s | %s | %s (%d of %d) | %s (%d of %d) | %s (%d of %d) |" % (
+                        names[role], prefix, "seen" if h else "not seen", a_, n_, "seen" if st else "not seen", b_, m_,
+                        "seen" if dw and slower >= 8 else "not seen", slower, len(dw)))
+        ctrl = ["", "Negative control: output tokens per second should not depend on the cache state, since a cache read skips reading the prompt and not "
+                "generating tokens. If the state medians differ by more than 10 percent, something other than the cache is varying, and that is flagged.", "",
+                "| Model | Prefix | Tokens/s: no cache, cold, warm | Largest relative difference | Flag |", "|---|---|---|---|---|"]
+        for role in MODEL_ROLES:
+            for prefix in PREFIXES:
+                by = {st: [r["tps"] for r in cs[(role, prefix, st)]["rows"] if r["tps"] is not None] for st in STATES if (role, prefix, st) in cs}
+                rel, flag = negative_control(by)
+                if rel is not None:
+                    ctrl.append("| %s | %s | %s | %.1f percent | %s |" % (names[role], prefix, ", ".join(
+                        "%.1f" % statistics.median(by[st]) if by.get(st) else "n/a" for st in STATES), 100 * rel,
+                        "SOMETHING OTHER THAN THE CACHE VARIES" if flag else "none"))
+        diffs += read + ctrl
+        gaps = []
+        sp = os.path.join(folder, "sets.jsonl")
+        if os.path.exists(sp):
+            gaps = [json.loads(x)["warm_gap_s"] for x in open(sp, encoding="utf-8") if '"warm_gap_s"' in x]
+        if gaps:
+            diffs += ["", "Longest wait between a cold request ending and its warm request starting: %.1f s (the cache lives 5 minutes)." % max(gaps)]
     failed = [r for c in cs.values() for r in c["failed"]]
     fl = ["", "Requests that failed their state check (left out of the medians): %d of %d." % (len(failed), len(rows))]
     fl += ["- %s %s rep %d %s: %s" % (names[r["role"]], r["prefix"], r["rep"], r["state"], r["why"]) for r in failed[:30]]
     text = "\n".join(lines + diffs + fl) + "\n\n" + NOTE + "\n"
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, "cache-timing-table.md"), "w", encoding="utf-8").write(text)
-    for key, title, xlabel, fname, nd in (("first_text", "Time to first token, by cache state", "Seconds to the first token (median)", "cache-timing-first-token.svg", 2),
-                                          ("wall", "Total time, by cache state", "Seconds per request (median)", "cache-timing-wall.svg", 2),
-                                          ("tps", "Output tokens per second, by cache state", "Output tokens per second after the first token (median)", "cache-timing-tps.svg", 1)):
-        open(os.path.join(out, fname), "w", encoding="utf-8").write(states_chart(cs, key, title, xlabel, nd))
+    if time_on:
+        for key, title, xlabel, fname, nd in (("first_text", "Time to first token, by cache state", "Seconds to the first token (median)", "cache-timing-first-token.svg", 2),
+                                              ("wall", "Total time, by cache state", "Seconds per request (median)", "cache-timing-wall.svg", 2),
+                                              ("tps", "Output tokens per second, by cache state", "Output tokens per second after the first token (median)", "cache-timing-tps.svg", 1)):
+            open(os.path.join(out, fname), "w", encoding="utf-8").write(states_chart(cs, key, title, xlabel, nd))
     print(text)
 
 
@@ -404,6 +454,8 @@ def selftest(inject_fault=False):
     check("quartiles", quartiles([1, 2, 3, 4, 5]), (2.0, 3, 4.0))
     check("reading rule: 8 of 10 faster than no cache is the headline", reading([-1] * 8 + [1, 1], [-1] * 4 + [1] * 6)[:2], (True, False))
     check("reading rule: 7 of 10 is not seen", reading([-1] * 7 + [1] * 3, [-1] * 10)[:2], (False, False))
+    check("negative control: equal speeds are not flagged", negative_control({"none": [30, 31], "cold": [30, 30], "warm": [31, 29]})[1], False)
+    check("negative control: a 25 percent difference is flagged", negative_control({"none": [40, 40], "cold": [30, 30], "warm": [40, 40]})[1], True)
     check("reading rule: both at 8 is the stricter reading", reading([-1] * 9 + [1], [-1] * 8 + [1] * 2)[:2], (True, True))
     b0 = build_body("m", "13k", "n", claims[0], "none", "")
     b1 = build_body("m", "13k", "n", claims[0], "warm", "")
@@ -437,6 +489,7 @@ def main():
     ap.add_argument("--ceiling-usd", type=float, default=None)
     ap.add_argument("--out", default=None)
     ap.add_argument("--smoke", action="store_true", help="live: one set (Sonnet, 13k prefix, repetition 1) to check the request shape")
+    ap.add_argument("--measure", choices=["cost", "timing", "both"], default="both", help="report: what to table and chart (cost is always recorded)")
     ap.add_argument("--thinking", choices=["disabled", "omit"], default="disabled")
     ap.add_argument("--tool-choice", choices=["none", "omit"], default="none")
     a = ap.parse_args()
@@ -444,7 +497,7 @@ def main():
         return selftest(inject_fault=a.selftest_fault)
     models = mb.load_models(a.models)
     if a.report:
-        report(a.report, a.out or a.report)
+        report(a.report, a.out or a.report, a.measure)
         return 0
     if a.dry_run:
         dry_run(models, a.reps, mb.EVAL_CLAIMS)

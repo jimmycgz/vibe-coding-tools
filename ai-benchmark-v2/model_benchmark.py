@@ -321,6 +321,12 @@ CONFIGS = [
 # ---------------------------------------------------------------- models and cost
 
 
+def wants_stream(measure, stream_flag=False):
+    """--measure chooses what a run measures and shows. Cost is always recorded from the usage block, because recording it is
+    free. Timing needs every request streamed, so timing and both stream; cost alone does not. --stream forces streaming."""
+    return bool(stream_flag) or measure in ("timing", "both")
+
+
 def load_models(path):
     with open(path, encoding="utf-8") as f:
         m = json.load(f)
@@ -849,9 +855,14 @@ def live(cfgs, claims, models, a):
                    "trial_wall_s": round(time.monotonic() - t_trial, 3)}
             summary.write(json.dumps(rec) + "\n")
             summary.flush()
-            print("%-4s %-36s trial %d  %d/%d  requests %d  $/task %.4f (list %.4f)  misses %s  spent $%.2f" % (
-                cfg["id"], rec["label"], trial, rec["correct"], n, rec["turns"], rec["per_task_notebook"],
-                rec["per_task_list"], ",".join(misses) or "-", max(run.spent_notebook, run.spent_list)), flush=True)
+            shown = ""
+            if getattr(a, "measure", "both") != "timing":
+                shown += "  $/task %.4f (list %.4f)" % (rec["per_task_notebook"], rec["per_task_list"])
+            if getattr(a, "measure", "both") != "cost":
+                shown += "  wall %.0f s" % rec["trial_wall_s"]
+            print("%-4s %-36s trial %d  %d/%d  requests %d%s  misses %s  spent $%.2f" % (
+                cfg["id"], rec["label"], trial, rec["correct"], n, rec["turns"], shown, ",".join(misses) or "-",
+                max(run.spent_notebook, run.spent_list)), flush=True)
 
 
 def selftest(models, inject_fault=False):
@@ -922,6 +933,11 @@ def selftest(models, inject_fault=False):
     for name, got, want in (("timing clock starts after the connection is open (first event)", round(_tm["ttfb_s"], 2), 1.0),
                             ("connection time recorded on its own", round(_tm["connect_s"], 2), 0.3),
                             ("total time excludes the connection", round(_tm["wall_s"], 2), 3.0)):
+        good = got == want
+        ok &= good
+        print("%-4s %-32s got %s want %s" % ("PASS" if good else "FAIL", name, got, want))
+    for name, got, want in (("measure cost does not stream", wants_stream("cost"), False), ("measure timing streams", wants_stream("timing"), True),
+                            ("measure both streams", wants_stream("both"), True), ("--stream forces streaming for cost", wants_stream("cost", True), True)):
         good = got == want
         ok &= good
         print("%-4s %-32s got %s want %s" % ("PASS" if good else "FAIL", name, got, want))
@@ -1002,11 +1018,14 @@ def main():
     ap.add_argument("--show-limit", type=int, default=300, help="dry run: strings longer than this are elided on stdout")
     ap.add_argument("--ceiling-usd", type=float, default=None)
     ap.add_argument("--out", default=None)
-    ap.add_argument("--stream", action="store_true",
-                    help="stream every request and record ttfb_s, first_delta_s, first_text_s and wall_s per request")
+    ap.add_argument("--measure", choices=["cost", "timing", "both"], default="both",
+                    help="what to measure and show: cost, timing or both (default). Cost is always recorded from usage; "
+                         "timing and both stream every request and record ttfb_s, first_delta_s, first_text_s and wall_s")
+    ap.add_argument("--stream", action="store_true", help="stream every request even for --measure cost")
     ap.add_argument("--order", choices=["arm", "rotate"], default="arm",
                     help="arm: arm by arm. rotate: trial by trial, arm order rotated each trial")
     a = ap.parse_args()
+    a.stream = wants_stream(a.measure, a.stream)
     models = load_models(a.models)
     cfgs = CONFIGS if not a.configs else [c for c in CONFIGS if c["id"] in set(a.configs.split(","))]
     claims = EVAL_CLAIMS if not a.claims else [c for c in EVAL_CLAIMS if c["id"] in set(a.claims.split(","))]
