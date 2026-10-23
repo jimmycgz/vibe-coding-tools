@@ -1,8 +1,8 @@
 # How caching is switched on and off
 
-The benchmark prices the same task with the prompt cache off and on. This report shows, in the script's own lines, what makes the difference in the request, and what the recorded usage shows for each case. Everything here is taken from [model_benchmark.py](../model_benchmark.py) and from run 1's raw records in [results/run1](../results/run1).
+The benchmark prices the same task with the prompt cache off and on. This report shows, in the script's own lines, what makes the difference in the request, and what the recorded usage shows for each case. Everything here is taken from [model_benchmark.py](../model_benchmark.py) and from the raw records of run 1 in [results/run1](../results/run1). The arm with an explicit system breakpoint has not been run, so case 3 below is from the code only.
 
-Navigation: [index](../README.md) · [method](method.md) · [run 1 results](run-1-results.md) · [run 2 plan](run-2-plan.md) · picture of the test flow: [test-flow.svg](test-flow.svg) · picture of the cache switch: [cache-switch.svg](cache-switch.svg)
+Navigation: [index](../README.md) · [method](method.md) · [run 1 results](run-1-results.md) · [run 1 plan](run-1-plan.md) · picture of the test flow: [test-flow.svg](test-flow.svg) · picture of the cache switch: [cache-switch.svg](cache-switch.svg)
 
 ## The short version
 
@@ -14,7 +14,7 @@ Three cases, and the difference is where a `cache_control` field sits in the req
 | Auto cache | `cache` on | One top-level field: `"cache_control": {"type": "ephemeral"}`. |
 | Auto cache plus an explicit breakpoint on the system prompt | `cache` on and `cache_system` on | The same top-level field, and the `system` field is a list with one text block that carries its own `cache_control`. |
 
-The explicit-breakpoint arm sends both fields. It is the auto-cache arm with one more breakpoint, as in the notebook. It is in run 1 only.
+The explicit-breakpoint arm sends both fields. It is the auto-cache arm with one more breakpoint, as in the notebook. It has not been run.
 
 ## The lines that do it
 
@@ -42,7 +42,7 @@ Whether an earlier claim's cache is reused is then decided by the cache fields a
 
 ## Case 1: no cache
 
-Arm: Opus 5.5, high effort, no cache. The request, trimmed:
+Arm: Opus high no cache. The request, trimmed:
 
 ```json
 {"model": "claude-opus-5-5", "max_tokens": 4096,
@@ -52,11 +52,11 @@ Arm: Opus 5.5, high effort, no cache. The request, trimmed:
  "thinking": {"type": "adaptive"}, "output_config": {"effort": "high"}}
 ```
 
-Recorded usage, claim 1, turns 1 to 3 (input tokens, cache write, cache read): 13,090 / 0 / 0, then 13,606 / 0 / 0, then 13,900 / 0 / 0. Every turn re-reads the whole prefix at the full input price, and the input grows with the conversation.
+Recorded usage, claim 1, turns 1 to 3 (input tokens, cache write, cache read): 13,090 / 0 / 0, then 13,606 / 0 / 0, then 13,744 / 0 / 0. Every turn re-reads the whole prefix at the full input price, and the input grows with the conversation.
 
 ## Case 2: auto cache
 
-Arm: Sonnet 5.5, medium effort, auto cache. The only difference from case 1 is one field at the top level of the request:
+Arm: Sonnet medium cache. The only difference from case 1 is one field at the top level of the request:
 
 ```json
 {"model": "claude-sonnet-5-5", "max_tokens": 4096, "system": "[trial <time>]\n\n...", "tools": "...",
@@ -66,11 +66,11 @@ Arm: Sonnet 5.5, medium effort, auto cache. The only difference from case 1 is o
 
 Recorded usage, claim 1: turn 1 writes 13,086 tokens and reads 0; turn 2 writes 518 and reads 13,086; turn 3 writes 294 and reads 13,604. So inside one claim the cache is warm from the second turn: each turn reads what the turn before wrote.
 
-Across claims it is not warm. In trial 1 of run 1, the first turn of each of the 10 claims wrote between 13,071 and 13,090 tokens and read 0. The first turn of every claim pays the cache write again.
+Across claims it is not warm. In trial 1, the first turn of each of the 10 claims wrote between 13,071 and 13,090 tokens and read 0. The first turn of every claim pays the cache write again.
 
 ## Case 3: auto cache plus an explicit breakpoint on the system prompt
 
-Arm: Sonnet 5.5, medium effort, explicit system breakpoint. The `system` field becomes a list with one text block, and that block carries its own `cache_control`. The top-level field is still there:
+Arm: Sonnet medium cache + breakpoint (not run). The `system` field becomes a list with one text block, and that block carries its own `cache_control`. The top-level field is still there:
 
 ```json
 {"model": "claude-sonnet-5-5", "max_tokens": 4096,
@@ -80,7 +80,9 @@ Arm: Sonnet 5.5, medium effort, explicit system breakpoint. The `system` field b
  "output_config": {"effort": "medium"}, "cache_control": {"type": "ephemeral"}}
 ```
 
-Recorded usage, trial 1: claim 1 turn 1 writes 13,086 and reads 0, the same as case 2. From claim 2 on, the first turn reads 12,964 tokens from the cache and writes only 107 to 126. The system prompt and tools are a prefix of their own, written once and read by every later claim in the trial, because the nonce is the same. This is the change that cut Sonnet 5.5 at medium effort from $0.0472 to $0.0200 per task in run 1 (see the [results](run-1-results.md)).
+No usage is recorded for this case. From the code: the system prompt and tools become a prefix with a breakpoint of their own, and the nonce is the same for all claims of a trial, so the prefix is byte-identical from claim to claim. The first turn of claims 2 to 10 should therefore read it from the cache instead of writing it again. That is expected from the code and the API documentation as I understand it; it is not measured here.
+
+Why it matters: in the cached arms the cache write is the largest part of the cost (66 to 77 percent, see the [cost breakdown chart](cost-breakdown.svg)), because every claim's first turn writes the whole prefix again. Carrying the prefix across claims would turn most of those writes into reads, which are a tenth of the price. The arm is the way to measure that.
 
 ## What the cost formula does with these fields
 
@@ -89,7 +91,8 @@ Recorded usage, trial 1: claim 1 turn 1 writes 13,086 and reads 0, the same as c
 ## What I have and have not checked
 
 - Checked in the script: the three cases above and the line numbers; the nonce is created once per arm and trial.
-- Checked in the records: every first turn of trial 1 for the no-cache, auto-cache and explicit-breakpoint arms, ten claims each. Both no-cache arms (Opus 5.5 and Fable 5.1) show write 0 and read 0 on all 135 of their requests.
-- Not tested: why the auto-cache arm does not read across claims. I infer it from the records and from the API documentation as I understand it: the automatic breakpoint sits at the end of the request, and the first user message differs from claim to claim, so no earlier entry is a prefix of the next claim's request. I have not tested the cache's lookback behaviour directly.
+- Checked in the records: the three no-cache arms (Opus, Sonnet and Fable at high effort) show write 0 and read 0 on all 197 of their requests. In the nine cached arms, the first turn of every claim in both trials (180 requests) wrote between 13,071 and 13,090 tokens and read 0.
+- Not measured: case 3, the explicit breakpoint. No record exists.
+- Not tested: why the auto-cache arms do not read across claims. I infer it from the records and from the API documentation as I understand it: the automatic breakpoint sits at the end of the request, and the first user message differs from claim to claim, so no earlier entry is a prefix of the next claim's request. I have not tested the cache's lookback behaviour directly.
 
 To see the three request shapes without a key: `python3 model_benchmark.py --dry-run --configs opus-high-nocache,sonnet-medium-cache,sonnet-medium-breakpoint --claims CLM-001 --dump bodies.jsonl`.

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 524" width="900" height="524" role="img" aria-label="What the cost per task is made of">
+<title>What the cost per task is made of</title>
+<desc>10 claims per trial, 2 trials per arm.</desc>
+<rect width="900" height="524" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="20" y="30" font-size="19" font-weight="700">What the cost per task is made of</text>
+<text x="20" y="52" font-size="13" fill="#5a6472">10 claims per trial, 2 trials per arm.</text>
+<rect x="190" y="64" width="12" height="12" fill="#8c97a3"/><text x="208" y="75" font-size="12">uncached input</text><rect x="340" y="64" width="12" height="12" fill="#e0a030"/><text x="358" y="75" font-size="12">cache write</text><rect x="490" y="64" width="12" height="12" fill="#3b8f6b"/><text x="508" y="75" font-size="12">cache read</text><rect x="640" y="64" width="12" height="12" fill="#5b4aa5"/><text x="658" y="75" font-size="12">output</text><line x1="190.0" y1="94" x2="190.0" y2="454" stroke="#dcd8cf" stroke-width="1"/>
+<text x="190.0" y="470" font-size="11" text-anchor="middle" fill="#5a6472">0.0</text>
+<line x1="396.7" y1="94" x2="396.7" y2="454" stroke="#dcd8cf" stroke-width="1"/>
+<text x="396.7" y="470" font-size="11" text-anchor="middle" fill="#5a6472">0.2</text>
+<line x1="603.3" y1="94" x2="603.3" y2="454" stroke="#dcd8cf" stroke-width="1"/>
+<text x="603.3" y="470" font-size="11" text-anchor="middle" fill="#5a6472">0.4</text>
+<line x1="810.0" y1="94" x2="810.0" y2="454" stroke="#dcd8cf" stroke-width="1"/>
+<text x="810.0" y="470" font-size="11" text-anchor="middle" fill="#5a6472">0.6</text>
+<text x="500.0" y="490" font-size="12" text-anchor="middle" fill="#5a6472">Cost per task (US$, notebook formula)</text>
+
+<text x="180" y="113" font-size="13" text-anchor="end">Opus high no cache</text>
+<rect x="190.0" y="99" width="189.1" height="20" fill="#8c97a3"/>
+<rect x="379.1" y="99" width="14.7" height="20" fill="#5b4aa5"/>
+<text x="399.7" y="113" font-size="12" font-weight="600">0.1972</text>
+<text x="180" y="143" font-size="13" text-anchor="end">Opus high cache</text>
+<rect x="190.0" y="129" width="72.9" height="20" fill="#e0a030"/>
+<rect x="262.9" y="129" width="13.4" height="20" fill="#3b8f6b"/>
+<rect x="276.3" y="129" width="14.2" height="20" fill="#5b4aa5"/>
+<text x="296.5" y="143" font-size="12" font-weight="600">0.0972</text>
+<text x="180" y="173" font-size="13" text-anchor="end">Opus medium cache</text>
+<rect x="190.0" y="159" width="72.3" height="20" fill="#e0a030"/>
+<rect x="262.3" y="159" width="11.9" height="20" fill="#3b8f6b"/>
+<rect x="274.2" y="159" width="12.1" height="20" fill="#5b4aa5"/>
+<text x="292.3" y="173" font-size="12" font-weight="600">0.0932</text>
+<text x="180" y="203" font-size="13" text-anchor="end">Opus low cache</text>
+<rect x="190.0" y="189" width="72.2" height="20" fill="#e0a030"/>
+<rect x="262.2" y="189" width="11.9" height="20" fill="#3b8f6b"/>
+<rect x="274.1" y="189" width="10.0" height="20" fill="#5b4aa5"/>
+<text x="290.2" y="203" font-size="12" font-weight="600">0.0911</text>
+<text x="180" y="233" font-size="13" text-anchor="end">Sonnet high no cache</text>
+<rect x="190.0" y="219" width="87.7" height="20" fill="#8c97a3"/>
+<rect x="277.7" y="219" width="7.2" height="20" fill="#5b4aa5"/>
+<text x="291.0" y="233" font-size="12" font-weight="600">0.0919</text>
+<text x="180" y="263" font-size="13" text-anchor="end">Sonnet high cache</text>
+<rect x="190.0" y="249" width="37.0" height="20" fill="#e0a030"/>
+<rect x="227.1" y="249" width="5.8" height="20" fill="#3b8f6b"/>
+<rect x="232.9" y="249" width="7.4" height="20" fill="#5b4aa5"/>
+<text x="246.3" y="263" font-size="12" font-weight="600">0.0487</text>
+<text x="180" y="293" font-size="13" text-anchor="end">Sonnet medium cache</text>
+<rect x="190.0" y="279" width="38.4" height="20" fill="#e0a030"/>
+<rect x="228.5" y="279" width="5.7" height="20" fill="#3b8f6b"/>
+<rect x="234.1" y="279" width="6.3" height="20" fill="#5b4aa5"/>
+<text x="246.4" y="293" font-size="12" font-weight="600">0.0488</text>
+<text x="180" y="323" font-size="13" text-anchor="end">Sonnet low cache</text>
+<rect x="190.0" y="309" width="36.5" height="20" fill="#e0a030"/>
+<rect x="226.5" y="309" width="5.7" height="20" fill="#3b8f6b"/>
+<rect x="232.1" y="309" width="5.9" height="20" fill="#5b4aa5"/>
+<text x="244.0" y="323" font-size="12" font-weight="600">0.0465</text>
+<text x="180" y="353" font-size="13" text-anchor="end">Fable high no cache</text>
+<rect x="190.0" y="339" width="483.6" height="20" fill="#8c97a3"/>
+<rect x="673.6" y="339" width="67.0" height="20" fill="#5b4aa5"/>
+<text x="746.7" y="353" font-size="12" font-weight="600">0.5329</text>
+<text x="180" y="383" font-size="13" text-anchor="end">Fable high cache</text>
+<rect x="190.1" y="369" width="184.7" height="20" fill="#e0a030"/>
+<rect x="374.8" y="369" width="32.0" height="20" fill="#3b8f6b"/>
+<rect x="406.8" y="369" width="64.3" height="20" fill="#5b4aa5"/>
+<text x="477.1" y="383" font-size="12" font-weight="600">0.2720</text>
+<text x="180" y="413" font-size="13" text-anchor="end">Fable medium cache</text>
+<rect x="190.1" y="399" width="183.2" height="20" fill="#e0a030"/>
+<rect x="373.3" y="399" width="31.3" height="20" fill="#3b8f6b"/>
+<rect x="404.6" y="399" width="57.0" height="20" fill="#5b4aa5"/>
+<text x="467.6" y="413" font-size="12" font-weight="600">0.2628</text>
+<text x="180" y="443" font-size="13" text-anchor="end">Fable low cache</text>
+<rect x="190.1" y="429" width="182.8" height="20" fill="#e0a030"/>
+<rect x="372.9" y="429" width="31.3" height="20" fill="#3b8f6b"/>
+<rect x="404.2" y="429" width="44.3" height="20" fill="#5b4aa5"/>
+<text x="454.5" y="443" font-size="12" font-weight="600">0.2501</text>
+<text x="20" y="510" font-size="12" fill="#5a6472">Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none.</text>
+</g>
+</svg>

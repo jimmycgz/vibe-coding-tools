@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 716" width="900" height="716" role="img" aria-label="Time to first event">
+<title>Time to first event</title>
+<desc>10 claims per trial, 2 trials per arm. First turns and later turns side by side.</desc>
+<rect width="900" height="716" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="20" y="30" font-size="19" font-weight="700">Time to first event</text>
+<text x="20" y="52" font-size="13" fill="#5a6472">10 claims per trial, 2 trials per arm. First turns and later turns side by side.</text>
+<rect x="190" y="64" width="12" height="12" fill="#667"/><text x="208" y="75" font-size="12">first turn of a claim (a cache write for cached arms)</text><rect x="590" y="64" width="12" height="12" fill="#667" fill-opacity="0.45"/><text x="608" y="75" font-size="12">later turns</text><line x1="190.0" y1="94" x2="190.0" y2="646" stroke="#dcd8cf" stroke-width="1"/>
+<text x="190.0" y="662" font-size="11" text-anchor="middle" fill="#5a6472">0.0</text>
+<line x1="314.0" y1="94" x2="314.0" y2="646" stroke="#dcd8cf" stroke-width="1"/>
+<text x="314.0" y="662" font-size="11" text-anchor="middle" fill="#5a6472">0.5</text>
+<line x1="438.0" y1="94" x2="438.0" y2="646" stroke="#dcd8cf" stroke-width="1"/>
+<text x="438.0" y="662" font-size="11" text-anchor="middle" fill="#5a6472">1.0</text>
+<line x1="562.0" y1="94" x2="562.0" y2="646" stroke="#dcd8cf" stroke-width="1"/>
+<text x="562.0" y="662" font-size="11" text-anchor="middle" fill="#5a6472">1.5</text>
+<line x1="686.0" y1="94" x2="686.0" y2="646" stroke="#dcd8cf" stroke-width="1"/>
+<text x="686.0" y="662" font-size="11" text-anchor="middle" fill="#5a6472">2.0</text>
+<line x1="810.0" y1="94" x2="810.0" y2="646" stroke="#dcd8cf" stroke-width="1"/>
+<text x="810.0" y="662" font-size="11" text-anchor="middle" fill="#5a6472">2.5</text>
+<text x="500.0" y="682" font-size="12" text-anchor="middle" fill="#5a6472">Seconds from sending the request to the first server event (median)</text>
+
+<text x="180" y="116" font-size="13" text-anchor="end">Opus high no cache</text>
+<rect x="190" y="98" width="463.5" height="14" rx="2" fill="#3b6ea5" fill-opacity="1.0"/>
+<text x="658.5" y="109" font-size="11" font-weight="600">1.87</text>
+<rect x="190" y="115" width="436.7" height="14" rx="2" fill="#3b6ea5" fill-opacity="0.45"/>
+<text x="631.7" y="126" font-size="11" font-weight="600">1.76</text>
+<text x="180" y="162" font-size="13" text-anchor="end">Opus high cache</text>
+<rect x="190" y="144" width="443.2" height="14" rx="2" fill="#3b6ea5" fill-opacity="1.0"/>
+<text x="638.2" y="155" font-size="11" font-weight="600">1.79</text>
+<rect x="190" y="161" width="425.3" height="14" rx="2" fill="#3b6ea5" fill-opacity="0.45"/>
+<text x="620.3" y="172" font-size="11" font-weight="600">1.72</text>
+<text x="180" y="208" font-size="13" text-anchor="end">Opus medium cache</text>
+<rect x="190" y="190" width="494.0" height="14" rx="2" fill="#3b6ea5" fill-opacity="1.0"/>
+<text x="689.0" y="201" font-size="11" font-weight="600">1.99</text>
+<rect x="190" y="207" width="424.9" height="14" rx="2" fill="#3b6ea5" fill-opacity="0.45"/>
+<text x="619.9" y="218" font-size="11" font-weight="600">1.71</text>
+<text x="180" y="254" font-size="13" text-anchor="end">Opus low cache</text>
+<rect x="190" y="236" width="398.7" height="14" rx="2" fill="#3b6ea5" fill-opacity="1.0"/>
+<text x="593.7" y="247" font-size="11" font-weight="600">1.61</text>
+<rect x="190" y="253" width="414.6" height="14" rx="2" fill="#3b6ea5" fill-opacity="0.45"/>
+<text x="609.6" y="264" font-size="11" font-weight="600">1.67</text>
+<text x="180" y="300" font-size="13" text-anchor="end">Sonnet high no cache</text>
+<rect x="190" y="282" width="373.6" height="14" rx="2" fill="#2f8f6b" fill-opacity="1.0"/>
+<text x="568.6" y="293" font-size="11" font-weight="600">1.51</text>
+<rect x="190" y="299" width="365.3" height="14" rx="2" fill="#2f8f6b" fill-opacity="0.45"/>
+<text x="560.3" y="310" font-size="11" font-weight="600">1.47</text>
+<text x="180" y="346" font-size="13" text-anchor="end">Sonnet high cache</text>
+<rect x="190" y="328" width="379.5" height="14" rx="2" fill="#2f8f6b" fill-opacity="1.0"/>
+<text x="574.5" y="339" font-size="11" font-weight="600">1.53</text>
+<rect x="190" y="345" width="356.0" height="14" rx="2" fill="#2f8f6b" fill-opacity="0.45"/>
+<text x="551.0" y="356" font-size="11" font-weight="600">1.44</text>
+<text x="180" y="392" font-size="13" text-anchor="end">Sonnet medium cache</text>
+<rect x="190" y="374" width="370.5" height="14" rx="2" fill="#2f8f6b" fill-opacity="1.0"/>
+<text x="565.5" y="385" font-size="11" font-weight="600">1.49</text>
+<rect x="190" y="391" width="366.0" height="14" rx="2" fill="#2f8f6b" fill-opacity="0.45"/>
+<text x="561.0" y="402" font-size="11" font-weight="600">1.48</text>
+<text x="180" y="438" font-size="13" text-anchor="end">Sonnet low cache</text>
+<rect x="190" y="420" width="400.3" height="14" rx="2" fill="#2f8f6b" fill-opacity="1.0"/>
+<text x="595.3" y="431" font-size="11" font-weight="600">1.61</text>
+<rect x="190" y="437" width="355.3" height="14" rx="2" fill="#2f8f6b" fill-opacity="0.45"/>
+<text x="550.3" y="448" font-size="11" font-weight="600">1.43</text>
+<text x="180" y="484" font-size="13" text-anchor="end">Fable high no cache</text>
+<rect x="190" y="466" width="203.5" height="14" rx="2" fill="#c0702a" fill-opacity="1.0"/>
+<text x="398.5" y="477" font-size="11" font-weight="600">0.82</text>
+<rect x="190" y="483" width="218.2" height="14" rx="2" fill="#c0702a" fill-opacity="0.45"/>
+<text x="413.2" y="494" font-size="11" font-weight="600">0.88</text>
+<text x="180" y="530" font-size="13" text-anchor="end">Fable high cache</text>
+<rect x="190" y="512" width="264.5" height="14" rx="2" fill="#c0702a" fill-opacity="1.0"/>
+<text x="459.5" y="523" font-size="11" font-weight="600">1.07</text>
+<rect x="190" y="529" width="278.5" height="14" rx="2" fill="#c0702a" fill-opacity="0.45"/>
+<text x="473.5" y="540" font-size="11" font-weight="600">1.12</text>
+<text x="180" y="576" font-size="13" text-anchor="end">Fable medium cache</text>
+<rect x="190" y="558" width="215.7" height="14" rx="2" fill="#c0702a" fill-opacity="1.0"/>
+<text x="410.7" y="569" font-size="11" font-weight="600">0.87</text>
+<rect x="190" y="575" width="261.1" height="14" rx="2" fill="#c0702a" fill-opacity="0.45"/>
+<text x="456.1" y="586" font-size="11" font-weight="600">1.05</text>
+<text x="180" y="622" font-size="13" text-anchor="end">Fable low cache</text>
+<rect x="190" y="604" width="221.9" height="14" rx="2" fill="#c0702a" fill-opacity="1.0"/>
+<text x="416.9" y="615" font-size="11" font-weight="600">0.89</text>
+<rect x="190" y="621" width="254.7" height="14" rx="2" fill="#c0702a" fill-opacity="0.45"/>
+<text x="449.7" y="632" font-size="11" font-weight="600">1.03</text>
+<text x="20" y="702" font-size="12" fill="#5a6472">Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none.</text>
+</g>
+</svg>
