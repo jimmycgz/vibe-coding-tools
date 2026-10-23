@@ -1,24 +1,40 @@
 # Vibe Coding Tools
 
-A collection of AI agent skills, tools, and benchmarks for vibe coding workflows.
+A model benchmark, AI agent skills and tools for vibe coding workflows.
 
 ## Repository Structure
 
 ```text
 vibe-coding-tools/
-├── agent-skills/              # Reusable agent skills
-│   ├── claude-code-statusbar/ # Color-coded Claude Code status line + popup alerts
-│   ├── distill-user/          # Mine transcript history into durable user-preference memory
-│   ├── internet-search/       # Domain-first, route-independent web search (no API keys)
-│   ├── markdown-render-qa/    # Catch Markdown that reads fine but renders wrong
-│   ├── nano-banana-pro-vertex/# Cinematic hero-image generation (Gemini 3 Pro Image on Vertex AI)
-│   ├── remove-background/     # Transparent PNG generation pipeline
-│   ├── svg-diagram-qa/        # Render-and-inspect QA for hand-authored SVG diagrams
-│   ├── vibe-deck/             # Automated PPTX & slide generation
-│   └── anthropic-skills/      # Anthropics submodule library
-├── ai-benchmark-v2/           # Model benchmark: cost and timing, with the prompt cache (Oct 2026)
-└── ai-benchmark/              # AI code & reasoning benchmarks (legacy, Oct 2025 to Jul 2026)
+├── ai-benchmark-v2/           # Model benchmark: a fine-tuned eval set, cost and timing, prompt cache
+├── ai-benchmark/              # Legacy benchmark: speed and cost on Vertex AI
+└── agent-skills/              # Reusable agent skills
+    ├── claude-code-statusbar/ # Color-coded Claude Code status line + popup alerts
+    ├── distill-user/          # Mine transcript history into durable user-preference memory
+    ├── internet-search/       # Domain-first, route-independent web search (no API keys)
+    ├── markdown-render-qa/    # Catch Markdown that reads fine but renders wrong
+    ├── nano-banana-pro-vertex/# Cinematic hero-image generation (Gemini 3 Pro Image on Vertex AI)
+    ├── remove-background/     # Transparent PNG generation pipeline
+    ├── svg-diagram-qa/        # Render-and-inspect QA for hand-authored SVG diagrams
+    ├── vibe-deck/             # Automated PPTX & slide generation
+    └── anthropic-skills/      # Anthropics submodule library
 ```
+
+## [Model Benchmark v2](./ai-benchmark-v2)
+
+A fine-tuned benchmark that scores frontier models on quality, cost and timing on the same task. Standard-library Python only.
+
+- **Fine-tuned eval set:** 10 labelled insurance claims worked by a tool-using agent (12 tools, up to 6 turns per claim), so every run reports a pass rate. The task comes from Anthropic's cookbook; credits are in the v2 README.
+- **Cost per task**, broken down into uncached input, cache write, cache read and output, across models, effort levels and prompt-cache settings.
+- **Timing:** time to first token, output tokens per second, and time per request and per claim, with the connection kept out of the clock.
+- **Prompt cache test:** no-cache, cold and warm requests on a long prompt, with every cache hit proven from the API's usage block.
+- **Repeatable:** a plan committed before each paid run, a spend guard, and one command that builds the results table and charts.
+
+Results, reports and references: [ai-benchmark-v2/README.md](./ai-benchmark-v2/README.md).
+
+## [AI Benchmark (legacy)](./ai-benchmark)
+
+Streaming speed and cost of Claude models on Vertex AI: time to first token, output tokens per second, and time and cost per task. Runs from October 2025 to July 2026. Details: [ai-benchmark/README.md](./ai-benchmark/README.md).
 
 ## Tested Frontier Models
 
@@ -32,11 +48,10 @@ These tools are designed for and tested with frontier-class AI models:
 | **GPT-5** | OpenAI | Next-gen reasoning / Plan mode |
 | **Gemini 3.x Pro** | Google DeepMind | Advanced agentic coding / Plan mode |
 
-
 > **Note:** These skills require models with tool-use capabilities (file viewing, code execution, image inspection). Smaller or non-agentic models will not produce equivalent results.
 
-
 ## [Agent Skills](./agent-skills)
+
 Reusable AI agent skills — drop into `.agents/skills/` for any agentic coding assistant.
 
 ### Custom Skills
@@ -74,46 +89,6 @@ Included via git submodule from [anthropics/skills](https://github.com/anthropic
 | [**mcp-builder**](./agent-skills/anthropic-skills/skills/mcp-builder) | Build Model Context Protocol servers |
 | [**skill-creator**](./agent-skills/anthropic-skills/skills/skill-creator) | Meta-skill for creating new skills |
 | [**slack-gif-creator**](./agent-skills/anthropic-skills/skills/slack-gif-creator) | Create animated GIFs for Slack |
-
-## [Model Benchmark v2](./ai-benchmark-v2)
-
-A fine-tuned optimized benchmark for model cost and timing, tested October 2026 on Opus 5.5, Sonnet 5.5 and Fable 5.1. Stdlib-only Python scripts; `--measure cost|timing|both`.
-
-**Key findings (Oct 2026):**
-
-- Agent task, 10 claims, 2 trials per setting, every setting 10 of 10: the automatic prompt cache about halves cost per task on all three models; effort level moves cost 5 to 8 percent. Time per claim: Sonnet 8.0 to 8.8 s, Opus 8.8 to 11.9 s, Fable 13.0 to 19.2 s.
-- Cache timing, Sonnet 5.5, 148,000-token prompt, 10 paired sets: a warm cache read cost 9.2 times less than no cache. Median time to first token was about 8 percent lower warm (3.31 s against 3.61 s), but warm was faster in 7 of 10 pairs, short of the 8 set before the run, so a time saving is not established. Output speed did not change with the cache.
-- Switching model writes a new cache. In a small separate check (10 requests, records not published), changing effort on Sonnet 5.5 kept the cache on the system prompt.
-
-**Strategy:** Sonnet is the worked example, to keep cost and time down. The cache timing script can run Opus and Fable (`--only`) and either prompt size (`--prefixes`); the Opus and Fable runs have not been done.
-
-**v1 and v2:**
-
-- v1 ([ai-benchmark](./ai-benchmark)): one generation prompt per request on Vertex AI. It measured time to first token, output tokens per second, time per task and cost per task. It had no quality scoring, no tools and no cache.
-- v2: a labelled eval set, so every run reports a pass rate as well as cost and time. A tool-using agent loop. Prompt cache and effort measured side by side, with a cost breakdown. A cache timing test with the usage block as proof. Plans committed before each paid run, and charts by default.
-
-Built on Anthropic's [cost-optimisation cookbook notebook](https://github.com/anthropics/claude-cookbooks/blob/main/cost_optimization/cost_optimization.ipynb) (MIT licence; copied at the [pinned commit](https://github.com/anthropics/claude-cookbooks/blob/a162e0184e71b60290808a43961a6cbc8060123c/cost_optimization/cost_optimization.ipynb)).
-
-See [ai-benchmark-v2/README.md](./ai-benchmark-v2/README.md) for the features, the achievements, the method, the data and the charts.
-
-## [AI Benchmark (legacy, runs from October 2025 to July 2026)](./ai-benchmark)
-Performance and cost comparison of Claude models on Vertex AI *(Tests conducted October 2025)*.
-
-**Key Findings (Oct 2025):**
-- Haiku 4.5: ~2.3x faster, ~3x cheaper than Sonnet 4.5
-- Sonnet 4.5: Superior reasoning for complex planning
-
-**Recommended Usage:**
-- 🎯 **Plan Mode** → **Claude Opus 4.x** (Best design, architecture, and reasoning)
-- ⚡ **Act Mode** → **Claude Sonnet 4.x** (Ultra-fast implementation & solid reasoning)
-
-**Tooling:**
-- Google Antigravity
-- Anthropic Claude Code
-- Cline
-
-
-See [ai-benchmark/README.md](./ai-benchmark/README.md) for detailed results.
 
 ---
 
