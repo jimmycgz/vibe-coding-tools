@@ -38,6 +38,7 @@ import build_results_table as brt  # noqa: E402  (SVG helpers for the charts)
 
 LEDGER_PATH = os.path.join(HERE, "assets", "claims_ledger.csv")
 MODEL_ROLES = ["opus", "sonnet", "fable"]
+ACTIVE_ROLES = list(MODEL_ROLES)   # the models to run; --only opus,sonnet,fable chooses (default: all three)
 ALL_PREFIXES = ["13k", "long"]
 PREFIXES = ["long"]            # the active prefixes; --prefixes long|13k|both sets them (default: long only)
 STATES = ["none", "cold", "warm"]
@@ -57,7 +58,7 @@ def rotated(items, k):
     return items[k:] + items[:k]
 
 
-def schedule(reps, claims, prefixes=None):
+def schedule(reps, claims, prefixes=None, roles=None):
     """The fixed run order. For each repetition, each prefix, each model (model order rotated every repetition and prefix), one
     'set' of three requests with three DIFFERENT claims. The order inside a set alternates: cold then warm then no cache on even
     repetitions, no cache then cold then warm on odd ones (cold always precedes warm). Over the ten
@@ -66,7 +67,7 @@ def schedule(reps, claims, prefixes=None):
     for r in range(reps):
         for prefix in (prefixes or PREFIXES):
             p = ALL_PREFIXES.index(prefix)
-            for m, role in enumerate(rotated(MODEL_ROLES, r + p)):
+            for m, role in enumerate(rotated(list(roles or ACTIVE_ROLES), r + p)):
                 mi = MODEL_ROLES.index(role)
                 base = (r + mi + 2 * p) % n
                 # three distinct claims in a set (offsets 0, 3, 6 are distinct mod 10); over the 10 repetitions each state
@@ -184,13 +185,13 @@ def prefix_tokens_guess():
 
 def estimate(models, reps):
     g = prefix_tokens_guess()
-    lines = ["Upper-bound arithmetic, notebook multipliers (no cache 1x, cold write 1.25x, warm read 0.10x), %d reps, 3 models, "
-             "prefix(es) %s, output at most 256 tokens a request:" % (reps, "+".join(PREFIXES))]
-    out_cost = sum(reps * len(PREFIXES) * 3 * 256 * models["prices"][models["roles"][r]]["out"] / 1e6 for r in MODEL_ROLES)
+    lines = ["Upper-bound arithmetic, notebook multipliers (no cache 1x, cold write 1.25x, warm read 0.10x), %d reps, models %s, "
+             "prefix(es) %s, output at most 256 tokens a request:" % (reps, "+".join(ACTIVE_ROLES), "+".join(PREFIXES))]
+    out_cost = sum(reps * len(PREFIXES) * 3 * 256 * models["prices"][models["roles"][r]]["out"] / 1e6 for r in ACTIVE_ROLES)
     totals = {}
     for key in ("long_low", "long_mid", "long_high"):
         tot = 0.0
-        for role in MODEL_ROLES:
+        for role in ACTIVE_ROLES:
             pin = models["prices"][models["roles"][role]]["in"] / 1e6
             for prefix in PREFIXES:
                 tot += reps * (g["13k"] if prefix == "13k" else g[key]) * pin * (1 + 1.25 + 0.10)
@@ -204,7 +205,7 @@ def estimate(models, reps):
 def dry_run(models, reps, claims, show_body=True):
     sched = schedule(reps, claims)
     print("%d sets, %d requests (%d reps x %d prefixes x %d models x 3 states)" % (len(sched), 3 * len(sched), reps,
-                                                                                 len(PREFIXES), len(MODEL_ROLES)))
+                                                                                 len(PREFIXES), len(ACTIVE_ROLES)))
     for s in sched[:8]:
         print("  rep %d %-4s %-6s order %s claims %s" % (s["rep"], s["prefix"], s["role"], "/".join(s["order"]), s["claims"]))
     print("  ...")
@@ -230,7 +231,7 @@ def run_live(a, models, claims):
     by_id = {c["id"]: c for c in claims}
     sched = schedule(a.reps, claims)
     if a.smoke:
-        sched = [s for s in sched if s["rep"] == 1 and s["prefix"] == PREFIXES[0] and s["role"] == "sonnet"][:1]
+        sched = [s for s in sched if s["rep"] == 1 and s["prefix"] == PREFIXES[0] and s["role"] == ACTIVE_ROLES[0]][:1]
     meta = open(os.path.join(a.out, "sets.jsonl"), "a", encoding="utf-8")
     for s in sched:
         nonce = time.time_ns()
@@ -436,6 +437,9 @@ def selftest(inject_fault=False):
         print("%-4s %-44s got %s want %s" % ("PASS" if good else "FAIL", name, got, want))
     check("default sets (long prefix only)", len(sched), 10 * 3)
     check("default requests", 3 * len(sched), 90)
+    one = schedule(10, claims, None, ["sonnet"])
+    check("one model only: sets and models", (len(one), {s["role"] for s in one}), (10, {"sonnet"}))
+    check("one model only: every claim once per state", all(sorted(s["claims"][st] for s in one) == sorted(c["id"] for c in claims) for st in STATES), True)
     check("sets with both prefixes", len(both), 10 * 2 * 3)
     check("requests with both prefixes", 3 * len(both), 180)
     check("default is the long prefix only", {s["prefix"] for s in sched}, {"long"})
@@ -496,11 +500,12 @@ def main():
     g.add_argument("--live", action="store_true")
     g.add_argument("--report", metavar="DIR")
     ap.add_argument("--reps", type=int, default=10)
+    ap.add_argument("--only", default="opus,sonnet,fable", help="models to run, comma separated: opus, sonnet, fable (default: all three)")
     ap.add_argument("--prefixes", choices=["long", "13k", "both"], default="long", help="which prefix sizes to test (default: long, the 13k system prompt and tools plus the claims ledger)")
     ap.add_argument("--models", default=os.path.join(HERE, "models.json"))
     ap.add_argument("--ceiling-usd", type=float, default=None)
     ap.add_argument("--out", default=None)
-    ap.add_argument("--smoke", action="store_true", help="live: one set (Sonnet, first active prefix, repetition 1) to check the request shape")
+    ap.add_argument("--smoke", action="store_true", help="live: one set (first active model, first active prefix, repetition 1) to check the request shape")
     ap.add_argument("--measure", choices=["cost", "timing", "both"], default="both", help="report: what to table and chart (cost is always recorded)")
     ap.add_argument("--thinking", choices=["disabled", "omit"], default="disabled")
     ap.add_argument("--tool-choice", choices=["none", "omit"], default="none")
@@ -509,6 +514,10 @@ def main():
         return selftest(inject_fault=a.selftest_fault)
     models = mb.load_models(a.models)
     PREFIXES[:] = ALL_PREFIXES if a.prefixes == "both" else [a.prefixes]
+    chosen = [x.strip() for x in a.only.split(",") if x.strip()]
+    if not chosen or any(x not in MODEL_ROLES for x in chosen):
+        raise SystemExit("--only takes a comma separated list of: %s" % ", ".join(MODEL_ROLES))
+    ACTIVE_ROLES[:] = chosen
     if a.report:
         report(a.report, a.out or a.report, a.measure)
         return 0
