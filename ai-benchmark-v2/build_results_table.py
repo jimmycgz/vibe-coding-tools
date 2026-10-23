@@ -32,7 +32,7 @@ ARMS = json.load(open(os.path.join(HERE, "arms.json"), encoding="utf-8"))["arms"
 PRICES = json.load(open(os.path.join(HERE, "models.json"), encoding="utf-8"))["prices"]
 NOTE = ("Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. "
         "cache = automatic prompt cache; no cache = none.")
-FAMILY_COLOR = {"Opus": "#3b6ea5", "Sonnet": "#2f8f6b", "Fable": "#c0702a"}
+FAMILY_COLOR = {"Opus": "#3b6ea5", "Sonnet": "#2f8f6b", "Fable": "#c0702a", "Gemini": "#8a4fa0"}
 STACK = [("uncached input", "#8c97a3"), ("cache write", "#e0a030"), ("cache read", "#3b8f6b"), ("output", "#5b4aa5")]
 
 
@@ -63,7 +63,10 @@ def cost_parts(r):
     1 hour, cache read 0.10x), in dollars. The write rule is the one model_benchmark.usage_cost uses: the 5-minute and
     1-hour counts when either is non-zero, otherwise the flat cache_creation_input_tokens. Advisor iterations and batch
     pricing are not split into parts, so a request that has them is refused."""
-    u, p = r["usage"], PRICES[r["model"]]
+    u = r["usage"]
+    if "promptTokenCount" in u:
+        return gemini_cost_parts(r)
+    p = PRICES[r["model"]]
     if any(it.get("type") == "advisor_message" for it in u.get("iterations") or []):
         raise ValueError("advisor iterations are not split into cost parts (request %s)" % r.get("tag"))
     cc = u.get("cache_creation") or {}
@@ -74,6 +77,43 @@ def cost_parts(r):
     pin, pout = p["in"] / 1e6, p["out"] / 1e6
     return [(u.get("input_tokens") or 0) * pin, (w5 * 1.25 + w1 * 2.0) * pin,
             (u.get("cache_read_input_tokens") or 0) * 0.10 * pin, (u.get("output_tokens") or 0) * pout]
+
+
+def _gemini():
+    """gemini_benchmark, imported on first use so that an Anthropic-only run never loads it."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import gemini_benchmark
+    return gemini_benchmark
+
+
+def gemini_cost_parts(r):
+    """The four components for a Gemini request (records from gemini_benchmark.py): uncached input, cache write (Gemini
+    reports none, so 0), cached input, and output including thinking tokens, at the list prices in gemini_models.json.
+    The split of the prompt into cached and uncached tokens is gemini_benchmark.cache_split, so both files agree."""
+    gb = _gemini()
+    u, gm = r["usage"], gb.load_gemini_models()
+    prices = next((gm["prices"][role] for role, m in gm["models"].items() if m["id"] == r["model"]), None)
+    if prices is None:
+        raise ValueError("no price in gemini_models.json for model %s (request %s)" % (r["model"], r.get("tag")))
+    uncached, cached, _ = gb.cache_split(u)
+    uncached += u.get("toolUsePromptTokenCount") or 0
+    out = (u.get("candidatesTokenCount") or 0) + (u.get("thoughtsTokenCount") or 0)
+    return [uncached * prices["in"] / 1e6, 0.0, cached * prices["cached_in"] / 1e6, out * prices["out"] / 1e6]
+
+
+GEMINI_NOTE = ("Gemini arms: high, medium, low = thinking level. The Gemini cache is implicit, on for every project and not "
+               "switchable by a user, so there is no no-cache arm; the cached share is what the usage block reported.")
+
+
+def note_for(rows):
+    """The note under the table and charts. Anthropic-only results keep NOTE exactly; Gemini rows add GEMINI_NOTE."""
+    gem = [r for r in rows if r["family"] == "Gemini"]
+    if not gem:
+        return NOTE
+    if len(gem) == len(rows):
+        return GEMINI_NOTE
+    return NOTE + " " + GEMINI_NOTE
 
 
 # ------------------------------------------------------------------ the numbers
@@ -116,7 +156,7 @@ def table(rows, measure="both"):
             cells += [fmt(r["claim_wall"]), fmt(r["req_wall"])]
             cells += ["%s / %s" % (fmt(r[k + "_first"]), fmt(r[k + "_later"])) for k in ("event", "content", "text")]
         out.append("| " + " | ".join(cells) + " |")
-    note = NOTE + (" Times are medians over all requests of the arm; wall time per claim runs from a claim's first request to "
+    note = note_for(rows) + (" Times are medians over all requests of the arm; wall time per claim runs from a claim's first request to "
                    "its verdict." if timed else "")
     if timing and not timed:
         note += " The records hold no timing: nothing was streamed."
@@ -124,6 +164,15 @@ def table(rows, measure="both"):
 
 
 def charts_for(rows, measure="both"):
+    global NOTE
+    saved, NOTE = NOTE, note_for(rows)
+    try:
+        return _charts_for(rows, measure)
+    finally:
+        NOTE = saved
+
+
+def _charts_for(rows, measure):
     sub = "10 claims per trial, 2 trials per arm."
     out = {}
     if measure in ("cost", "both"):
@@ -169,6 +218,20 @@ def selftest(inject_fault=False):
              "ephemeral_1h_input_tokens": 600}, "cache_read_input_tokens": 50, "output_tokens": 7}]
     gaps = [abs(sum(cost_parts({"usage": u, "model": model})) - mb.usage_cost(u, model, {"prices": PRICES})) for u in edge]
     check("cost parts add up to usage_cost on the edge cases", max(gaps) < 1e-9, True)
+    # Gemini records: the parts add up to gemini_benchmark's own cost, and the Gemini arms in arms.json match its CONFIGS.
+    gb = _gemini()
+    gm = gb.load_gemini_models()
+    role, meta = next(iter(gm["models"].items()))
+    usage = {"promptTokenCount": 10000, "cachedContentTokenCount": 6000, "candidatesTokenCount": 300, "thoughtsTokenCount": 700}
+    parts = cost_parts({"usage": usage, "model": meta["id"]})
+    check("gemini cost parts add up to gemini_cost", abs(sum(parts) - gb.gemini_cost(usage, gm["prices"][role])[0]) < 1e-12, True)
+    arm_ids = {a["id"]: a for a in ARMS}
+    check("every gemini_benchmark arm is in arms.json with its label, not default",
+          [(c["id"] in arm_ids and arm_ids[c["id"]]["label"] == c["label"] and not arm_ids[c["id"]]["default"]) for c in gb.CONFIGS],
+          [True] * len(gb.CONFIGS))
+    check("a table of Gemini rows has the Gemini note and not the Anthropic models line",
+          (GEMINI_NOTE in note_for([dict(base, family="Gemini")]), "Opus 5.5" in note_for([dict(base, family="Gemini")])), (True, False))
+    check("a table of Anthropic rows keeps the note unchanged", note_for([base]) == NOTE, True)
     # The file names model_benchmark.py writes (trials.jsonl, requests.jsonl) and the ones kept in results/ must be found.
     check("reads the file names the benchmark script writes",
           [fnmatch.fnmatch(n, g) for n, g in (("trials.jsonl", TRIALS_GLOB), ("requests.jsonl", REQUESTS_GLOB))], [True, True])
