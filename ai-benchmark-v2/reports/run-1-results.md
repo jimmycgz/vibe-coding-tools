@@ -48,17 +48,25 @@ How to read the timing columns:
 
 ## The charts
 
+**Cost per task: caching halves it on every model (Opus $0.1972 to $0.0972, Sonnet $0.0919 to $0.0487, Fable $0.5329 to $0.2720), and Fable with cache still costs about 5.6 times Sonnet with cache.**
+
 ![Cost per task](cost-per-task.svg)
 
 [Cost per task](cost-per-task.svg): the table's cost column as bars.
+
+**What the cost is made of: in the cached arms the cache write is 66 to 77 percent of the cost and the read only 11 to 13 percent; without a cache, uncached input is 88 to 93 percent.**
 
 ![What the cost per task is made of](cost-breakdown.svg)
 
 [What the cost is made of](cost-breakdown.svg): uncached input, cache write, cache read and output, by the notebook's multipliers. The four parts add up to the recorded cost of every request.
 
+**Time per claim: Sonnet takes 8.0 to 8.8 s, Opus 11.2 to 11.9 s (8.8 s at low effort) and Fable 13.0 to 19.2 s; the dots mark each trial's own median.**
+
 ![Time per claim](time-per-claim.svg)
 
 [Time per claim](time-per-claim.svg): median seconds, with the median of each trial marked so the spread shows.
+
+**Time to first event: Fable's first event arrives sooner than the others (0.8 to 1.1 s against 1.4 to 2.0 s), although its claims take longer.**
 
 ![Time to first event](time-to-first-event.svg)
 

@@ -32,6 +32,8 @@ ARMS = json.load(open(os.path.join(HERE, "arms.json"), encoding="utf-8"))["arms"
 PRICES = json.load(open(os.path.join(HERE, "models.json"), encoding="utf-8"))["prices"]
 NOTE = ("Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. "
         "cache = automatic prompt cache; no cache = none.")
+COST_LABEL = "Cost per task (US$, notebook formula)"     # the axis label; charts_for sets it from the rows
+FIRST_TURN_LABEL = "first turn of a claim (a cache write for cached arms)"
 FAMILY_COLOR = {"Opus": "#3b6ea5", "Sonnet": "#2f8f6b", "Fable": "#c0702a", "Gemini": "#8a4fa0"}
 STACK = [("uncached input", "#8c97a3"), ("cache write", "#e0a030"), ("cache read", "#3b8f6b"), ("output", "#5b4aa5")]
 
@@ -163,13 +165,26 @@ def table(rows, measure="both"):
     return "\n".join(out) + "\n\n" + note + "\n"
 
 
+def labels_for(rows):
+    """(cost axis label, first-turn legend text) for these rows. Claude rows: the notebook's formula and its cache write.
+    Gemini rows: Vertex list prices from the usage block and no cache write. Both kinds together: neither claim is made."""
+    gem = [r["family"] == "Gemini" for r in rows]
+    if gem and all(gem):
+        return "Cost per task (US$, list prices)", "first turn of a claim"
+    if any(gem):
+        return "Cost per task (US$)", "first turn of a claim"
+    return "Cost per task (US$, notebook formula)", "first turn of a claim (a cache write for cached arms)"
+
+
 def charts_for(rows, measure="both"):
-    global NOTE
-    saved, NOTE = NOTE, note_for(rows)
+    global NOTE, COST_LABEL, FIRST_TURN_LABEL
+    saved = NOTE, COST_LABEL, FIRST_TURN_LABEL
+    NOTE = note_for(rows)
+    COST_LABEL, FIRST_TURN_LABEL = labels_for(rows)
     try:
         return _charts_for(rows, measure)
     finally:
-        NOTE = saved
+        NOTE, COST_LABEL, FIRST_TURN_LABEL = saved
 
 
 def _charts_for(rows, measure):
@@ -232,6 +247,14 @@ def selftest(inject_fault=False):
     check("a table of Gemini rows has the Gemini note and not the Anthropic models line",
           (GEMINI_NOTE in note_for([dict(base, family="Gemini")]), "Opus 5.5" in note_for([dict(base, family="Gemini")])), (True, False))
     check("a table of Anthropic rows keeps the note unchanged", note_for([base]) == NOTE, True)
+    check("labels: Claude rows keep the notebook formula and the cache write; Gemini rows say list prices and no cache write",
+          (labels_for([base]), labels_for([dict(base, family="Gemini")])),
+          (("Cost per task (US$, notebook formula)", "first turn of a claim (a cache write for cached arms)"),
+           ("Cost per task (US$, list prices)", "first turn of a claim")))
+    long_note = "word " * 60
+    lines = wrap_note(long_note.strip())
+    check("footer note: every wrapped line fits and no word is lost", (max(len(x) for x in lines) <= NOTE_WRAP, " ".join(lines) == long_note.strip()), (True, True))
+    check("footer note: the Claude note stays on one line, the Gemini note wraps", (len(wrap_note(NOTE)), len(wrap_note(GEMINI_NOTE)) > 1), (1, True))
     # The file names model_benchmark.py writes (trials.jsonl, requests.jsonl) and the ones kept in results/ must be found.
     check("reads the file names the benchmark script writes",
           [fnmatch.fnmatch(n, g) for n, g in (("trials.jsonl", TRIALS_GLOB), ("requests.jsonl", REQUESTS_GLOB))], [True, True])
@@ -251,15 +274,34 @@ def esc(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+NOTE_WRAP = 150          # characters per footer line at 12 px in the 900 px frame; the Claude note (146) fits on one line
+NOTE_LINE = 15           # pixels between footer lines
+
+
+def wrap_note(text, width=NOTE_WRAP):
+    """The footer note split at spaces into lines of at most width characters (one line when it fits)."""
+    lines, cur = [], ""
+    for word in text.split(" "):
+        if cur and len(cur) + 1 + len(word) > width:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = word if not cur else cur + " " + word
+    return lines + [cur] if cur else lines or [""]
+
+
 def frame(title, subtitle, height, body, legend=""):
+    lines = wrap_note(NOTE)
+    foot = "".join('<text x="20" y="%d" font-size="12" fill="#5a6472">%s</text>\n' % (height - 14 + i * NOTE_LINE, esc(ln))
+                   for i, ln in enumerate(lines))
+    height += (len(lines) - 1) * NOTE_LINE
     return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%d" height="%d" role="img" aria-label="%s">\n'
             '<title>%s</title>\n<desc>%s</desc>\n<rect width="%d" height="%d" fill="#fbfaf7"/>\n'
             '<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">\n'
             '<text x="20" y="30" font-size="19" font-weight="700">%s</text>\n'
-            '<text x="20" y="52" font-size="13" fill="#5a6472">%s</text>\n%s%s'
-            '<text x="20" y="%d" font-size="12" fill="#5a6472">%s</text>\n</g>\n</svg>\n'
+            '<text x="20" y="52" font-size="13" fill="#5a6472">%s</text>\n%s%s%s</g>\n</svg>\n'
             % (W, height, W, height, esc(title), esc(title), esc(subtitle), W, height, esc(title), esc(subtitle), legend, body,
-               height - 14, esc(NOTE)))
+               foot))
 
 
 def nice_step(raw):
@@ -301,7 +343,7 @@ def label_at(y, text):
 
 def bars_chart(rows, title, subtitle):
     top, bottom = 70, 70 + ROW * len(rows)
-    grid, X = axis(nice_max(max(r["cost"] for r in rows) * 1.12), top, bottom, "Cost per task (US$, notebook formula)")
+    grid, X = axis(nice_max(max(r["cost"] for r in rows) * 1.12), top, bottom, COST_LABEL)
     body = [grid]
     for i, r in enumerate(rows):
         y = top + i * ROW
@@ -315,7 +357,7 @@ def bars_chart(rows, title, subtitle):
 def stacked_chart(rows, title, subtitle):
     rows = [r for r in rows if r["parts"]]
     top, bottom = 94, 94 + ROW * len(rows)
-    grid, X = axis(nice_max(max(sum(r["parts"]) for r in rows) * 1.12), top, bottom, "Cost per task (US$, notebook formula)")
+    grid, X = axis(nice_max(max(sum(r["parts"]) for r in rows) * 1.12), top, bottom, COST_LABEL)
     legend = "".join('<rect x="%d" y="64" width="12" height="12" fill="%s"/><text x="%d" y="75" font-size="12">%s</text>'
                      % (LEFT + i * 150, c, LEFT + i * 150 + 18, n) for i, (n, c) in enumerate(STACK))
     body = [grid]
@@ -360,9 +402,9 @@ def first_event_chart(rows, title, subtitle):
     vals = [r[k] for r in rows for k in ("event_first", "event_later") if r[k]]
     grid, X = axis(nice_max(max(vals) * 1.15), top, bottom, "Seconds from sending the request to the first server event (median)")
     legend = ('<rect x="%d" y="64" width="12" height="12" fill="#667"/><text x="%d" y="75" font-size="12">'
-              'first turn of a claim (a cache write for cached arms)</text>'
+              '%s</text>'
               '<rect x="%d" y="64" width="12" height="12" fill="#667" fill-opacity="0.45"/>'
-              '<text x="%d" y="75" font-size="12">later turns</text>' % (LEFT, LEFT + 18, LEFT + 400, LEFT + 418))
+              '<text x="%d" y="75" font-size="12">later turns</text>' % (LEFT, LEFT + 18, esc(FIRST_TURN_LABEL), LEFT + 400, LEFT + 418))
     body = [grid]
     for i, r in enumerate(rows):
         y = top + i * grp

@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 230" width="900" height="230" role="img" aria-label="Cost per task">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 245" width="900" height="245" role="img" aria-label="Cost per task">
 <title>Cost per task</title>
 <desc>10 claims per trial, 2 trials per arm.</desc>
-<rect width="900" height="230" fill="#fbfaf7"/>
+<rect width="900" height="245" fill="#fbfaf7"/>
 <g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
 <text x="20" y="30" font-size="19" font-weight="700">Cost per task</text>
 <text x="20" y="52" font-size="13" fill="#5a6472">10 claims per trial, 2 trials per arm.</text>
@@ -15,7 +15,7 @@
 <text x="655.0" y="176" font-size="11" text-anchor="middle" fill="#5a6472">0.03</text>
 <line x1="810.0" y1="70" x2="810.0" y2="160" stroke="#dcd8cf" stroke-width="1"/>
 <text x="810.0" y="176" font-size="11" text-anchor="middle" fill="#5a6472">0.04</text>
-<text x="500.0" y="196" font-size="12" text-anchor="middle" fill="#5a6472">Cost per task (US$, notebook formula)</text>
+<text x="500.0" y="196" font-size="12" text-anchor="middle" fill="#5a6472">Cost per task (US$, list prices)</text>
 
 <text x="180" y="89" font-size="13" text-anchor="end">Gemini 3.8 Flash high</text>
 <rect x="190" y="75" width="485.2" height="20" rx="3" fill="#8a4fa0"/>
@@ -26,6 +26,7 @@
 <text x="180" y="149" font-size="13" text-anchor="end">Gemini 3.8 Flash low</text>
 <rect x="190" y="135" width="323.4" height="20" rx="3" fill="#8a4fa0"/>
 <text x="519.4" y="149" font-size="12" font-weight="600">0.0209</text>
-<text x="20" y="216" font-size="12" fill="#5a6472">Gemini arms: high, medium, low = thinking level. The Gemini cache is implicit, on for every project and not switchable by a user, so there is no no-cache arm; the cached share is what the usage block reported.</text>
+<text x="20" y="216" font-size="12" fill="#5a6472">Gemini arms: high, medium, low = thinking level. The Gemini cache is implicit, on for every project and not switchable by a user, so there is no</text>
+<text x="20" y="231" font-size="12" fill="#5a6472">no-cache arm; the cached share is what the usage block reported.</text>
 </g>
 </svg>

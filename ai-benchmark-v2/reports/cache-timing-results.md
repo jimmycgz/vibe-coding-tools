@@ -52,9 +52,15 @@ Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. 13k = the benchmar
 
 Three charts, from the same records: [time to first token](cache-timing-first-token.svg), [total time](cache-timing-wall.svg) and [output tokens per second](cache-timing-tps.svg), each by cache state.
 
+**Time to first token: the medians are 3.31 s warm, 3.61 s with no cache and 3.72 s cold, with a wide scatter (quartiles 1.84 to 3.66 s warm, 1.91 to 3.74 s with no cache), so the 0.30 s gap between warm and no cache is inside it.**
+
 ![Time to first token, by cache state](cache-timing-first-token.svg)
 
+**Total time: 5.31 s warm, 5.57 s with no cache and 5.72 s cold, the same ordering as the first token.**
+
 ![Total time, by cache state](cache-timing-wall.svg)
+
+**Output speed: 127.2 tokens per second with no cache, 127.8 cold and 133.9 warm, 5.1 percent apart at most and inside the scatter of 19.9 tokens per second, so the cache did not change how fast tokens come out.**
 
 ![Output tokens per second, by cache state](cache-timing-tps.svg)
 

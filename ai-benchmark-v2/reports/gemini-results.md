@@ -21,6 +21,22 @@ The same 10 claims, 12 tools and 6-turn limit as the Claude runs, 2 trials per a
 | Sonnet medium cache (run 1) | 10/10, 10/10 | 0.0488 | 8.00 | 2.20 |
 | Sonnet low cache (run 1) | 10/10, 10/10 | 0.0465 | 8.37 | 2.34 |
 
+**Cost per task: low thinking costs $0.0209, medium $0.0261 and high $0.0313; the low arm is the cheapest but failed 5 of its 20 claims.**
+
+![Cost per task](gemini-loop/cost-per-task.svg)
+
+**What the cost is made of: output (the answer plus thinking) is 14.7 percent of the cost at low thinking, 35.2 percent at medium and 44.9 percent at high, while uncached input stays near $0.016 a task and cache reads add about $0.001.**
+
+![What the cost per task is made of](gemini-loop/cost-breakdown.svg)
+
+**Time per claim: low thinking finishes a claim in 11.5 s, medium in 20.0 s and high in 28.0 s.**
+
+![Time per claim](gemini-loop/time-per-claim.svg)
+
+**Time to first event: later turns of a claim take longer than the first turn at medium and high thinking (4.47 s against 2.88 s at medium, 5.40 against 3.64 at high) and not at low (1.70 against 1.97).**
+
+![Time to first event](gemini-loop/time-to-first-event.svg)
+
 The Sonnet rows are copied from [run 1](run-1-results.md); they come from a different run, harness path and time of night, so they are context and not a controlled comparison. Gemini counts tokens differently (the system prompt and tools are about 8,000 Gemini tokens against about 13,000 Claude tokens), and its cost per task includes thinking tokens, 128,161 in all over the run.
 
 - **Implicit cache in the loop:** 39.3 percent of all prompt tokens were read from the cache, in part. In the single-claim smoke test the cached part was about 3,870 of about 8,650 tokens on turns 2 to 4. The cache cannot be switched off, so there is no no-cache arm.
@@ -37,6 +53,18 @@ The test is in [gemini-plan.md](gemini-plan.md), as amended before the sets: ten
 | first request | 9 | 4.73 | 5.98 | 0.1292 |
 | repeat request (follow-up turn) | 8 | 2.37 | 3.29 | 0.0161 |
 | second first request | 10 | 4.82 | 5.77 | 0.1294 |
+
+**First token: the follow-up repeat request comes at a median of 2.37 s, the first request at 4.73 s and the second first request at 4.82 s.**
+
+![First token by state](gemini-cache-timing-first-token.svg)
+
+**Total time: 3.29 s for the follow-up repeat request against 5.98 s for the first request and 5.77 s for the second first request.**
+
+![Total time by state](gemini-cache-timing-wall.svg)
+
+**Output speed: 146.1, 153.8 and 160.3 tokens per second, at most 8.8 percent apart and inside the within-state spread, so the cache did not change how fast tokens come out.**
+
+![Output speed by state](gemini-cache-timing-tps.svg)
 
 - **Hit rate: 8 of 10.** Sets 2, 3, 5, 6, 7, 8, 9 and 10 read 97.5 to 97.9 percent of their prompt from the cache. Sets 1 and 4 read 0 percent. The registered minimum was 8 of 10, so the reading was not cut to "inconclusive". Why two follow-ups missed is unexplained.
 - **Valid pairs: 7.** A pair needs a valid first request and a valid repeat. Sets 1 and 4 lost their pair to the miss. In set 3 the first request, sent with a fresh nonce, came back with 167,113 cached tokens (97.5 percent); that is not a fresh prefix, so it failed its state check and the pair is excluded. This is unexplained too.
