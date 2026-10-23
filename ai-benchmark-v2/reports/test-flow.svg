@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1100" role="img" aria-labelledby="tft tfd" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="tft">How one benchmark run works</title>
+  <desc id="tfd">The test flow of the benchmark script in six stages. 1, Inputs: 10 fictional insurance claims with the expected answer for each; the agent's system prompt, which includes the policy manual, and 12 tools, together about 13K tokens; the model list and prices in models.json. 2, Arms: a list of model-and-setting combinations, for example Opus high no cache, or Sonnet medium cache; run 1 runs them one after another with the order rotated between trials. 3, Trial: a fresh nonce, written as trial and the time at the top of the system prompt, so no cache from an earlier trial can be hit; each arm runs the 10 claims. 4, Claim loop, for one claim: build the request, send it (streamed in run 1), receive tool calls, run each tool locally on the fictional data, append the result, and repeat, at most 6 turns. The loop ends at the first terminal tool: approve, deny, route to supervisor, or refer to the special investigation unit. It also ends at a reply with no tool call, or after turn 6. 5, Per request record: usage tokens (input, cache write, cache read, output), cost, and in run 1 the time to first event, first content, first text and wall time. Before every request a spend guard runs and stops the run if the worst case would pass the ceiling. 6, Score and report: the verdict is compared with the expected answer for a pass count over the 10 claims; per-trial results are written to JSON lines; the table builder writes one results table (cost, pass counts and timing) and four charts.</desc>
+  <style>
+    .bg{fill:#ffffff}
+    .card{fill:#f3f6fb;stroke:#c3cfe3;stroke-width:1.5}
+    .ink{fill:#16202e}
+    .mute{fill:#52607a}
+    .h1{font-size:30px;font-weight:700}
+    .h2{font-size:21px;font-weight:700}
+    .b{font-size:16px}
+    .s{font-size:14px}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:15px}
+    .boxn{fill:#ffffff;stroke:#52607a;stroke-width:1.5}
+    .boxa{fill:#dbe8fb;stroke:#1f5fbf;stroke-width:1.5}
+    .boxw{fill:#fde9d4;stroke:#a34a00;stroke-width:1.5}
+    .boxok{fill:#d9f2e5;stroke:#17704a;stroke-width:1.5}
+    .tA{fill:#1f5fbf}
+    .tW{fill:#a34a00}
+    .tO{fill:#17704a}
+    .badge{fill:#1f5fbf}
+    .bn{fill:#ffffff;font-size:16px;font-weight:700}
+    .dot{fill:#52607a}
+    .ln{stroke:#52607a;stroke-width:2;fill:none}
+    .ah{fill:#52607a}
+    .lnr{stroke:#1f5fbf;stroke-width:2;fill:none}
+    .ahr{fill:#1f5fbf}
+    .lno{stroke:#17704a;stroke-width:2;fill:none}
+    .aho{fill:#17704a}
+    @media (prefers-color-scheme: dark) {
+      .bg{fill:#0e1623}
+      .card{fill:#172234;stroke:#33445f}
+      .ink{fill:#e9eef7}
+      .mute{fill:#a9b6cc}
+      .boxn{fill:#0e1623;stroke:#a9b6cc}
+      .boxa{fill:#1e3558;stroke:#7db2ff}
+      .boxw{fill:#4a2f16;stroke:#ffb070}
+      .boxok{fill:#173e2c;stroke:#6fdca5}
+      .tA{fill:#7db2ff}
+      .tW{fill:#ffb070}
+      .tO{fill:#6fdca5}
+      .badge{fill:#7db2ff}
+      .bn{fill:#0e1623}
+      .dot{fill:#a9b6cc}
+      .ln{stroke:#a9b6cc}
+      .ah{fill:#a9b6cc}
+      .lnr{stroke:#7db2ff}
+      .ahr{fill:#7db2ff}
+      .lno{stroke:#6fdca5}
+      .aho{fill:#6fdca5}
+    }
+  </style>
+
+  <rect class="bg" width="1040" height="1100"/>
+  <text class="ink h1" x="30" y="50">How one benchmark run works</text>
+  <text class="mute b" x="30" y="78">Six stages: left to right, then down.</text>
+
+  <!-- 1 Inputs -->
+  <g transform="translate(30,100)">
+    <rect class="card" width="300" height="290" rx="14"/>
+    <circle class="badge" cx="30" cy="30" r="14"/><text class="bn" x="30" y="36" text-anchor="middle">1</text>
+    <text class="ink h2" x="54" y="38">Inputs</text>
+    <circle class="dot" cx="22" cy="74" r="4"/>
+    <text class="ink b" x="36" y="80">10 fictional insurance claims,</text>
+    <text class="ink b" x="36" y="101">with the expected answer for each</text>
+    <circle class="dot" cx="22" cy="134" r="4"/>
+    <text class="ink b" x="36" y="140">The agent's system prompt, which</text>
+    <text class="ink b" x="36" y="161">includes the policy manual,</text>
+    <text class="ink b" x="36" y="182">and 12 tools. Together about</text>
+    <text class="ink b" x="36" y="203">13K tokens.</text>
+    <circle class="dot" cx="22" cy="236" r="4"/>
+    <text class="ink b" x="36" y="242">The model list and prices</text>
+    <text class="mono ink" x="36" y="264">(models.json)</text>
+  </g>
+
+  <!-- arrow 1 to 2 -->
+  <path class="ln" d="M332,245 L362,245"/><polygon class="ah" points="370,245 360,239 360,251"/>
+
+  <!-- 2 Arms -->
+  <g transform="translate(370,100)">
+    <rect class="card" width="300" height="290" rx="14"/>
+    <circle class="badge" cx="30" cy="30" r="14"/><text class="bn" x="30" y="36" text-anchor="middle">2</text>
+    <text class="ink h2" x="54" y="38">Arms</text>
+    <text class="ink b" x="18" y="78">A list of model-and-setting</text>
+    <text class="ink b" x="18" y="99">combinations, for example:</text>
+    <rect class="boxa" x="18" y="112" width="264" height="34" rx="8"/>
+    <text class="ink b" x="30" y="134">Opus high no cache</text>
+    <rect class="boxa" x="18" y="154" width="264" height="56" rx="8"/>
+    <text class="ink b" x="30" y="187">Sonnet medium cache</text>
+    <text class="ink b" x="18" y="242">Run 1 runs them one after</text>
+    <text class="ink b" x="18" y="263">another, with the order rotated</text>
+    <text class="ink b" x="18" y="284">between trials.</text>
+  </g>
+
+  <!-- arrow 2 to 3 -->
+  <path class="ln" d="M672,245 L702,245"/><polygon class="ah" points="710,245 700,239 700,251"/>
+
+  <!-- 3 Trial -->
+  <g transform="translate(710,100)">
+    <rect class="card" width="300" height="290" rx="14"/>
+    <circle class="badge" cx="30" cy="30" r="14"/><text class="bn" x="30" y="36" text-anchor="middle">3</text>
+    <text class="ink h2" x="54" y="38">Trial</text>
+    <text class="ink b" x="18" y="78">A trial starts with a fresh nonce</text>
+    <text class="ink b" x="18" y="99">at the top of the system prompt:</text>
+    <rect class="boxw" x="18" y="112" width="264" height="34" rx="8"/>
+    <text class="mono tW" x="30" y="134" font-weight="700">[trial &lt;time&gt;]</text>
+    <text class="ink b" x="18" y="177">so no cache from an earlier</text>
+    <text class="ink b" x="18" y="198">trial can be hit.</text>
+    <text class="ink b" x="18" y="242">Each arm runs the 10 claims.</text>
+  </g>
+
+  <!-- arrow 3 down to 4 -->
+  <path class="ln" d="M860,392 L860,412"/><polygon class="ah" points="860,420 854,410 866,410"/>
+
+  <!-- 4 Claim loop -->
+  <g transform="translate(30,420)">
+    <rect class="card" width="980" height="300" rx="14"/>
+    <circle class="badge" cx="30" cy="30" r="14"/><text class="bn" x="30" y="36" text-anchor="middle">4</text>
+    <text class="ink h2" x="54" y="38">Claim loop, for one claim</text>
+
+    <!-- steps -->
+    <rect class="boxa" x="20" y="100" width="164" height="84" rx="10"/>
+    <text class="ink b" x="102" y="138" text-anchor="middle">Build the</text>
+    <text class="ink b" x="102" y="158" text-anchor="middle">request</text>
+
+    <rect class="boxa" x="214" y="100" width="164" height="84" rx="10"/>
+    <text class="ink b" x="296" y="128" text-anchor="middle">Send it</text>
+    <text class="ink b" x="296" y="148" text-anchor="middle">(streamed in</text>
+    <text class="ink b" x="296" y="168" text-anchor="middle">run 1)</text>
+
+    <rect class="boxa" x="408" y="100" width="164" height="84" rx="10"/>
+    <text class="ink b" x="490" y="138" text-anchor="middle">Receive</text>
+    <text class="ink b" x="490" y="158" text-anchor="middle">tool calls</text>
+
+    <rect class="boxa" x="602" y="100" width="164" height="84" rx="10"/>
+    <text class="ink b" x="684" y="128" text-anchor="middle">Run each tool</text>
+    <text class="ink b" x="684" y="148" text-anchor="middle">locally on the</text>
+    <text class="ink b" x="684" y="168" text-anchor="middle">fictional data</text>
+
+    <rect class="boxa" x="796" y="100" width="164" height="84" rx="10"/>
+    <text class="ink b" x="878" y="138" text-anchor="middle">Append the</text>
+    <text class="ink b" x="878" y="158" text-anchor="middle">result</text>
+
+    <!-- arrows between steps -->
+    <path class="ln" d="M186,142 L206,142"/><polygon class="ah" points="214,142 204,136 204,148"/>
+    <path class="ln" d="M380,142 L400,142"/><polygon class="ah" points="408,142 398,136 398,148"/>
+    <path class="ln" d="M574,142 L594,142"/><polygon class="ah" points="602,142 592,136 592,148"/>
+    <path class="ln" d="M768,142 L788,142"/><polygon class="ah" points="796,142 786,136 786,148"/>
+
+    <!-- return path -->
+    <path class="lnr" d="M878,98 L878,76 L102,76 L102,92"/><polygon class="ahr" points="102,100 96,90 108,90"/>
+    <text class="tA s" x="490" y="68" text-anchor="middle" font-weight="700">repeat, at most 6 turns</text>
+
+    <!-- exit -->
+    <path class="lno" d="M490,186 L490,212"/><polygon class="aho" points="490,220 484,210 496,210"/>
+    <rect class="boxok" x="20" y="220" width="940" height="60" rx="10"/>
+    <text class="ink b" x="490" y="246" text-anchor="middle">The loop ends at the first terminal tool: approve, deny, route to supervisor,</text>
+    <text class="ink b" x="490" y="267" text-anchor="middle">or refer to the special investigation unit. It also ends at a reply with no tool call, or after turn 6.</text>
+  </g>
+
+  <!-- arrow 4 down to 5 -->
+  <path class="ln" d="M260,722 L260,742"/><polygon class="ah" points="260,750 254,740 266,740"/>
+
+  <!-- 5 Per request record -->
+  <g transform="translate(30,750)">
+    <rect class="card" width="460" height="298" rx="14"/>
+    <circle class="badge" cx="30" cy="30" r="14"/><text class="bn" x="30" y="36" text-anchor="middle">5</text>
+    <text class="ink h2" x="54" y="38">Per request record</text>
+    <circle class="dot" cx="22" cy="74" r="4"/>
+    <text class="ink b" x="36" y="80">Usage tokens: input, cache write,</text>
+    <text class="ink b" x="36" y="101">cache read and output</text>
+    <circle class="dot" cx="22" cy="130" r="4"/>
+    <text class="ink b" x="36" y="136">Cost</text>
+    <circle class="dot" cx="22" cy="165" r="4"/>
+    <text class="ink b" x="36" y="171">In run 1, also timing: time to first event,</text>
+    <text class="ink b" x="36" y="192">first content, first text, and wall time</text>
+    <rect class="boxw" x="18" y="212" width="424" height="72" rx="10"/>
+    <text class="tW b" x="32" y="238" font-weight="700">Spend guard</text>
+    <text class="ink b" x="32" y="259">Runs before every request. Stops the run if</text>
+    <text class="ink b" x="32" y="278">the worst case would pass the ceiling.</text>
+  </g>
+
+  <!-- arrow 5 to 6 -->
+  <path class="ln" d="M492,900 L542,900"/><polygon class="ah" points="550,900 540,894 540,906"/>
+
+  <!-- 6 Score and report -->
+  <g transform="translate(550,750)">
+    <rect class="card" width="460" height="298" rx="14"/>
+    <circle class="badge" cx="30" cy="30" r="14"/><text class="bn" x="30" y="36" text-anchor="middle">6</text>
+    <text class="ink h2" x="54" y="38">Score and report</text>
+    <circle class="dot" cx="22" cy="74" r="4"/>
+    <text class="ink b" x="36" y="80">The verdict is compared with the expected</text>
+    <text class="ink b" x="36" y="101">answer, giving a pass count over the 10 claims</text>
+    <circle class="dot" cx="22" cy="130" r="4"/>
+    <text class="ink b" x="36" y="136">Per-trial results are written to JSON lines</text>
+    <circle class="dot" cx="22" cy="165" r="4"/>
+    <text class="ink b" x="36" y="171">The table builder writes one results table</text>
+    <text class="ink b" x="36" y="192">(cost, pass counts and timing) and four charts</text>
+  </g>
+
+  <text class="mute s" x="30" y="1080">Drawn from model_benchmark.py, version 2 of the benchmark.</text>
+</svg>
