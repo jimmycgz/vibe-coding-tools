@@ -28,4 +28,4 @@ Longest wait between a cold request ending and its warm request starting: 0.0 s 
 
 Requests that failed their state check (left out of the medians): 0 of 30.
 
-Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. 13k = the benchmark's system prompt and tools, about 13,000 tokens; long = the same plus the claims ledger. no cache = none; cold = first request with a cache breakpoint, writes; warm = a different question after the same prefix, reads.
+Models: Sonnet 5.5, the latest versions. long = the benchmark's system prompt and tools plus the claims ledger. no cache = none; cold = first request with a cache breakpoint, writes; warm = a different question after the same prefix, reads.

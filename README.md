@@ -17,7 +17,7 @@ vibe-coding-tools/
 │   ├── vibe-deck/             # Automated PPTX & slide generation
 │   └── anthropic-skills/      # Anthropics submodule library
 ├── ai-benchmark-v2/           # Model benchmark: cost and timing, with the prompt cache (Oct 2026)
-└── ai-benchmark/              # AI code & reasoning benchmarks (legacy, Oct 2025)
+└── ai-benchmark/              # AI code & reasoning benchmarks (legacy, Oct 2025 to Jul 2026)
 ```
 
 ## Tested Frontier Models
@@ -83,13 +83,20 @@ A fine-tuned optimized benchmark for model cost and timing, tested October 2026 
 
 - Agent task, 10 claims, 2 trials per setting, every setting 10 of 10: the automatic prompt cache about halves cost per task on all three models; effort level moves cost 5 to 8 percent. Time per claim: Sonnet 8.0 to 8.8 s, Opus 8.8 to 11.9 s, Fable 13.0 to 19.2 s.
 - Cache timing, Sonnet 5.5, 148,000-token prompt, 10 paired sets: a warm cache read cost 9.2 times less than no cache. Median time to first token was about 8 percent lower warm (3.31 s against 3.61 s), but warm was faster in 7 of 10 pairs, short of the 8 set before the run, so a time saving is not established. Output speed did not change with the cache.
-- Switching model writes a new cache. In a small separate check (10 requests), changing effort on Sonnet 5.5 kept the cache on the system prompt.
+- Switching model writes a new cache. In a small separate check (10 requests, records not published), changing effort on Sonnet 5.5 kept the cache on the system prompt.
 
 **Strategy:** Sonnet is the worked example, to keep cost and time down. The cache timing script can run Opus and Fable (`--only`) and either prompt size (`--prefixes`); the Opus and Fable runs have not been done.
 
-See [ai-benchmark-v2/README.md](./ai-benchmark-v2/README.md) for the method, the data and the charts.
+**v1 and v2:**
 
-## [AI Benchmark (legacy, October 2025)](./ai-benchmark)
+- v1 ([ai-benchmark](./ai-benchmark)): one generation prompt per request on Vertex AI. It measured time to first token, output tokens per second, time per task and cost per task. It had no quality scoring, no tools and no cache.
+- v2: a labelled eval set, so every run reports a pass rate as well as cost and time. A tool-using agent loop. Prompt cache and effort measured side by side, with a cost breakdown. A cache timing test with the usage block as proof. Plans committed before each paid run, and charts by default.
+
+Built on Anthropic's [cost-optimisation cookbook notebook](https://github.com/anthropics/claude-cookbooks/blob/main/cost_optimization/cost_optimization.ipynb) (MIT licence; copied at the [pinned commit](https://github.com/anthropics/claude-cookbooks/blob/a162e0184e71b60290808a43961a6cbc8060123c/cost_optimization/cost_optimization.ipynb)).
+
+See [ai-benchmark-v2/README.md](./ai-benchmark-v2/README.md) for the features, the achievements, the method, the data and the charts.
+
+## [AI Benchmark (legacy, runs from October 2025 to July 2026)](./ai-benchmark)
 Performance and cost comparison of Claude models on Vertex AI *(Tests conducted October 2025)*.
 
 **Key Findings (Oct 2025):**

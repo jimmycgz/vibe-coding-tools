@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Cache timing test: is there a real time saving from the prompt cache?
 
+Built on the data of Anthropic's cost-optimisation cookbook notebook (MIT licence): https://github.com/anthropics/claude-cookbooks/blob/a162e0184e71b60290808a43961a6cbc8060123c/cost_optimization/cost_optimization.ipynb
+
 Single requests, not the agent loop, so that time to first token measures reading the prompt and not the model thinking or
 calling tools. For each model and each prefix size, three states, each with a DIFFERENT question after the same long shared
 prefix (a different claim), in a rotated order, one request at a time:
@@ -18,7 +20,8 @@ usage:
   cache_timing.py --selftest | --selftest-fault
   cache_timing.py --dry-run                      prints the schedule and the request shapes; no network, no key
   cache_timing.py --estimate                     upper-bound cost arithmetic; no network
-  cache_timing.py --live --ceiling-usd X --out DIR [--smoke] [--reps N] [--thinking disabled|omit] [--tool-choice none|omit]
+  cache_timing.py --live --ceiling-usd X --out DIR [--smoke] [--reps N] [--only opus,sonnet,fable]
+                         [--prefixes long|13k|both] [--thinking between_tools|disabled|omit] [--tool-choice none|omit]
   cache_timing.py --report DIR [--measure cost|timing|both]   builds the table and charts from DIR/requests.jsonl
                                                  (default both; cost is always recorded in the records)
 """
@@ -44,14 +47,24 @@ PREFIXES = ["long"]            # the active prefixes; --prefixes long|13k|both s
 STATES = ["none", "cold", "warm"]
 STATE_LABEL = {"none": "no cache", "cold": "cold cache (writes)", "warm": "warm cache (reads)"}
 STATE_COLOR = {"none": "#8c97a3", "cold": "#e0a030", "warm": "#3b8f6b"}
-CHART_NOTE = ("Latest models: Opus 5.5, Sonnet 5.5, Fable 5.1. 13k = ~13,000-token prefix; long = plus the claims ledger. "
-              "Cold writes; warm reads.")
+MODEL_NAME = {"opus": "Opus 5.5", "sonnet": "Sonnet 5.5", "fable": "Fable 5.1"}
+PREFIX_NOTE = {"13k": "13k = the benchmark's system prompt and tools, about 13,000 tokens",
+               "long": "long = the benchmark's system prompt and tools plus the claims ledger"}
+
+
+def note_for(cs, chart=False):
+    """The note under a table or chart: only the models and prefix sizes that are in the results."""
+    models = [MODEL_NAME[r] for r in MODEL_NAME if any(k[0] == r for k in cs)]
+    prefixes = [PREFIX_NOTE[p] for p in PREFIX_NOTE if any(k[1] == p for k in cs)]
+    head = ("Models: %s, the latest versions. " if not chart else "Latest models: %s. ") % ", ".join(models)
+    if chart:
+        body = "; ".join(prefixes)
+        return head + body[0].upper() + body[1:] + ". Cold writes; warm reads."
+    return (head + "; ".join(prefixes) + ". no cache = none; cold = first request with a cache breakpoint, writes; "
+            "warm = a different question after the same prefix, reads.")
+
+
 QUESTION = ("Claim {id}: {summary}\n\nIn about 100 words, say what you would decide and why. Do not call a tool.")
-NOTE = ("Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. 13k = the benchmark's system prompt and tools, about 13,000 "
-        "tokens; long = the same plus the claims ledger. no cache = none; cold = first request with a cache breakpoint, writes; "
-        "warm = a different question after the same prefix, reads.")
-
-
 # ------------------------------------------------------------------ schedule
 def rotated(items, k):
     k %= len(items)
@@ -379,7 +392,7 @@ def report(folder, out, measure="both"):
     failed = [r for c in cs.values() for r in c["failed"]]
     fl = ["", "Requests that failed their state check (left out of the medians): %d of %d." % (len(failed), len(rows))]
     fl += ["- %s %s rep %d %s: %s" % (names[r["role"]], r["prefix"], r["rep"], r["state"], r["why"]) for r in failed[:30]]
-    text = "\n".join(lines + diffs + fl) + "\n\n" + NOTE + "\n"
+    text = "\n".join(lines + diffs + fl) + "\n\n" + note_for(cs) + "\n"
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, "cache-timing-table.md"), "w", encoding="utf-8").write(text)
     if time_on:
@@ -416,7 +429,7 @@ def states_chart(cs, key, title, xlabel, nd):
             body.append('<rect x="%d" y="%d" width="%.1f" height="14" rx="2" fill="%s"/>' % (brt.LEFT, yy, X(v) - brt.LEFT, STATE_COLOR[state]))
             body.append('<text x="%.1f" y="%d" font-size="11" font-weight="600">%.*f</text>' % (X(v) + 5, yy + 11, nd, v))
     saved = brt.NOTE
-    brt.NOTE = CHART_NOTE
+    brt.NOTE = note_for(cs, chart=True)
     try:
         return brt.frame(title, "10 repetitions per cell, one request at a time, a different question in each state.", bottom + 70, "\n".join(body) + "\n", legend)
     finally:

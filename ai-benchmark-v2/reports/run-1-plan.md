@@ -1,8 +1,6 @@
 # Run 1 plan (committed before the run, when it was called run 2)
 
-Status: **run on 2026-10-22; the results are in [run-1-results.md](run-1-results.md).** Run as "run 2" on 2026-10-22 and renamed run 1 when the earlier partial run was dropped. This file was committed before any request of this run was made, so the git history shows the plan came first. The text below is as committed, with two kinds of change: arm labels shortened to the ones in [arms.json](../arms.json), and file names and links updated. In the text below, "run 1" means the earlier run that was dropped and "run 2" means this run.
-
-In the text below, "run 2" is this run and "run 1" is the earlier partial run, since dropped; nothing else was changed.
+Status: **run on 2026-10-22; the results are in [run-1-results.md](run-1-results.md).** The plan was run as "run 2" and renamed run 1 when an earlier partial run was dropped. It was committed as `be7b117` at 2026-10-22 19:38:13 EDT, and the first request of the run was made at 20:25:54 EDT, so the plan came first. That commit is in the commit list of pull request #1 (the squash merge on main does not keep it, so the time is given here). The text below is as committed, with two kinds of change: arm labels shortened to the ones in [arms.json](../arms.json), and file names and links updated. In the text below, "run 2" is this run and "run 1" is the earlier partial run, since dropped. Two things in the text were not carried out as written, because that earlier run was dropped: the pooling of its trials with this run's (each arm has 2 trials, not 4), and separate columns for the two runs.
 
 Navigation: [index](../README.md) · [run 1 results](run-1-results.md) · [method](method.md) · [how caching is switched](how-caching-is-switched.md)
 

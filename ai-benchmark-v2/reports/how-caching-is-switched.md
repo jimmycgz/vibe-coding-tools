@@ -18,22 +18,22 @@ The explicit-breakpoint arm sends both fields. It is the auto-cache arm with one
 
 ## The lines that do it
 
-All in `loop_body` (line 361 of `model_benchmark.py`):
+All in the function `loop_body` of `model_benchmark.py`. Line numbers are left out on purpose, because they move whenever the file is edited:
 
 ```python
-system = f"[trial {nonce}]\n\n" + base                                              # line 370
-if cfg.get("cache_system"):                                                         # line 371
-    system = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]   # line 372
+system = f"[trial {nonce}]\n\n" + base
+if cfg.get("cache_system"):
+    system = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
 ...
-if cfg.get("cache"):                                                                # line 379
-    body["cache_control"] = {"type": "ephemeral"}                                   # line 380
+if cfg.get("cache"):
+    body["cache_control"] = {"type": "ephemeral"}
 ```
 
-Each arm is one entry in the `CONFIGS` list with those two settings. The script never sends a `ttl`, so the cache lifetime is the default 5 minutes. The one-shot Batch API body (`batch_body`, lines 413 to 418) puts a `cache_control` on the system block and none on the request; that arm was not run.
+Each arm is one entry in the `CONFIGS` list with those two settings. The script never sends a `ttl`, so the cache lifetime is the default 5 minutes. The one-shot Batch API body (the function `batch_body`) puts a `cache_control` on the system block and none on the request; that arm was not run.
 
 ## The nonce
 
-`[trial <time>]` is the first line of the system prompt. It is created once per arm and trial, in `live()` (line 806, `nonce = time.time_ns()`), and passed to every request of that trial. So:
+`[trial <time>]` is the first line of the system prompt. It is created once per arm and trial, in the function `live()` (`nonce = time.time_ns()`), and passed to every request of that trial. So:
 
 - A new trial gets a new nonce, so no cache from an earlier trial can be hit.
 - **All 10 claims of one trial share the same nonce**, so the system prompt and tools are byte-identical from one claim to the next. The nonce does not reset the cache between claims.
@@ -80,19 +80,19 @@ Arm: Sonnet medium cache + breakpoint (not run). The `system` field becomes a li
  "output_config": {"effort": "medium"}, "cache_control": {"type": "ephemeral"}}
 ```
 
-No usage is recorded for this case. From the code: the system prompt and tools become a prefix with a breakpoint of their own, and the nonce is the same for all claims of a trial, so the prefix is byte-identical from claim to claim. The first turn of claims 2 to 10 should therefore read it from the cache instead of writing it again. That is expected from the code and the API documentation as I understand it; it is not measured here.
+No usage is recorded for this case. From the code: the system prompt and tools become a prefix with a breakpoint of their own, and the nonce is the same for all claims of a trial, so the prefix is byte-identical from claim to claim. The first turn of claims 2 to 10 should therefore read it from the cache instead of writing it again. That is expected from the code and the [API documentation](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) as I understand it; it is not measured here.
 
 Why it matters: in the cached arms the cache write is the largest part of the cost (66 to 77 percent, see the [cost breakdown chart](cost-breakdown.svg)), because every claim's first turn writes the whole prefix again. Carrying the prefix across claims would turn most of those writes into reads, which are a tenth of the price. The arm is the way to measure that.
 
 ## What the cost formula does with these fields
 
-`usage_cost()` prices a request from its `usage` block: cache writes at 1.25 times the input price for the 5-minute lifetime (2 times for 1 hour, which the script does not request), cache reads at 0.10 times, uncached input at 1 times, output at the output price. Those are the notebook's multipliers. `list_cost` uses each model's own cache-read rate instead, from [models.json](../models.json): 0.05 times on Opus 5.5 and 0.025 times on Fable 5.1.
+`usage_cost()` prices a request from its `usage` block: cache writes at 1.25 times the input price for the 5-minute lifetime (2 times for 1 hour, which the script does not request), cache reads at 0.10 times, uncached input at 1 times, output at the output price. Those are the multipliers of Anthropic's [cookbook notebook](https://github.com/anthropics/claude-cookbooks/blob/a162e0184e71b60290808a43961a6cbc8060123c/cost_optimization/cost_optimization.ipynb). `list_cost` uses each model's own cache-read rate instead, from [models.json](../models.json): 0.05 times on Opus 5.5 and 0.025 times on Fable 5.1.
 
 ## What I have and have not checked
 
-- Checked in the script: the three cases above and the line numbers; the nonce is created once per arm and trial.
+- Checked in the script: the three cases above, by reading the functions named; the nonce is created once per arm and trial. The line numbers this report gave at first drifted when the file was edited, which is why it now names functions.
 - Checked in the records: the three no-cache arms (Opus, Sonnet and Fable at high effort) show write 0 and read 0 on all 197 of their requests. In the nine cached arms, the first turn of every claim in both trials (180 requests) wrote between 13,071 and 13,090 tokens and read 0.
-- Not measured: case 3, the explicit breakpoint. No record exists.
+- Not measured here: case 3, the explicit breakpoint. No published record exists.
 - Not tested: why the auto-cache arms do not read across claims. I infer it from the records and from the API documentation as I understand it: the automatic breakpoint sits at the end of the request, and the first user message differs from claim to claim, so no earlier entry is a prefix of the next claim's request. I have not tested the cache's lookback behaviour directly.
 
 To see the three request shapes without a key: `python3 model_benchmark.py --dry-run --configs opus-high-nocache,sonnet-medium-cache,sonnet-medium-breakpoint --claims CLM-001 --dump bodies.jsonl`.
