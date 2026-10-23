@@ -37,7 +37,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARMS = json.load(open(os.path.join(HERE, "arms.json"), encoding="utf-8"))["arms"]
 PRICES = json.load(open(os.path.join(HERE, "models.json"), encoding="utf-8"))["prices"]
-NOTE = ("Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. "
+NOTE = ("Models: Opus 5.5, Sonnet 5.5, Fable 5.1 (latest on 2026-10-22). high, medium, low = effort level. "
         "cache = automatic prompt cache; no cache = none.")
 COST_LABEL = "Cost per task (US$, notebook formula)"     # the axis label; charts_for sets it from the rows
 FIRST_TURN_LABEL = "first turn of a claim (a cache write for cached arms)"
@@ -289,20 +289,28 @@ def selftest(inject_fault=False):
           (all(n in svg_c for n in ("Opus 5.5", "Sonnet 5.5", "Gemini 3.8 Flash")), "7, 8" in svg_c, svg_c.count('stroke-dasharray="5 3"')), (True, True, 2))
     check("consolidated chart: a dot per trial on the time chart only (18 bars' dots and one legend dot)", (svg_c.count("<circle"), svg_t.count("<circle")), (0, 19))
     fl = findings(groups)
+    check("cross-family caveat is on the page under both charts", consolidated_page(cons, groups, "t", ["a"]).count(CROSS_FAMILY), 2)
     check("findings: cost, time and quality lines are computed from the rows",
           ("+11% for Opus 5.5 (0.0900 to 0.1000)" in fl["cost"], "from 10.0 s to 28.0 s for Gemini 3.8 Flash" in fl["time"],
            "Gemini 3.8 Flash at low passed 7 of 10 in trial 1 and 8 of 10 in trial 2" in fl["quality"]), (True, True, True))
-    check("findings: the headline names the Gemini change and each Claude model's", ("a factor of 2.8" in fl["head"], "Opus 5.5's cost by +11%" in fl["head"], "Sonnet 5.5's cost by +0%" in fl["head"]), (True, True, True))
-    real = [os.path.join(HERE, "results", d) for d in ("run1", "gemini-flash-loop")]
-    if all(os.path.isdir(d) for d in real):
-        page, files = consolidated(real)
-        check("consolidated, from the published records: nine bars' worth of three models, each note sentence once, a finding line above each chart",
-              (len(effort_groups([r for d in real for r in collect(d)])), files["results-table.md"].count("Gemini arms:"), page.count("\n**"), sorted(files)),
-              (3, 1, 4, ["effort-cost.svg", "effort-time.svg", "results-table.md"]))
-    sp = spread(groups)
-    check("spread: the largest gap between two trials, from the per-trial values (cost 6%; time 2 s over 7 s is 29%)", (round(sp[0], 1), round(sp[1])), (6.0, 29))
-    check("spread line: names the largest gaps and compares each model's change with them",
-          ("up to 6.0% in cost per task and 29% in median time per claim" in spread_line(groups), "Gemini 3.8 Flash's +50%" in spread_line(groups)), (True, True))
+    check("headline, Claude changes larger than the spread: the numbers, then Gemini's pass bar, cost and time",
+          fl["head"], "Effort moves Claude's cost by +0% to +11%. On Gemini 3.8 Flash the effect is large: low fails the 10-of-10 bar (7 and 8 of 10), and high costs 50% more than low and takes 2.8 times as long per claim.")
+    flat = [dict(r, cost=0.093) if r["label"] == "Opus high cache" else r for r in cons]
+    check("headline, Claude changes about the size of the spread: 'barely moves', with the range",
+          findings(effort_groups(flat))["head"].startswith("Effort barely moves Claude's cost (+0% to +3%, about the size of the run-to-run spread). On Gemini 3.8 Flash "), True)
+    check("headline, no Gemini arm fails: no pass-bar clause, only cost and time",
+          findings(effort_groups([dict(r, passes="10/10, 10/10") for r in cons]))["head"].split("On Gemini 3.8 Flash ")[1],
+          "the effect is large: high costs 50% more than low and takes 2.8 times as long per claim.")
+    for top in (0.111, 0.0319, 32.7, 5.5, 0.0009, 410.0):
+        step, vmax, ticks = axis_ticks(top / 1.14)
+        if not all(float(label) == round(v, 6) for v, label in ticks) or len({label for _, label in ticks}) != len(ticks) or vmax < top / 1.14 * 1.14 - 1e-9:
+            check("axis ticks: every label equals its tick value and is distinct, and the axis reaches the tallest bar (failed at %s)" % top, False, True)
+            break
+    else:
+        check("axis ticks: every label equals its tick value, is distinct, and the axis reaches the tallest bar (six ranges)", True, True)
+    check("axis ticks for the cost chart's range: 0.00 to 0.12 in steps of 0.02, not 0.025", [label for _, label in axis_ticks(0.0972)[2]],
+          ["0.00", "0.02", "0.04", "0.06", "0.08", "0.10", "0.12"])
+    check("axis ticks for the time chart's range: 0 to 35 in steps of 5", [label for _, label in axis_ticks(28.7)[2]], ["0", "5", "10", "15", "20", "25", "30", "35"])
     check("findings: every arm at 10 of 10 says so", findings(effort_groups([dict(r, passes="10/10, 10/10") for r in cons]))["quality"], "Every arm passed 10 of 10 in both trials.")
     if inject_fault:
         check("injected fault (must FAIL)", 1, 2)
@@ -491,6 +499,30 @@ def _passed(row):
     return [int(p.split("/")[0]) for p in row["passes"].split(", ")]
 
 
+def nice_step_125(raw):
+    """The smallest step of 1, 2, 5 or 10 times a power of ten that is at least raw (no 2.5, which a two-decimal label would round)."""
+    mag = 10 ** math.floor(math.log10(raw))
+    for m in (1, 2, 5, 10):
+        if m * mag >= raw:
+            return m * mag
+    return 10 * mag
+
+
+def tick_text(v, step):
+    """A tick's label with as many decimals as the step needs (0.02 gives two, 0.005 three), so no label is rounded."""
+    d = 0 if step >= 1 else max(1, -math.floor(math.log10(step) + 1e-9))
+    return "%.*f" % (d, v)
+
+
+def axis_ticks(top_value):
+    """(step, axis maximum, [(value, label)]) for bars up to top_value, with a little room above the tallest."""
+    raw = top_value * 1.14
+    step = nice_step_125(raw / 7.0)
+    vmax = step * math.ceil(raw / step - 1e-9)
+    n = int(round(vmax / step))
+    return step, vmax, [(i * step, tick_text(i * step, step)) for i in range(n + 1)]
+
+
 def effort_chart(groups, title, subtitle, value, text, axis_label, dots=None):
     """Grouped bars, one group per model and one bar per level, in an EW-wide frame with no text under 14 px. value(row) is the bar
     height, text(v) its label; dots(row) lists one value per trial to mark on the bar. A bar whose arm passed fewer than 10 of 10
@@ -498,19 +530,16 @@ def effort_chart(groups, title, subtitle, value, text, axis_label, dots=None):
     left, right, top, plot_h = 54, 10, 138, 212
     bar_w, gap, group_gap = 54, 6, 24
     bottom = top + plot_h
-    vmax = nice_max(max([value(r) for _, _, bars in groups for _, r in bars] + [v for _, _, bars in groups for _, r in bars
-                                                                              for v in (dots(r) if dots else [])]) * 1.14)
-    step = nice_step(vmax / 5.0)
+    step, vmax, ticks = axis_ticks(max([value(r) for _, _, bars in groups for _, r in bars] + [v for _, _, bars in groups for _, r in bars
+                                         for v in (dots(r) if dots else [])]))
     group_w = 3 * bar_w + 2 * gap
     x0 = left + (EW - left - right - (len(groups) * group_w + (len(groups) - 1) * group_gap)) / 2.0
     Y = lambda v: bottom - plot_h * v / vmax
     f = 'font-size="14"'
     out = []
-    v = 0.0
-    while v <= vmax + 1e-9:
+    for v, label in ticks:
         out.append('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="#dcd8cf" stroke-width="1"/>' % (left, Y(v), EW - right, Y(v)))
-        out.append('<text x="%d" y="%.1f" %s text-anchor="end" fill="#5a6472">%s</text>' % (left - 6, Y(v) + 5, f, tick_label(v, step)))
-        v += step
+        out.append('<text x="%d" y="%.1f" %s text-anchor="end" fill="#5a6472">%s</text>' % (left - 6, Y(v) + 5, f, label))
     out.append('<text x="%d" y="%d" %s fill="#5a6472">%s</text>' % (left, top - 14, f, esc(axis_label)))
     for gi, (name, family, bars) in enumerate(groups):
         gx = x0 + gi * (group_w + group_gap)
@@ -557,10 +586,17 @@ def _join(items):
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
+def _more_less(pct):
+    return "%d%% %s" % (abs(round(pct)), "more" if pct >= 0 else "less")
+
+
 def findings(groups):
     """The finding lines of the consolidated page, computed from the rows so the numbers cannot drift from the records."""
     def at(g, lv):
         return dict(g[2])[lv]
+
+    def pct(g):
+        return 100.0 * (at(g, "high")["cost"] - at(g, "low")["cost"]) / at(g, "low")["cost"]
     cost = _join(["%s for %s (%.4f to %.4f)" % (_pct(at(g, "low")["cost"], at(g, "high")["cost"]), g[0], at(g, "low")["cost"],
                                                  at(g, "high")["cost"]) for g in groups])
     time = _join(["from %.1f s to %.1f s for %s" % (at(g, "low")["claim_wall"], at(g, "high")["claim_wall"], g[0]) for g in groups])
@@ -575,10 +611,19 @@ def findings(groups):
     claude = [g for g in groups if g[1] != "Gemini"]
     head = ""
     if gem and claude:
+        gap = spread(groups)[0]
+        changes = [pct(g) for g in claude]
+        rng = "%+.0f%% to %+.0f%%" % (min(changes), max(changes))
+        if max(abs(c) for c in changes) <= 1.25 * gap:
+            first = "Effort barely moves Claude's cost (%s, about the size of the run-to-run spread)." % rng
+        else:
+            first = "Effort moves Claude's cost by %s." % rng
         ratio = at(gem, "high")["claim_wall"] / at(gem, "low")["claim_wall"]
-        head = ("From low to high, %s's cost per task changes by %s and its time per claim by a factor of %.1f; %s. "
-                % (gem[0], _pct(at(gem, "low")["cost"], at(gem, "high")["cost"]), ratio,
-                   _join(["%s's cost by %s" % (g[0], _pct(at(g, "low")["cost"], at(g, "high")["cost"])) for g in claude])))
+        parts = []
+        if short:
+            parts.append(_join(["%s fails the 10-of-10 bar (%s of 10)" % (lv, " and ".join(str(p) for p in _passed(r))) for _, lv, r in short]))
+        parts.append("high costs %s than low and takes %.1f times as long per claim" % (_more_less(pct(gem)), ratio))
+        head = "%s On %s %s%s." % (first, gem[0], "the effect is large: " if abs(pct(gem)) > 3 * gap else "", ", and ".join(parts))
     return {"head": head, "cost": "From low to high effort, cost per task changes by %s." % cost,
             "time": "From low to high effort, the median time per claim goes %s." % time, "quality": quality}
 
@@ -610,6 +655,9 @@ def spread_line(groups):
     return line + "."
 
 
+CROSS_FAMILY = "Claude and Gemini ran on different APIs on different days, so read across the two families as approximate."
+
+
 def consolidated_page(rows, groups, table_text, folders):
     f = findings(groups)
     return "\n".join([
@@ -617,11 +665,11 @@ def consolidated_page(rows, groups, table_text, folders):
         "",
         "Navigation: [index](../../README.md) · [Claude run 1 results](../run-1-results.md) · [Gemini 3.8 Flash results](../gemini-results.md) · [method](../method.md)",
         "",
-        "**%s%s**" % (f["head"], f["quality"]),
+        "**%s**" % (f["head"] or f["quality"]),
         "",
         "Opus 5.5 and Sonnet 5.5 at low, medium and high effort with the automatic cache, and Gemini 3.8 Flash at low, medium and high thinking, "
         "from the records already published: [results/run1](../../results/run1) and [results/gemini-flash-loop](../../results/gemini-flash-loop). "
-        "Nothing was run again. Fable 5.1 and the arms without a cache are in the full table at the end, not on the charts.",
+        "Nothing was run again. " + f["quality"] + " Fable 5.1 and the arms without a cache are in the full table at the end, not on the charts.",
         "",
         "## Cost per task",
         "",
@@ -631,7 +679,7 @@ def consolidated_page(rows, groups, table_text, folders):
         "",
         "Settings: 10 claims per trial, 2 trials per arm; the bar is the mean of the two trials. Claude cost is by the notebook's formula and "
         "Gemini cost at Vertex list prices (global location), both from each request's usage block. The Claude arms use the automatic prompt cache; "
-        "Gemini's cache is implicit and cannot be switched off. Under each bar: claims passed out of 10 in trial 1 and trial 2.",
+        "Gemini's cache is implicit and cannot be switched off. Under each bar: claims passed out of 10 in trial 1 and trial 2. " + CROSS_FAMILY,
         "",
         "## Time per claim",
         "",
@@ -640,7 +688,7 @@ def consolidated_page(rows, groups, table_text, folders):
         "![Time per claim by effort level](effort-time.svg)",
         "",
         "Settings: the bar is the median, over the claims of both trials, of the seconds from a claim's first request to its verdict; each dot is one "
-        "trial's own median. Every request was streamed.",
+        "trial's own median. Every request was streamed. " + CROSS_FAMILY,
         "",
         "## Run-to-run spread",
         "",

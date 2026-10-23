@@ -2,9 +2,9 @@
 
 Navigation: [index](../../README.md) · [Claude run 1 results](../run-1-results.md) · [Gemini 3.8 Flash results](../gemini-results.md) · [method](../method.md)
 
-**From low to high, Gemini 3.8 Flash's cost per task changes by +50% and its time per claim by a factor of 2.4; Opus 5.5's cost by +7% and Sonnet 5.5's cost by +5%. Every other arm passed 10 of 10 in both trials; Gemini 3.8 Flash at low passed 7 of 10 in trial 1 and 8 of 10 in trial 2.**
+**Effort barely moves Claude's cost (+5% to +7%, about the size of the run-to-run spread). On Gemini 3.8 Flash the effect is large: low fails the 10-of-10 bar (7 and 8 of 10), and high costs 50% more than low and takes 2.4 times as long per claim.**
 
-Opus 5.5 and Sonnet 5.5 at low, medium and high effort with the automatic cache, and Gemini 3.8 Flash at low, medium and high thinking, from the records already published: [results/run1](../../results/run1) and [results/gemini-flash-loop](../../results/gemini-flash-loop). Nothing was run again. Fable 5.1 and the arms without a cache are in the full table at the end, not on the charts.
+Opus 5.5 and Sonnet 5.5 at low, medium and high effort with the automatic cache, and Gemini 3.8 Flash at low, medium and high thinking, from the records already published: [results/run1](../../results/run1) and [results/gemini-flash-loop](../../results/gemini-flash-loop). Nothing was run again. Every other arm passed 10 of 10 in both trials; Gemini 3.8 Flash at low passed 7 of 10 in trial 1 and 8 of 10 in trial 2. Fable 5.1 and the arms without a cache are in the full table at the end, not on the charts.
 
 ## Cost per task
 
@@ -12,7 +12,7 @@ Opus 5.5 and Sonnet 5.5 at low, medium and high effort with the automatic cache,
 
 ![Cost per task by effort level](effort-cost.svg)
 
-Settings: 10 claims per trial, 2 trials per arm; the bar is the mean of the two trials. Claude cost is by the notebook's formula and Gemini cost at Vertex list prices (global location), both from each request's usage block. The Claude arms use the automatic prompt cache; Gemini's cache is implicit and cannot be switched off. Under each bar: claims passed out of 10 in trial 1 and trial 2.
+Settings: 10 claims per trial, 2 trials per arm; the bar is the mean of the two trials. Claude cost is by the notebook's formula and Gemini cost at Vertex list prices (global location), both from each request's usage block. The Claude arms use the automatic prompt cache; Gemini's cache is implicit and cannot be switched off. Under each bar: claims passed out of 10 in trial 1 and trial 2. Claude and Gemini ran on different APIs on different days, so read across the two families as approximate.
 
 ## Time per claim
 
@@ -20,7 +20,7 @@ Settings: 10 claims per trial, 2 trials per arm; the bar is the mean of the two 
 
 ![Time per claim by effort level](effort-time.svg)
 
-Settings: the bar is the median, over the claims of both trials, of the seconds from a claim's first request to its verdict; each dot is one trial's own median. Every request was streamed.
+Settings: the bar is the median, over the claims of both trials, of the seconds from a claim's first request to its verdict; each dot is one trial's own median. Every request was streamed. Claude and Gemini ran on different APIs on different days, so read across the two families as approximate.
 
 ## Run-to-run spread
 
@@ -48,6 +48,6 @@ With two trials per arm the gap between them is the only measure of spread the r
 | Gemini 3.8 Flash medium | 10/10, 10/10 | 0.0261 | 20.04 | 3.44 | 2.88 / 4.47 | 2.88 / 4.47 | n/a / n/a |
 | Gemini 3.8 Flash low | 7/10, 8/10 | 0.0209 | 11.48 | 1.85 | 1.97 / 1.70 | 1.97 / 1.70 | n/a / n/a |
 
-Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none. Gemini arms: high, medium, low = thinking level. The Gemini cache is implicit, on for every project and not switchable by a user, so there is no no-cache arm; the cached share is what the usage block reported. Times are medians over all requests of the arm; wall time per claim runs from a claim's first request to its verdict.
+Models: Opus 5.5, Sonnet 5.5, Fable 5.1 (latest on 2026-10-22). high, medium, low = effort level. cache = automatic prompt cache; no cache = none. Gemini arms: high, medium, low = thinking level. The Gemini cache is implicit, on for every project and not switchable by a user, so there is no no-cache arm; the cached share is what the usage block reported. Times are medians over all requests of the arm; wall time per claim runs from a claim's first request to its verdict.
 
 Built by `python3 build_results_table.py --consolidated results/run1 results/gemini-flash-loop`.
