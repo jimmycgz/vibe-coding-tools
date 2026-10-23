@@ -8,7 +8,7 @@
   {"id": "sonnet-high-nocache", "label": "Sonnet high no cache", "default": true},
   {"id": "sonnet-high-cache", "label": "Sonnet high cache", "default": true},
   {"id": "sonnet-medium-cache", "label": "Sonnet medium cache", "default": true},
-  {"id": "sonnet-medium-breakpoint", "label": "Sonnet medium cache + breakpoint", "default": false},
+  {"id": "sonnet-medium-breakpoint", "label": "Sonnet medium cache + breakpoint", "default": true},
   {"id": "sonnet-low-cache", "label": "Sonnet low cache", "default": true},
   {"id": "fable-high-nocache", "label": "Fable high no cache", "default": true},
   {"id": "fable-high-cache", "label": "Fable high cache", "default": true},
