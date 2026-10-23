@@ -2,6 +2,8 @@
 
 Status: **run on 2026-10-22; the results are in [run-1-results.md](run-1-results.md).** Run as "run 2" on 2026-10-22 and renamed run 1 when the earlier partial run was dropped. This file was committed before any request of this run was made, so the git history shows the plan came first. The text below is as committed, with two kinds of change: arm labels shortened to the ones in [arms.json](../arms.json), and file names and links updated. In the text below, "run 1" means the earlier run that was dropped and "run 2" means this run.
 
+In the text below, "run 2" is this run and "run 1" is the earlier partial run, since dropped; nothing else was changed.
+
 Navigation: [index](../README.md) · [run 1 results](run-1-results.md) · [method](method.md) · [how caching is switched](how-caching-is-switched.md)
 
 ## What run 2 does

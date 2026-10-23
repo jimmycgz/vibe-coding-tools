@@ -239,6 +239,9 @@ def first_event_chart(rows, title, subtitle):
 
 def main():
     argv = sys.argv[1:]
+    if "--help" in argv or "-h" in argv:
+        print(__doc__)
+        return
     out = os.path.join(HERE, "reports")
     if "--out" in argv:
         i = argv.index("--out")
@@ -246,11 +249,12 @@ def main():
         argv = argv[:i] + argv[i + 2:]
     if len(argv) != 1:
         sys.exit(__doc__)
+    if not glob.glob(os.path.join(argv[0], "trials-*.jsonl")):
+        sys.exit("no trials-*.jsonl in %s; nothing written" % argv[0])
     rows = collect(argv[0])
-    os.makedirs(out, exist_ok=True)
+    if not rows:
+        sys.exit("no arm in %s matches arms.json; nothing written" % argv[0])
     text = table(rows)
-    open(os.path.join(out, "results-table.md"), "w", encoding="utf-8").write(text)
-    print(text)
     sub = "10 claims per trial, 2 trials per arm."
     charts = {
         "cost-per-task.svg": bars_chart(rows, "Cost per task", sub),
@@ -258,6 +262,9 @@ def main():
         "time-per-claim.svg": claim_chart(rows, "Time per claim", sub + " Dots mark each trial's own median."),
         "time-to-first-event.svg": first_event_chart(rows, "Time to first event", sub + " First turns and later turns side by side."),
     }
+    os.makedirs(out, exist_ok=True)  # everything is built before anything is written
+    open(os.path.join(out, "results-table.md"), "w", encoding="utf-8").write(text)
+    print(text)
     for name, svg in charts.items():
         open(os.path.join(out, name), "w", encoding="utf-8").write(svg)
     print("wrote results-table.md and %d charts into %s" % (len(charts), out), file=sys.stderr)
