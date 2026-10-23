@@ -60,11 +60,11 @@ After the smoke set's repeat read 0 percent, a set of small probes (each a first
 | identical request | 7.6K, 48K | 53.6, 93.1 percent |
 | follow-up turn | 7.8K, 48K, 171K | 52.1, 92.6, 97.9 percent |
 
-These are single pairs. The explanation (the cache stores whole earlier requests and serves the longest one a new request extends) is a hypothesis. The consequence is a design one: the warm case that can be made to hit is a follow-up turn, which measures a turn that carries the earlier turn, not a new user reading a shared document.
+These are single pairs. The explanation (the cache stores whole earlier requests and serves the longest one a new request extends) is a hypothesis, and it does not explain set 3's fresh-nonce first request, which hit. The consequence is a design one: the warm case that can be made to hit is a follow-up turn, which measures a turn that carries the earlier turn, not a new user reading a shared document.
 
 ## How the assumptions in the code came out
 
-**All eight assumptions made in the code held in the single-claim smoke test and the cache timing smoke set.** They were: the tool result format and the call id echo (accepted over 4 turns), capital letters in the tool schema types (accepted), no quota-project header (not needed), usage arriving in the last streamed chunk (it did on every request), `promptTokenCount` including implicitly cached tokens (`totalTokenCount` was prompt plus candidates plus thoughts on every request, so yes), thinking at LOW with tools in mode NONE (accepted), and the spend guard's thinking allowance of 24,576 tokens (the largest thinking count seen was 1,128).
+**All eight assumptions made in the code held in the single-claim smoke test and the cache timing smoke set.** They were: the tool result format and the call id echo (accepted over 4 turns; whether the API sent an id on every call was not checked), capital letters in the tool schema types (accepted), no quota-project header (not needed), usage arriving in the last streamed chunk (it did on every request), `promptTokenCount` including implicitly cached tokens (on every cache hit `promptTokenCount` stayed at the full prompt size (171,5xx) while `cachedContentTokenCount` was 167,885, so the cached tokens are inside the prompt count; if they were not, the prompt count would have dropped to about 3,700), thinking at LOW with tools in mode NONE (accepted), and the spend guard's thinking allowance of 24,576 tokens (the largest thinking count seen was 1,128).
 
 ## Limits
 

@@ -6,6 +6,8 @@ Navigation: [index](../README.md) · [method](method.md) · [how caching is swit
 
 ## Result
 
+**All 12 arms passed 10 of 10, so only cost and time separate them: caching about halves the cost per task on all three models (Opus 2.0 times, Sonnet 1.9, Fable 2.0), effort moves it 5 to 8 percent, and a claim takes Sonnet 8.0 to 8.8 s, Opus 8.8 to 11.9 s and Fable 13.0 to 19.2 s.**
+
 All 12 arms passed 10 of 10 claims in both trials: 24 of 24 trials, 240 adjudications. **No arm is separated on quality**, so the differences below are cost and time. Ten claims did not separate the arms; the notebook itself says to use about 50 cases and at least 5 trials before a production decision.
 
 - **Caching about halves the cost on all three models.** No cache against cache, both at high effort: Opus $0.1972 to $0.0972 (2.0 times), Sonnet $0.0919 to $0.0487 (1.9 times), Fable $0.5329 to $0.2720 (2.0 times).
@@ -65,6 +67,8 @@ How to read the timing columns:
 Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none.
 
 ## How much to trust the differences
+
+**With two trials per arm, time differences under about 30 percent between close arms cannot be separated, and cost per task differed between trials by up to 10 percent on the no-cache arms and under 6 percent on the cached ones.**
 
 - **Two trials per arm.** For each arm the median claim time differed between its two trials by up to 30 percent (ratio of trial 2 to trial 1 between 0.76 and 1.30), so timing differences smaller than about 30 percent between close arms are not separable here. Fable against Sonnet is far outside that. The effort effect on time is plausible; confirming it needs more trials.
 - **Cost per task between trials** differed by up to 10 percent on the no-cache arms (Opus with no cache $0.2065 and $0.1878) and under 6 percent on the cached ones. The Sonnet cost difference between effort levels is of that size; the Opus and Fable ones are larger.

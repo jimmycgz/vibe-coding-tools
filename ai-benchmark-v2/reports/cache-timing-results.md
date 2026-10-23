@@ -6,6 +6,8 @@ Navigation: [index](../README.md) · [plan](plan-next-runs.md) · [how caching i
 
 ## Result
 
+**On a 148,271-token prefix a warm Sonnet 5.5 request cost 9.2 times less than one with no cache ($0.0325 against $0.2991), but warm was faster in only 7 of 10 pairs, short of the 8 required, so a time saving is not established.**
+
 - **The cache worked as designed, on every request.** All 30 requests passed their state check: cold wrote 148,132 tokens and read none, warm read 148,132 and wrote none, no cache did neither.
 - **Cost: a clear saving.** A warm request cost $0.0325 against $0.2991 with no cache (9.2 times less); a cold request, which writes, cost $0.3731 (25 percent more than no cache).
 - **Time: no saving seen under the rule fixed before the run.** The headline reading is warm against no cache, seen when warm was faster in at least 8 of 10 paired repetitions. Warm was faster in 7 of 10, so it is **not seen**. The median time to first token was 3.31 seconds warm, 3.61 with no cache and 3.72 cold; the median difference of warm against no cache is 0.49 seconds in warm's favour, inside the scatter described below. Cold against no cache (the cost of a write): cold was slower in 6 of 10, also not seen.
@@ -57,6 +59,8 @@ Three charts, from the same records: [time to first token](cache-timing-first-to
 ![Output tokens per second, by cache state](cache-timing-tps.svg)
 
 ## What was run, and what limits it
+
+**The time reading rests on one model, one prefix and ten repetitions with a two-mode scatter (7 of 30 replies in 1.1 to 1.9 s, none of them a cold request), so it cannot separate a small saving from noise.**
 
 - **Script and settings:** `cache_timing.py --live --only sonnet` at commit `ef85e77` (`cache_timing.py` sha256 prefix `a8547d47200ed4df`, `model_benchmark.py` `31269d971ca80ce3`; a later commit changed one comment in `cache_timing.py` that gave the order of the states the wrong way round). Effort low, 256 output tokens at most, tool choice none and thinking set to `between_tools`, which is how Sonnet 5.5 turns thinking off (it rejects `disabled`); no thinking tokens were produced. 28 of the 30 replies ran to the 256-token cap and two ended on their own (241 and 255 tokens), so output length is almost the same across states.
 - **Clock:** started after the connection was open; the connection (DNS, TCP and TLS) took 47 to 51 milliseconds (median per state; 41 to 71 across all 30 requests) and is not in any time. The upload of the prompt (about 268,000 bytes) is inside the clock in all three states.
