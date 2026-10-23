@@ -5,7 +5,7 @@ usage: build_results_table.py RUN1_DIR [RUN2_DIR]
 
 Each directory holds trials-*.jsonl and, for streamed runs, requests-*.jsonl. Raw records keep the ids they were recorded
 with; arms.json maps them to the plain labels used everywhere else. One row per arm: pass counts per trial for each run
-(10 claims per trial), mean cost per task by the notebook's formula over all trials listed, and, when a run streamed,
+(10 claims per trial), the mean cost per task by the notebook's formula for each run on its own, and, when a run streamed,
 the median of each first-token field, for first turns and later turns separately, over that arm's requests, the median wall seconds per request, and the median wall seconds per claim.
 """
 import glob
@@ -50,7 +50,9 @@ def med(xs):
 runs = [load(d) for d in sys.argv[1:]]
 if not runs:
     sys.exit(__doc__)
-head = ["Arm"] + ["Run %d trials" % (i + 1) for i in range(len(runs))] + ["$ per task"]
+head = ["Arm"]
+for i in range(len(runs)):
+    head += ["Run %d trials" % (i + 1), "Run %d $ per task" % (i + 1)]
 streamed = any(r[1] for r in runs)
 if streamed:
     head += ["Wall s per claim (median)", "Wall s per request (median)", "First event s, first turns / later turns (median)",
@@ -62,9 +64,9 @@ for a in ARMS:
         ts = sorted(trials.get(a["id"], []), key=lambda t: t["trial"])
         all_trials += ts
         cells.append(", ".join("%d/%d" % (t["correct"], t["n"]) for t in ts) or "not run")
+        cells.append("%.4f" % statistics.mean(t["per_task_notebook"] for t in ts) if ts else "n/a")
     if not all_trials:
         continue
-    cells.append("%.4f" % statistics.mean(t["per_task_notebook"] for t in all_trials))
     if streamed:
         reqs = [x for _, rq in runs for x in rq.get(a["id"], [])]
         walls = [w for t in all_trials for w in (t.get("claim_wall_s") or {}).values()]
