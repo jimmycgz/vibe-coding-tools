@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 544" width="640" height="544" role="img" aria-label="Cost with and without the prompt cache">
+<title>Cost with and without the prompt cache</title>
+<desc>Cost with and without the prompt cache. Agent task, per task, with the automatic cache: Opus 5.5 $0.1972 with no cache, $0.0972 with the cache; Sonnet 5.5 $0.0919 with no cache, $0.0487 with the cache. One request on a 148K-token prompt, Sonnet 5.5, with an explicit cache breakpoint: $0.2991 with no cache, $0.3731 cold (writes the cache), $0.0325 warm (reads it).</desc>
+<rect width="640" height="544" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="62.0" y="28.0" font-size="20" font-weight="700">Cost with and without the prompt cache</text>
+<text x="62.0" y="50.0" font-size="14" fill="#5a6472">Opus 5.5 and Sonnet 5.5. Call-outs compare with no cache.</text>
+<text x="74.0" y="84.0" font-size="14" font-weight="700">An agent task</text>
+<text x="74.0" y="104.0" font-size="14" fill="#5a6472">10 claims, cost per task</text>
+<text x="74.0" y="124.0" font-size="14" fill="#5a6472">13K to 15K tokens per request</text>
+<text x="74.0" y="144.0" font-size="14" fill="#5a6472">automatic cache, high effort</text>
+<text x="406.0" y="84.0" font-size="14" font-weight="700">One long-prompt request</text>
+<text x="406.0" y="104.0" font-size="14" fill="#5a6472">Sonnet 5.5, cost per request</text>
+<text x="406.0" y="124.0" font-size="14" fill="#5a6472">148K-token prompt</text>
+<text x="406.0" y="144.0" font-size="14" fill="#5a6472">explicit cache breakpoint</text>
+<text x="62.0" y="176.0" font-size="14" fill="#5a6472">US$ (per task on the left, per request on the right)</text>
+<line x1="62" y1="440.0" x2="624" y2="440.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="445.0" font-size="14" text-anchor="end" fill="#5a6472">0.0</text>
+<line x1="62" y1="390.0" x2="624" y2="390.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="395.0" font-size="14" text-anchor="end" fill="#5a6472">0.1</text>
+<line x1="62" y1="340.0" x2="624" y2="340.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="345.0" font-size="14" text-anchor="end" fill="#5a6472">0.2</text>
+<line x1="62" y1="290.0" x2="624" y2="290.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="295.0" font-size="14" text-anchor="end" fill="#5a6472">0.3</text>
+<line x1="62" y1="240.0" x2="624" y2="240.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="245.0" font-size="14" text-anchor="end" fill="#5a6472">0.4</text>
+<line x1="62" y1="190.0" x2="624" y2="190.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="195.0" font-size="14" text-anchor="end" fill="#5a6472">0.5</text>
+<line x1="386.0" y1="186" x2="386.0" y2="504" stroke="#5a6472" stroke-width="1.5" stroke-dasharray="3 4"/>
+<rect x="74.0" y="341.4" width="62" height="98.6" rx="3" fill="#8c97a3"/>
+<text x="105.0" y="333.4" font-size="14" font-weight="700" text-anchor="middle">0.1972</text>
+<text x="105.0" y="460.0" font-size="14" text-anchor="middle">no cache</text>
+<rect x="144.0" y="391.4" width="62" height="48.6" rx="3" fill="#3b6ea5"/>
+<text x="175.0" y="383.4" font-size="14" font-weight="700" text-anchor="middle">0.0972</text>
+<text x="175.0" y="460.0" font-size="14" text-anchor="middle">cache</text>
+<text x="140.0" y="484.0" font-size="15" font-weight="700" text-anchor="middle">Opus 5.5</text>
+<text x="140.0" y="506.0" font-size="14" font-weight="700" text-anchor="middle" fill="#3b6ea5">2.0 times less</text>
+<rect x="234.0" y="394.0" width="62" height="46.0" rx="3" fill="#8c97a3"/>
+<text x="265.0" y="386.0" font-size="14" font-weight="700" text-anchor="middle">0.0919</text>
+<text x="265.0" y="460.0" font-size="14" text-anchor="middle">no cache</text>
+<rect x="304.0" y="415.7" width="62" height="24.3" rx="3" fill="#2f8f6b"/>
+<text x="335.0" y="407.7" font-size="14" font-weight="700" text-anchor="middle">0.0487</text>
+<text x="335.0" y="460.0" font-size="14" text-anchor="middle">cache</text>
+<text x="300.0" y="484.0" font-size="15" font-weight="700" text-anchor="middle">Sonnet 5.5</text>
+<text x="300.0" y="506.0" font-size="14" font-weight="700" text-anchor="middle" fill="#2f8f6b">1.9 times less</text>
+<rect x="406.0" y="290.5" width="62" height="149.5" rx="3" fill="#8c97a3"/>
+<text x="437.0" y="282.5" font-size="14" font-weight="700" text-anchor="middle">0.2991</text>
+<text x="437.0" y="460.0" font-size="14" text-anchor="middle">no cache</text>
+<rect x="476.0" y="253.4" width="62" height="186.6" rx="3" fill="#e0a030"/>
+<text x="507.0" y="245.4" font-size="14" font-weight="700" text-anchor="middle">0.3731</text>
+<text x="507.0" y="460.0" font-size="14" text-anchor="middle">cold</text>
+<rect x="546.0" y="423.8" width="62" height="16.2" rx="3" fill="#2f8f6b"/>
+<text x="577.0" y="415.8" font-size="14" font-weight="700" text-anchor="middle">0.0325</text>
+<text x="577.0" y="460.0" font-size="14" text-anchor="middle">warm</text>
+<text x="507.0" y="484.0" font-size="15" font-weight="700" text-anchor="middle">Sonnet 5.5</text>
+<text x="507.0" y="506.0" font-size="14" font-weight="700" text-anchor="middle" fill="#2f8f6b">warm: 9.2 times less</text>
+<text x="507.0" y="528.0" font-size="14" font-weight="700" text-anchor="middle" fill="#9a6a10">cold: 25% more</text>
+</g>
+</svg>
