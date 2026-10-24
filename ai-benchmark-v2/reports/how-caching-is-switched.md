@@ -92,7 +92,7 @@ Why it matters: in the cached arms the cache write is the largest part of the co
 
 - Checked in the script: the three cases above, by reading the functions named; the nonce is created once per arm and trial. The line numbers this report gave at first drifted when the file was edited, which is why it now names functions.
 - Checked in the records: the three no-cache arms (Opus, Sonnet and Fable at high effort) show write 0 and read 0 on all 197 of their requests. In the nine cached arms, the first turn of every claim in both trials (180 requests) wrote between 13,071 and 13,090 tokens and read 0.
-- Not measured here: case 3, the explicit breakpoint. No published record exists.
+- Not measured here: case 3 as an agent-loop arm (both fields); no published record of it exists. The separate [cache timing test](cache-timing-results.md) measured an explicit breakpoint alone on a 148K-token prefix.
 - Not tested: why the auto-cache arms do not read across claims. I infer it from the records and from the API documentation as I understand it: the automatic breakpoint sits at the end of the request, and the first user message differs from claim to claim, so no earlier entry is a prefix of the next claim's request. I have not tested the cache's lookback behaviour directly.
 
 To see the three request shapes without a key: `python3 model_benchmark.py --dry-run --configs opus-high-nocache,sonnet-medium-cache,sonnet-medium-breakpoint --claims CLM-001 --dump bodies.jsonl`.
