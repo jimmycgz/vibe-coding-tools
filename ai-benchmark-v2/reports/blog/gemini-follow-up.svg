@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 502" width="640" height="502" role="img" aria-label="Gemini 3.8 Flash follow-up turn">
+<title>Gemini 3.8 Flash follow-up turn</title>
+<desc>Gemini 3.8 Flash on a 171K-token prompt, cost per request: first request $0.1292, follow-up turn $0.0161, second first request $0.1294.</desc>
+<rect width="640" height="502" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="62.0" y="28.0" font-size="20" font-weight="700">Gemini 3.8 Flash follow-up turn</text>
+<text x="62.0" y="50.0" font-size="14" fill="#5a6472">A 171K-token prompt, 10 sets of 3 requests.</text>
+<text x="62.0" y="104.0" font-size="14" fill="#5a6472">US$ per request (mean of the valid requests)</text>
+<line x1="62" y1="368.0" x2="624" y2="368.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="373.0" font-size="14" text-anchor="end" fill="#5a6472">0.00</text>
+<line x1="62" y1="284.7" x2="624" y2="284.7" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="289.7" font-size="14" text-anchor="end" fill="#5a6472">0.05</text>
+<line x1="62" y1="201.3" x2="624" y2="201.3" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="206.3" font-size="14" text-anchor="end" fill="#5a6472">0.10</text>
+<line x1="62" y1="118.0" x2="624" y2="118.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="56.0" y="123.0" font-size="14" text-anchor="end" fill="#5a6472">0.15</text>
+<rect x="139.0" y="152.7" width="96" height="215.3" rx="3" fill="#8c97a3"/>
+<text x="187.0" y="144.7" font-size="14" font-weight="700" text-anchor="middle">0.1292</text>
+<text x="187.0" y="388.0" font-size="14" text-anchor="middle">first request</text>
+<text x="187.0" y="432.0" font-size="14" text-anchor="middle" fill="#5a6472">valid: 9 of 10</text>
+<rect x="295.0" y="341.2" width="96" height="26.8" rx="3" fill="#8a4fa0"/>
+<text x="343.0" y="333.2" font-size="14" font-weight="700" text-anchor="middle">0.0161</text>
+<text x="343.0" y="388.0" font-size="14" text-anchor="middle">follow-up turn</text>
+<text x="343.0" y="432.0" font-size="14" text-anchor="middle" fill="#5a6472">hit the cache: 8 of 10</text>
+<rect x="451.0" y="152.4" width="96" height="215.6" rx="3" fill="#8c97a3"/>
+<text x="499.0" y="144.4" font-size="14" font-weight="700" text-anchor="middle">0.1294</text>
+<text x="499.0" y="388.0" font-size="14" text-anchor="middle">second first</text>
+<text x="499.0" y="408.0" font-size="14" text-anchor="middle">request (control)</text>
+<text x="499.0" y="432.0" font-size="14" text-anchor="middle" fill="#5a6472">valid: 10 of 10</text>
+<text x="343.0" y="460.0" font-size="14" font-weight="700" text-anchor="middle" fill="#8a4fa0">follow-up that hit the cache: 8.0 times less</text>
+<text x="343.0" y="482.0" font-size="14" text-anchor="middle" fill="#5a6472">than a first request. Valid first request: read nothing cached.</text>
+</g>
+</svg>

@@ -268,7 +268,7 @@ def selftest(inject_fault=False):
           [fnmatch.fnmatch(n, g) for n, g in (("trials.jsonl", TRIALS_GLOB), ("requests.jsonl", REQUESTS_GLOB))], [True, True])
     check("reads trials-<name>.jsonl and requests-<name>.jsonl too",
           [fnmatch.fnmatch(n, g) for n, g in (("trials-run1.jsonl", TRIALS_GLOB), ("requests-run1.jsonl", REQUESTS_GLOB))], [True, True])
-    # the consolidated view
+    # the consolidated view; the rows below are made up (costs 0.02 to 0.10), so the strings these checks expect are not the published numbers
     def arm(label, family, lv, cost, wall, passes="10/10, 10/10"):
         return dict(base, label=label.format(lv=lv), family=family, passes=passes, cost=cost, claim_wall=wall, claim_wall_by_trial=[wall - 1, wall + 1],
                     cost_by_trial=[cost * 0.97, cost * 1.03], timed=True)
@@ -290,15 +290,15 @@ def selftest(inject_fault=False):
     check("consolidated chart: a dot per trial on the time chart only (18 bars' dots and one legend dot)", (svg_c.count("<circle"), svg_t.count("<circle")), (0, 19))
     fl = findings(groups)
     check("cross-family caveat is on the page under both charts", consolidated_page(cons, groups, "t", ["a"]).count(CROSS_FAMILY), 2)
-    check("findings: cost, time and quality lines are computed from the rows",
+    check("findings (made-up rows): cost, time and quality lines are computed from the rows",
           ("+11% for Opus 5.5 (0.0900 to 0.1000)" in fl["cost"], "from 10.0 s to 28.0 s for Gemini 3.8 Flash" in fl["time"],
            "Gemini 3.8 Flash at low passed 7 of 10 in trial 1 and 8 of 10 in trial 2" in fl["quality"]), (True, True, True))
-    check("headline, Claude changes larger than the spread: the numbers, then Gemini's pass bar, cost and time",
+    check("headline (made-up rows), Claude changes larger than the spread: the numbers, then Gemini's pass bar, cost and time",
           fl["head"], "Effort moves Claude's cost by +0% to +11%. On Gemini 3.8 Flash the effect is large: low fails the 10-of-10 bar (7 and 8 of 10), and high costs 50% more than low and takes 2.8 times as long per claim.")
     flat = [dict(r, cost=0.093) if r["label"] == "Opus high cache" else r for r in cons]
-    check("headline, Claude changes about the size of the spread: 'barely moves', with the range",
+    check("headline (made-up rows), Claude changes about the size of the spread: 'barely moves', with the range",
           findings(effort_groups(flat))["head"].startswith("Effort barely moves Claude's cost (+0% to +3%, about the size of the run-to-run spread). On Gemini 3.8 Flash "), True)
-    check("headline, no Gemini arm fails: no pass-bar clause, only cost and time",
+    check("headline (made-up rows), no Gemini arm fails: no pass-bar clause, only cost and time",
           findings(effort_groups([dict(r, passes="10/10, 10/10") for r in cons]))["head"].split("On Gemini 3.8 Flash ")[1],
           "the effect is large: high costs 50% more than low and takes 2.8 times as long per claim.")
     for top in (0.111, 0.0319, 32.7, 5.5, 0.0009, 410.0):
@@ -655,7 +655,7 @@ def spread_line(groups):
     return line + "."
 
 
-CROSS_FAMILY = "Claude and Gemini ran on different APIs on different days, so read across the two families as approximate."
+CROSS_FAMILY = "Claude and Gemini ran on different APIs at different times, so read across the two families as approximate."
 
 
 def consolidated_page(rows, groups, table_text, folders):
