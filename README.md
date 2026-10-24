@@ -6,7 +6,7 @@ A model benchmark, AI agent skills and tools for vibe coding workflows.
 
 ```text
 vibe-coding-tools/
-├── ai-benchmark-v2/           # Model benchmark: a fine-tuned eval set, cost and timing, prompt cache
+├── ai-benchmark-v2/           # Model benchmark: a curated eval set, cost and timing, prompt cache
 ├── ai-benchmark/              # Legacy benchmark: speed and cost on Vertex AI
 └── agent-skills/              # Reusable agent skills
     ├── claude-code-statusbar/ # Color-coded Claude Code status line + popup alerts
@@ -22,9 +22,9 @@ vibe-coding-tools/
 
 ## [Model Benchmark v2](./ai-benchmark-v2)
 
-A fine-tuned benchmark that scores frontier models on quality, cost and timing on the same task. Standard-library Python only.
+A curated benchmark that scores frontier models on quality, cost and timing on the same task. Standard-library Python only.
 
-- **Fine-tuned eval set:** 10 labelled, fictional insurance claims worked by a tool-using agent (12 tools, up to 6 turns per claim), so every run reports a pass rate. The task comes from Anthropic's cookbook; credits are in the v2 README.
+- **Curated eval set:** 10 labelled, fictional insurance claims worked by a tool-using agent (12 tools, up to 6 turns per claim), so every run reports a pass rate. The task comes from Anthropic's cookbook; credits are in the v2 README.
 - **Cost per task**, broken down into uncached input, cache write, cache read and output, across models, effort levels and prompt-cache settings.
 - **Timing:** time to first event, output tokens per second, and time per request and per claim, with the connection kept out of the clock.
 - **Prompt cache test:** no-cache, cold and warm requests on a long prompt, with every cache hit proven from the API's usage block.
