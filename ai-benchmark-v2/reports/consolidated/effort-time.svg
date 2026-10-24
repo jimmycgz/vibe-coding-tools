@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 432" width="640" height="432" role="img" aria-label="Time per claim by effort level">
+<title>Time per claim by effort level</title>
+<desc>10 claims per trial, 2 trials per arm.</desc>
+<rect width="640" height="432" fill="#fbfaf7"/>
+<g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
+<text x="54" y="28" font-size="20" font-weight="700">Time per claim by effort level</text>
+<text x="54" y="50" font-size="14" fill="#5a6472">10 claims per trial, 2 trials per arm.</text>
+<rect x="54" y="62" width="14" height="14" fill="#667" fill-opacity="0.4"/><text x="74" y="75" font-size="14">low</text><rect x="150" y="62" width="14" height="14" fill="#667" fill-opacity="0.7"/><text x="170" y="75" font-size="14">medium</text><rect x="246" y="62" width="14" height="14" fill="#667" fill-opacity="1.0"/><text x="266" y="75" font-size="14">high</text><text x="342" y="75" font-size="14" fill="#5a6472">effort (Claude) or thinking level (Gemini)</text><rect x="54" y="86" width="14" height="14" fill="none" stroke="#b3382c" stroke-width="2" stroke-dasharray="5 3"/><text x="74" y="99" font-size="14">fewer than 10 of 10 claims passed in a trial</text><circle cx="434" cy="93" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/><text x="446" y="99" font-size="14">one trial</text>
+<line x1="54" y1="350.0" x2="630" y2="350.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="355.0" font-size="14" text-anchor="end" fill="#5a6472">0</text>
+<line x1="54" y1="319.7" x2="630" y2="319.7" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="324.7" font-size="14" text-anchor="end" fill="#5a6472">5</text>
+<line x1="54" y1="289.4" x2="630" y2="289.4" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="294.4" font-size="14" text-anchor="end" fill="#5a6472">10</text>
+<line x1="54" y1="259.1" x2="630" y2="259.1" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="264.1" font-size="14" text-anchor="end" fill="#5a6472">15</text>
+<line x1="54" y1="228.9" x2="630" y2="228.9" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="233.9" font-size="14" text-anchor="end" fill="#5a6472">20</text>
+<line x1="54" y1="198.6" x2="630" y2="198.6" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="203.6" font-size="14" text-anchor="end" fill="#5a6472">25</text>
+<line x1="54" y1="168.3" x2="630" y2="168.3" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="173.3" font-size="14" text-anchor="end" fill="#5a6472">30</text>
+<line x1="54" y1="138.0" x2="630" y2="138.0" stroke="#dcd8cf" stroke-width="1"/>
+<text x="48" y="143.0" font-size="14" text-anchor="end" fill="#5a6472">35</text>
+<text x="54" y="124" font-size="14" fill="#5a6472">Seconds per claim</text>
+<rect x="57.0" y="296.8" width="54" height="53.2" rx="3" fill="#3b6ea5" fill-opacity="0.4"/>
+<circle cx="84.0" cy="302.4" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="84.0" cy="291.1" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="84.0" y="281.1" font-size="14" font-weight="700" text-anchor="middle">8.8</text>
+<text x="84.0" y="370" font-size="14" text-anchor="middle">low</text>
+<text x="84.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="117.0" y="282.1" width="54" height="67.9" rx="3" fill="#3b6ea5" fill-opacity="0.7"/>
+<circle cx="144.0" cy="282.1" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="144.0" cy="281.7" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="144.0" y="271.7" font-size="14" font-weight="700" text-anchor="middle">11.2</text>
+<text x="144.0" y="370" font-size="14" text-anchor="middle">medium</text>
+<text x="144.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="177.0" y="278.0" width="54" height="72.0" rx="3" fill="#3b6ea5" fill-opacity="1.0"/>
+<circle cx="204.0" cy="277.4" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="204.0" cy="278.0" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="204.0" y="267.4" font-size="14" font-weight="700" text-anchor="middle">11.9</text>
+<text x="204.0" y="370" font-size="14" text-anchor="middle">high</text>
+<text x="204.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<text x="144.0" y="416" font-size="15" font-weight="700" text-anchor="middle">Opus 5.5</text>
+<rect x="255.0" y="299.3" width="54" height="50.7" rx="3" fill="#2f8f6b" fill-opacity="0.4"/>
+<circle cx="282.0" cy="299.3" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="282.0" cy="299.2" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="282.0" y="289.2" font-size="14" font-weight="700" text-anchor="middle">8.4</text>
+<text x="282.0" y="370" font-size="14" text-anchor="middle">low</text>
+<text x="282.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="315.0" y="301.6" width="54" height="48.4" rx="3" fill="#2f8f6b" fill-opacity="0.7"/>
+<circle cx="342.0" cy="293.6" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="342.0" cy="306.6" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="342.0" y="283.6" font-size="14" font-weight="700" text-anchor="middle">8.0</text>
+<text x="342.0" y="370" font-size="14" text-anchor="middle">medium</text>
+<text x="342.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="375.0" y="301.5" width="54" height="48.5" rx="3" fill="#2f8f6b" fill-opacity="1.0"/>
+<circle cx="402.0" cy="298.6" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="402.0" cy="301.5" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="402.0" y="288.6" font-size="14" font-weight="700" text-anchor="middle">8.0</text>
+<text x="402.0" y="370" font-size="14" text-anchor="middle">high</text>
+<text x="402.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<text x="342.0" y="416" font-size="15" font-weight="700" text-anchor="middle">Sonnet 5.5</text>
+<rect x="453.0" y="280.5" width="54" height="69.5" rx="3" fill="#8a4fa0" fill-opacity="0.4" stroke="#b3382c" stroke-width="2" stroke-dasharray="5 3"/>
+<circle cx="480.0" cy="285.6" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="480.0" cy="279.1" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="480.0" y="269.1" font-size="14" font-weight="700" text-anchor="middle">11.5</text>
+<text x="480.0" y="370" font-size="14" text-anchor="middle">low</text>
+<text x="480.0" y="390" font-size="14" text-anchor="middle" font-weight="700" fill="#b3382c">7, 8</text>
+<rect x="513.0" y="228.6" width="54" height="121.4" rx="3" fill="#8a4fa0" fill-opacity="0.7"/>
+<circle cx="540.0" cy="227.3" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="540.0" cy="229.3" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="540.0" y="217.3" font-size="14" font-weight="700" text-anchor="middle">20.0</text>
+<text x="540.0" y="370" font-size="14" text-anchor="middle">medium</text>
+<text x="540.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<rect x="573.0" y="180.6" width="54" height="169.4" rx="3" fill="#8a4fa0" fill-opacity="1.0"/>
+<circle cx="600.0" cy="175.9" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<circle cx="600.0" cy="196.3" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
+<text x="600.0" y="165.9" font-size="14" font-weight="700" text-anchor="middle">28.0</text>
+<text x="600.0" y="370" font-size="14" text-anchor="middle">high</text>
+<text x="600.0" y="390" font-size="14" text-anchor="middle" fill="#5a6472">10, 10</text>
+<text x="540.0" y="416" font-size="15" font-weight="700" text-anchor="middle">Gemini 3.8 Flash</text>
+</g>
+</svg>
