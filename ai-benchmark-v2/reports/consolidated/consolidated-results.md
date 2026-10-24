@@ -12,7 +12,7 @@ Opus 5.5 and Sonnet 5.5 at low, medium and high effort with the automatic cache,
 
 ![Cost per task by effort level](effort-cost.svg)
 
-Settings: 10 claims per trial, 2 trials per arm; the bar is the mean of the two trials. Claude cost is by the notebook's formula and Gemini cost at Vertex list prices (global location), both from each request's usage block. The Claude arms use the automatic prompt cache; Gemini's cache is implicit and cannot be switched off. Under each bar: claims passed out of 10 in trial 1 and trial 2. Claude and Gemini ran on different APIs on different days, so read across the two families as approximate.
+Settings: 10 claims per trial, 2 trials per arm; the bar is the mean of the two trials. Claude cost is by the notebook's formula and Gemini cost at Vertex list prices (global location), both from each request's usage block. The Claude arms use the automatic prompt cache; Gemini's cache is implicit and cannot be switched off. Under each bar: claims passed out of 10 in trial 1 and trial 2. Claude and Gemini ran on different APIs at different times, so read across the two families as approximate.
 
 ## Time per claim
 
@@ -20,7 +20,7 @@ Settings: 10 claims per trial, 2 trials per arm; the bar is the mean of the two 
 
 ![Time per claim by effort level](effort-time.svg)
 
-Settings: the bar is the median, over the claims of both trials, of the seconds from a claim's first request to its verdict; each dot is one trial's own median. Every request was streamed. Claude and Gemini ran on different APIs on different days, so read across the two families as approximate.
+Settings: the bar is the median, over the claims of both trials, of the seconds from a claim's first request to its verdict; each dot is one trial's own median. Every request was streamed. Claude and Gemini ran on different APIs at different times, so read across the two families as approximate.
 
 ## Run-to-run spread
 
