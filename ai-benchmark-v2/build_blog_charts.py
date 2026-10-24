@@ -175,6 +175,9 @@ def long_prompt(folder):
     d = ct.paired(rows, "sonnet", "long", "none", "warm", "first_text") or ct.paired(rows, "sonnet", "long", "none", "warm", "first_delta")
     out["faster"], out["pairs"] = sum(1 for x in d if x < 0), len(d)
     out["seen"] = ct.reading(d, [])[0]
+    probe = ct.build_body("model", "long", "nonce", {"id": "CLM-000", "summary": "probe"}, "cold", "")     # the test's own request builder
+    out["effort"], out["max_tokens"] = probe["output_config"]["effort"], probe["max_tokens"]
+    out["tool_choice"] = (probe.get("tool_choice") or {}).get("type", "omitted")
     return out
 
 
@@ -252,6 +255,7 @@ def against_published(data):
             bad.append("run-1-results.md does not say %r" % want)
     lp, gem = data["lp"], data["gem"]
     for text, name, want in ((sonnet_md, "cache-timing-results.md", "about %s tokens" % "{:,}".format(int(round(data["agent_tokens"][0], -3)))),
+                             (sonnet_md, "cache-timing-results.md", "Effort %s, %d output tokens at most, tool choice %s" % (lp["effort"], lp["max_tokens"], lp["tool_choice"])),
                              (sonnet_md, "cache-timing-results.md", "%.1f times less than one with no cache" % (lp["none"]["cost"] / lp["warm"]["cost"])),
                              (sonnet_md, "cache-timing-results.md", "(%d percent more than no cache)" % round(100 * (lp["cold"]["cost"] / lp["none"]["cost"] - 1))),
                              (gemini_md, "gemini-results.md", "(%.1f times less)" % (gem["first"]["cost"] / gem["repeat"]["cost"]))):
@@ -275,7 +279,7 @@ def point_stacks(pts, closeness=4.0):
 def value_map(groups):
     """(canvas, title, description, stacks): cost per task across, median time per claim up, one point per arm, lower left better.
     stacks lists the points of one model that sit on the same spot and are drawn one inside the other: (model, levels, cost gap, time gap)."""
-    title, subtitle = "Cost against time per claim", "One point per arm: 10 claims per trial, 2 trials per arm."
+    title, subtitle = "Cost against time per claim", "One point per arm. A task is one claim: 10 per trial, 2 trials."
     left, right, top, plot_h = 62, 28, 172, 300
     bottom, plot_w = top + plot_h, EW - left - right
     flat = [(name, lv, r) for name, _, bars in groups for lv, r in bars]
@@ -300,7 +304,7 @@ def value_map(groups):
     for v, label in xticks:
         c.raw('<line x1="%.1f" y1="%d" x2="%.1f" y2="%d" stroke="%s" stroke-width="1"/>' % (X(v), top, X(v), bottom, GRID))
         c.text(X(v), bottom + 24, label, anchor="middle", fill=MUTED)
-    c.text(left + plot_w / 2.0, bottom + 48, "US$ per task (mean of the two trials)", anchor="middle", fill=MUTED)
+    c.text(left + plot_w / 2.0, bottom + 48, "US$ per task (Claude: notebook formula, Gemini: list price)", anchor="middle", fill=MUTED)
     R = 6.5
     laid = []
     for name, family, bars in groups:
@@ -312,7 +316,7 @@ def value_map(groups):
         c.sample("%s path" % name, coords)
     for name, family, stacks, _ in laid:
         color = brt.FAMILY_COLOR[family]
-        for stack in stacks:
+        for stack in reversed(stacks):      # the highest level first, so the lowest sits on top and stays whole
             for k, p in enumerate(reversed(stack)):      # the highest level first, so the lower ones sit on top of it
                 r_ = (R + 2.0 - 3.5 * k) if len(stack) > 1 else R
                 short = min(passed(p["row"])) < 10
@@ -383,7 +387,7 @@ def value_map_text(groups, stacks):
     short = [(l, passed(ge[l])) for l in lv if min(passed(ge[l])) < 10]
     fail = "" if not short else ", and at %s thinking it failed the 10-of-10 bar (%s of 10)" % (
         _join([l for l, _ in short]), _join([" and ".join(str(p) for p in ps) for _, ps in short]))
-    head = "Sonnet 5.5 costs %s (%s against %s per task) and is as fast or faster (%s per claim against %s); Gemini 3.8 Flash is the cheapest (%s) and the slowest (%s)%s." % (
+    head = "Sonnet 5.5 costs %s (%s against %s per task) and is as fast or faster (%s per claim against %s); Gemini 3.8 Flash is the cheapest (%s) and, level for level, the slowest (%s)%s." % (
         cost_vs, usd_range(so.values()), usd_range(op.values()), sec_range(so.values()), sec_range(op.values()), usd_range(ge.values()), sec_range(ge.values()), fail)
     stack_note = "".join(" %s at %s land on the same spot (%s apart in cost per task, %.2f s in time per claim) and are drawn one inside the other." % (
         n, " and ".join(levels), "$%.4f" % dc, dt) for n, levels, dc, dt in stacks)
@@ -426,15 +430,15 @@ def cache_savings(pairs, lp, agent_tokens):
     group_w = 2 * bar_w + gap_
     panel1_end = x0 + len(pairs) * group_w + (len(pairs) - 1) * group_gap
     x1 = panel1_end + panel_gap
-    c.text(x0, 84, "An agent task", bold=True)
-    c.text(x0, 104, "10 claims, cost per task", fill=MUTED)
+    c.text(x0, 84, "Automatic cache", bold=True)
+    c.text(x0, 104, "An agent task (one claim)", fill=MUTED)
     c.text(x0, 124, "%dK to %dK tokens per request" % (round(agent_tokens[0] / 1000.0), round(agent_tokens[1] / 1000.0)), fill=MUTED)
-    c.text(x0, 144, "automatic cache, high effort", fill=MUTED)
-    c.text(x1, 84, "One long-prompt request", bold=True)
-    c.text(x1, 104, "Sonnet 5.5, cost per request", fill=MUTED)
-    c.text(x1, 124, "%dK-token prompt" % round(lp["tokens"] / 1000.0), fill=MUTED)
-    c.text(x1, 144, "explicit cache breakpoint", fill=MUTED)
-    c.text(left, top - 14, "US$ (per task on the left, per request on the right)", fill=MUTED)
+    c.text(x0, 144, "10 claims, %s effort" % pairs[0][3]["label"].split()[1], fill=MUTED)
+    c.text(x1, 84, "Explicit breakpoint", bold=True)
+    c.text(x1, 104, "One long-prompt request", fill=MUTED)
+    c.text(x1, 124, "Sonnet 5.5, %dK tokens" % round(lp["tokens"] / 1000.0), fill=MUTED)
+    c.text(x1, 144, "%s effort, %d tokens max" % (lp["effort"], lp["max_tokens"]), fill=MUTED)
+    c.text(left, top - 14, "US$ (per claim on the left, per request on the right)", fill=MUTED)
     for v, label in ticks:
         c.raw('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s" stroke-width="1"/>' % (left, Y(v), EW - right, Y(v), GRID))
         c.text(left - 6, Y(v) + 5, label, anchor="end", fill=MUTED)
@@ -480,20 +484,23 @@ def cache_savings_text(pairs, lp, agent_tokens, first):
     ok = all(lp[s]["ok"] == lp[s]["n"] for s in ct.STATES)
     if first[0] == 0 or first[1] != first[0]:
         raise ValueError("the automatic cache read something on a first turn in these records, so the sentence that says it never carried across claims would be false")
-    settings = ("Settings: the agent task is 10 claims per trial and 2 trials per arm at high effort, with prompts of %dK to %dK tokens a turn; the bar is the mean "
-                "of the two trials, cost is by the notebook's formula and the cached arm uses the automatic prompt cache (what its cost is made of is in "
+    settings = ("Settings: the agent task is 10 claims per trial and 2 trials per arm at high effort, with prompts of %dK to %dK tokens a turn; a task is one claim, the "
+                "bar is the mean of the two trials, cost is by the notebook's formula and the cached arm uses the automatic prompt cache (what its cost is made of is in "
                 "[the run 1 results](../run-1-results.md)). The long-prompt request is Sonnet 5.5 on a prefix of about %s tokens (the "
-                "system prompt, the tools and the claims ledger), 10 requests per state, a different question in each, one at a time, at most 256 output tokens; "
+                "system prompt, the tools and the claims ledger), 10 requests per state, a different question in each, one at a time, at %s effort with tool choice "
+                "%s and at most %d output tokens; "
                 "each bar is the mean of the requests that passed their state check (%s). Cold is the first request with a cache breakpoint, which writes the "
                 "prefix; warm is a different question after the same prefix, which reads it. **The two panels switch the cache on in different ways.** In the "
                 "agent task the automatic cache did not carry from one claim to the next: all %d first turns of the cached arms wrote the prefix again and read "
                 "nothing (see [how caching is switched](../how-caching-is-switched.md)), so the saving comes from the later turns of each claim. The long-prompt test "
-                "puts an explicit breakpoint at the end of the shared prefix, which is what let a different question read it. Both panels share one dollar axis, "
-                "but the left bars are cost per task and the right bars cost per request. **Cost only:** warm was faster than no cache in %d of %d pairs, which "
+                "puts an explicit breakpoint at the end of the shared prefix, which is what let a different question read it. The panels also differ in prompt "
+                "size, effort and output, so the two ratios are not a like-for-like comparison of the two ways. Both panels share one dollar axis, but the left "
+                "bars are cost per task (one claim) and the right bars cost per request. **Cost only:** warm was faster than no cache in %d of %d pairs, which "
                 "the rule fixed before the run did not count as a time saving, and the agent task's median time per claim was %s, differences smaller than the "
                 "%.0f%% gap between the two trials of one of these arms."
-                % (round(agent_tokens[0] / 1000.0), round(agent_tokens[1] / 1000.0), "{:,}".format(int(round(lp["tokens"], -3))),
-                   "10 of 10 in every state" if ok else "see the table", first[0], lp["faster"], lp["pairs"], time_pairs, 100 * trial_gap))
+                % (round(agent_tokens[0] / 1000.0), round(agent_tokens[1] / 1000.0), "{:,}".format(int(round(lp["tokens"], -3))), lp["effort"],
+                   lp["tool_choice"], lp["max_tokens"], "10 of 10 in every state" if ok else "see the table", first[0], lp["faster"], lp["pairs"],
+                   time_pairs, 100 * trial_gap))
     return head, settings
 
 
@@ -501,12 +508,12 @@ def cache_savings_text(pairs, lp, agent_tokens, first):
 def gemini_chart(gem):
     """(canvas, title, description): first request, follow-up turn and second first request on the long prefix, cost per request."""
     title = "Gemini 3.8 Flash follow-up turn"
-    subtitle = "A %dK-token prompt, 10 sets of requests." % round(gem["tokens"] / 1000.0)
+    subtitle = "A %dK-token prompt, 10 sets of 3 requests." % round(gem["tokens"] / 1000.0)
     left, right, top, plot_h = 62, 16, 118, 250
     bottom = top + plot_h
-    bar_w, gap_ = 96, 34
+    bar_w, gap_ = 96, 60
     _, vmax, ticks = brt.axis_ticks(max(gem[s]["cost"] for s in gct.STATES))
-    c = Canvas(EW, bottom + 112)
+    c = Canvas(EW, bottom + 134)
     Y = lambda v: bottom - plot_h * v / vmax
     c.text(left, 28, title, size=20, bold=True)
     c.text(left, 50, subtitle, fill=MUTED)
@@ -515,16 +522,19 @@ def gemini_chart(gem):
         c.raw('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s" stroke-width="1"/>' % (left, Y(v), EW - right, Y(v), GRID))
         c.text(left - 6, Y(v) + 5, label, anchor="end", fill=MUTED)
     x0 = left + (EW - left - right - (3 * bar_w + 2 * gap_)) / 2.0
-    names = {"first": ("first request",), "repeat": ("follow-up turn",), "control": ("second first", "request")}
+    names = {"first": ("first request",), "repeat": ("follow-up turn",), "control": ("second first", "request (control)")}
     colors = {"first": NO_CACHE, "repeat": brt.FAMILY_COLOR["Gemini"], "control": NO_CACHE}
     for i, state in enumerate(gct.STATES):
         bx = x0 + i * (bar_w + gap_)
         bar(c, "%s bar" % state, bx, bottom, plot_h, vmax, gem[state]["cost"], colors[state], bar_w)
         for k, line in enumerate(names[state]):
             c.text(bx + bar_w / 2.0, bottom + 20 + 20 * k, line, anchor="middle")
-        c.text(bx + bar_w / 2.0, bottom + 64, "valid: %d of %d" % (gem[state]["ok"], gem[state]["n"]), anchor="middle", fill=MUTED)
-    c.text(x0 + 1.5 * bar_w + gap_, bottom + 92, "follow-up turn: %.1f times less than a first request" % (gem["first"]["cost"] / gem["repeat"]["cost"]),
-           bold=True, anchor="middle", fill=brt.FAMILY_COLOR["Gemini"])
+        c.text(bx + bar_w / 2.0, bottom + 64, ("hit the cache: %d of %d" if state == "repeat" else "valid: %d of %d") % (gem[state]["ok"], gem[state]["n"]),
+               anchor="middle", fill=MUTED)
+    mid = x0 + 1.5 * bar_w + gap_
+    c.text(mid, bottom + 92, "follow-up that hit the cache: %.1f times less" % (gem["first"]["cost"] / gem["repeat"]["cost"]), bold=True, anchor="middle",
+           fill=brt.FAMILY_COLOR["Gemini"])
+    c.text(mid, bottom + 114, "than a first request. Valid first request: read nothing cached.", anchor="middle", fill=MUTED)
     desc = "Gemini 3.8 Flash on a %dK-token prompt, cost per request: first request $%.4f, follow-up turn $%.4f, second first request $%.4f." % (
         round(gem["tokens"] / 1000.0), gem["first"]["cost"], gem["repeat"]["cost"], gem["control"]["cost"])
     return c, title, desc
@@ -628,10 +638,13 @@ def selftest(inject_fault=False):
     check("value map: one dashed red point (Gemini low) and one in the legend, the passes written out", (vm.count('stroke-dasharray="4 2.5"'), "low: 7, 8 of 10" in vm), (2, True))
     check("value map: lower left is said on the chart", "Better: cheaper and faster" in vm, True)
     check("value map: the Sonnet medium and high points are stacked into one label", "medium, high" in vm, True)
+    check("value map: a task is one claim, the price bases are on the axis, and the page says slowest only level for level",
+          ("A task is one claim" in vm, "Gemini: list price" in vm, "level for level, the slowest" in files["blog-charts.md"]), (True, True, True))
     cs = files["cache-savings.svg"]
     check("cache savings: seven bars, the call-outs from the data", (cs.count("<rect") - 1, "2.0 times less" in cs, "1.9 times less" in cs, "warm: 9.2 times less" in cs, "cold: 25% more" in cs),
           (7, True, True, True, True))
-    check("cache savings: the chart says which cache each panel used", ("automatic cache, high effort" in cs, "explicit cache breakpoint" in cs), (True, True))
+    check("cache savings: the chart names the mechanism of each panel and the long prompt's effort and token cap",
+          ("Automatic cache" in cs, "Explicit breakpoint" in cs, "low effort, 256 tokens max" in cs), (True, True, True))
     check("the automatic cache read nothing on any first turn of a cached arm (180 of 180), as the README says", data["first_turns"], (180, 180))
     try:
         cache_savings_text(data["pairs"], data["lp"], data["agent_tokens"], (180, 170))
@@ -640,7 +653,7 @@ def selftest(inject_fault=False):
         raised = True
     check("a first turn that did read the cache refuses the 'never carried across claims' text", raised, True)
     gm = files["gemini-follow-up.svg"]
-    check("gemini chart: three bars, the follow-up call-out and the valid counts", (gm.count("<rect") - 1, "follow-up turn: 8.0 times less" in gm, "valid: 9 of 10" in gm, "valid: 8 of 10" in gm),
+    check("gemini chart: three bars, the follow-up call-out and the valid counts", (gm.count("<rect") - 1, "follow-up that hit the cache: 8.0 times less" in gm, "valid: 9 of 10" in gm, "hit the cache: 8 of 10" in gm),
           (3, True, True, True))
     check("the page links its three charts and says nothing was run again", (all(("(%s)" % n) in files["blog-charts.md"] for n in names), "nothing was run again" in files["blog-charts.md"]), (True, True))
     check("the page and the charts hold no absolute path and no e-mail address", [w for w in ("/Users/", "/home/", "@") if w in "".join(files.values())], [])

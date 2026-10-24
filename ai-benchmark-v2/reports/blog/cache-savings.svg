@@ -5,15 +5,15 @@
 <g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
 <text x="62.0" y="28.0" font-size="20" font-weight="700">Cost with and without the prompt cache</text>
 <text x="62.0" y="50.0" font-size="14" fill="#5a6472">Opus 5.5 and Sonnet 5.5. Call-outs compare with no cache.</text>
-<text x="74.0" y="84.0" font-size="14" font-weight="700">An agent task</text>
-<text x="74.0" y="104.0" font-size="14" fill="#5a6472">10 claims, cost per task</text>
+<text x="74.0" y="84.0" font-size="14" font-weight="700">Automatic cache</text>
+<text x="74.0" y="104.0" font-size="14" fill="#5a6472">An agent task (one claim)</text>
 <text x="74.0" y="124.0" font-size="14" fill="#5a6472">13K to 15K tokens per request</text>
-<text x="74.0" y="144.0" font-size="14" fill="#5a6472">automatic cache, high effort</text>
-<text x="406.0" y="84.0" font-size="14" font-weight="700">One long-prompt request</text>
-<text x="406.0" y="104.0" font-size="14" fill="#5a6472">Sonnet 5.5, cost per request</text>
-<text x="406.0" y="124.0" font-size="14" fill="#5a6472">148K-token prompt</text>
-<text x="406.0" y="144.0" font-size="14" fill="#5a6472">explicit cache breakpoint</text>
-<text x="62.0" y="176.0" font-size="14" fill="#5a6472">US$ (per task on the left, per request on the right)</text>
+<text x="74.0" y="144.0" font-size="14" fill="#5a6472">10 claims, high effort</text>
+<text x="406.0" y="84.0" font-size="14" font-weight="700">Explicit breakpoint</text>
+<text x="406.0" y="104.0" font-size="14" fill="#5a6472">One long-prompt request</text>
+<text x="406.0" y="124.0" font-size="14" fill="#5a6472">Sonnet 5.5, 148K tokens</text>
+<text x="406.0" y="144.0" font-size="14" fill="#5a6472">low effort, 256 tokens max</text>
+<text x="62.0" y="176.0" font-size="14" fill="#5a6472">US$ (per claim on the left, per request on the right)</text>
 <line x1="62" y1="440.0" x2="624" y2="440.0" stroke="#dcd8cf" stroke-width="1"/>
 <text x="56.0" y="445.0" font-size="14" text-anchor="end" fill="#5a6472">0.0</text>
 <line x1="62" y1="390.0" x2="624" y2="390.0" stroke="#dcd8cf" stroke-width="1"/>

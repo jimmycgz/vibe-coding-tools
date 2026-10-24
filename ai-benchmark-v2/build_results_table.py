@@ -655,7 +655,7 @@ def spread_line(groups):
     return line + "."
 
 
-CROSS_FAMILY = "Claude and Gemini ran on different APIs on different days, so read across the two families as approximate."
+CROSS_FAMILY = "Claude and Gemini ran on different APIs at different times, so read across the two families as approximate."
 
 
 def consolidated_page(rows, groups, table_text, folders):

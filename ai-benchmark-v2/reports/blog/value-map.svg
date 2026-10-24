@@ -4,7 +4,7 @@
 <rect width="640" height="540" fill="#fbfaf7"/>
 <g font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#1d2430">
 <text x="62.0" y="28.0" font-size="20" font-weight="700">Cost against time per claim</text>
-<text x="62.0" y="50.0" font-size="14" fill="#5a6472">One point per arm: 10 claims per trial, 2 trials per arm.</text>
+<text x="62.0" y="50.0" font-size="14" fill="#5a6472">One point per arm. A task is one claim: 10 per trial, 2 trials.</text>
 <rect x="62" y="70" width="14" height="14" fill="#667" fill-opacity="0.4"/>
 <text x="82.0" y="82.0" font-size="14">low</text>
 <rect x="146" y="70" width="14" height="14" fill="#667" fill-opacity="0.7"/>
@@ -45,19 +45,19 @@
 <text x="520.3" y="496.0" font-size="14" text-anchor="middle" fill="#5a6472">0.10</text>
 <line x1="612.0" y1="172" x2="612.0" y2="472" stroke="#dcd8cf" stroke-width="1"/>
 <text x="612.0" y="496.0" font-size="14" text-anchor="middle" fill="#5a6472">0.12</text>
-<text x="337.0" y="520.0" font-size="14" text-anchor="middle" fill="#5a6472">US$ per task (mean of the two trials)</text>
+<text x="337.0" y="520.0" font-size="14" text-anchor="middle" fill="#5a6472">US$ per task (Claude: notebook formula, Gemini: list price)</text>
 <polyline points="479.7,396.7 489.2,375.9 507.6,370.1" fill="none" stroke="#3b6ea5" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
 <polyline points="275.0,400.3 285.6,403.5 285.1,403.4" fill="none" stroke="#2f8f6b" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
 <polyline points="157.6,373.6 181.6,300.3 205.5,232.2" fill="none" stroke="#8a4fa0" stroke-opacity="0.55" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="479.7" cy="396.7" r="6.5" fill="#3b6ea5" fill-opacity="0.4" stroke="#3b6ea5" stroke-width="2"/>
-<circle cx="489.2" cy="375.9" r="6.5" fill="#3b6ea5" fill-opacity="0.7" stroke="#3b6ea5" stroke-width="2"/>
 <circle cx="507.6" cy="370.1" r="6.5" fill="#3b6ea5" fill-opacity="1.0" stroke="#3b6ea5" stroke-width="2"/>
-<circle cx="275.0" cy="400.3" r="6.5" fill="#2f8f6b" fill-opacity="0.4" stroke="#2f8f6b" stroke-width="2"/>
+<circle cx="489.2" cy="375.9" r="6.5" fill="#3b6ea5" fill-opacity="0.7" stroke="#3b6ea5" stroke-width="2"/>
+<circle cx="479.7" cy="396.7" r="6.5" fill="#3b6ea5" fill-opacity="0.4" stroke="#3b6ea5" stroke-width="2"/>
 <circle cx="285.1" cy="403.4" r="8.5" fill="#2f8f6b" fill-opacity="1.0" stroke="#2f8f6b" stroke-width="2"/>
 <circle cx="285.6" cy="403.5" r="5.0" fill="#2f8f6b" fill-opacity="0.7" stroke="#fbfaf7" stroke-width="1.5"/>
-<circle cx="157.6" cy="373.6" r="7.5" fill="#fbfaf7" stroke="#b3382c" stroke-width="2.5" stroke-dasharray="4 2.5"/>
-<circle cx="181.6" cy="300.3" r="6.5" fill="#8a4fa0" fill-opacity="0.7" stroke="#8a4fa0" stroke-width="2"/>
+<circle cx="275.0" cy="400.3" r="6.5" fill="#2f8f6b" fill-opacity="0.4" stroke="#2f8f6b" stroke-width="2"/>
 <circle cx="205.5" cy="232.2" r="6.5" fill="#8a4fa0" fill-opacity="1.0" stroke="#8a4fa0" stroke-width="2"/>
+<circle cx="181.6" cy="300.3" r="6.5" fill="#8a4fa0" fill-opacity="0.7" stroke="#8a4fa0" stroke-width="2"/>
+<circle cx="157.6" cy="373.6" r="7.5" fill="#fbfaf7" stroke="#b3382c" stroke-width="2.5" stroke-dasharray="4 2.5"/>
 <text x="507.6" y="351.6" font-size="15" font-weight="700" text-anchor="middle">Opus 5.5</text>
 <text x="275.0" y="381.8" font-size="15" font-weight="700" text-anchor="middle">Sonnet 5.5</text>
 <text x="205.5" y="213.7" font-size="15" font-weight="700" text-anchor="middle">Gemini 3.8 Flash</text>
