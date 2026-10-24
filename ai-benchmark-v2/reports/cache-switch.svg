@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1176" role="img" aria-labelledby="pct pcd" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1196" role="img" aria-labelledby="pct pcd" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
   <title id="pct">How the cache is switched on and off, in code</title>
-  <desc id="pcd">Three side-by-side cases of the same request, showing the part that differs and what the API does with it. All three share the same base request: model, max tokens, system prompt with the nonce, tools, messages, thinking and effort. Case 1, no cache: nothing extra, and the request has no cache_control field anywhere. Every turn re-reads the whole prefix, the system prompt and tools of about 13K tokens, at the full input price. Usage shows cache write 0 and cache read 0. Case 2, auto cache: one extra top-level field, cache_control with type ephemeral. The API puts a single breakpoint after the last cacheable block and moves it forward as the conversation grows. Within one claim, turn 2 reads turn 1's prefix from the cache at 0.1 times the input price in the notebook's formula. Seen in run 1: the first turn of each claim wrote the prefix again. In the script this is the cache setting on an arm. Case 3, auto cache plus an explicit breakpoint on the system prompt: the request has the same top-level cache_control as case 2, and the system field also becomes a list with one text block that carries its own cache_control. The prefix up to that block is cached on its own, so each new claim in the same trial reads the policy manual from the cache instead of writing it again. This is not measured in the current results. In the script this is the cache setting and the cache_system setting, both on. Under the columns: a new trial gets a new nonce, so the cache starts empty, and claims in the same trial share it; the cache lives 5 minutes unless it is read again; the notebook's price multipliers are 1.25 times the input price for a cache write and 0.1 times for a cache read.</desc>
+  <desc id="pcd">Three side-by-side cases of the same request, showing the part that differs and what the API does with it. All three share the same base request: model, max tokens, system prompt with the nonce, tools, messages, thinking and effort. Case 1, no cache: nothing extra, and the request has no cache_control field anywhere. Every turn re-reads the whole prefix, the system prompt and tools of about 13K tokens, at the full input price. Usage shows cache write 0 and cache read 0. Case 2, auto cache: one extra top-level field, cache_control with type ephemeral. The API puts a single breakpoint after the last cacheable block and moves it forward as the conversation grows. Within one claim, turn 2 reads turn 1's prefix from the cache at 0.1 times the input price in the notebook's formula. Seen in run 1: the first turn of each claim wrote the prefix again. In the script this is the cache setting on an arm. Case 3, auto cache plus an explicit breakpoint on the system prompt: the request has the same top-level cache_control as case 2, and the system field also becomes a list with one text block that carries its own cache_control. The prefix up to that block is cached on its own, so each new claim in the same trial can read the policy manual from the cache instead of writing it again. This arm has not been run. A separate cache timing test, with an explicit breakpoint at the end of a 148K-token prefix, measured a warm read at 9.2 times less. In the script this is the cache setting and the cache_system setting, both on. Under the columns: a new trial gets a new nonce, so the cache starts empty, and claims in the same trial share it only with an explicit breakpoint (case 3, not yet run); the cache lives 5 minutes unless it is read again; the notebook's price multipliers are 1.25 times the input price for a cache write and 0.1 times for a cache read.</desc>
   <style>
     .bg{fill:#ffffff}
     .card{fill:#f3f6fb;stroke:#c3cfe3;stroke-width:1.5}
@@ -53,7 +53,7 @@
     }
   </style>
 
-  <rect class="bg" width="1040" height="1176"/>
+  <rect class="bg" width="1040" height="1196"/>
   <text class="ink h1" x="30" y="50">How the cache is switched on and off, in code</text>
   <text class="mute b" x="30" y="78">Three cases of the same request. The shaded part is what differs; the stronger shade is what is new in that case.</text>
 
@@ -166,12 +166,16 @@
     <text class="code" x="24" y="463">}</text>
 
     <text class="tA b" x="18" y="514" font-weight="700">What the API does</text>
-    <text class="ink b" x="18" y="538">The prefix up to the system</text>
-    <text class="ink b" x="18" y="559">block is cached on its own, so</text>
-    <text class="ink b" x="18" y="580">each new claim in the same trial</text>
-    <text class="ink b" x="18" y="601">reads the policy manual from the</text>
-    <text class="ink b" x="18" y="622">cache instead of writing it again.</text>
-    <text class="mute b" x="18" y="660">Not measured in the current results.</text>
+    <text class="ink b" x="18" y="538">The prefix up to the system block</text>
+    <text class="ink b" x="18" y="559">is cached on its own, so each new</text>
+    <text class="ink b" x="18" y="580">claim in the same trial can read</text>
+    <text class="ink b" x="18" y="601">the policy manual from the cache</text>
+    <text class="ink b" x="18" y="622">instead of writing it again.</text>
+    <text class="mute b" x="18" y="652">This arm has not been run. A</text>
+    <text class="mute b" x="18" y="673">separate cache timing test, with</text>
+    <text class="mute b" x="18" y="694">an explicit breakpoint at the end</text>
+    <text class="mute b" x="18" y="715">of a 148K-token prefix, measured</text>
+    <text class="mute b" x="18" y="736">a warm read at 9.2 times less.</text>
 
     <rect class="boxn" x="14" y="760" width="272" height="46" rx="10"/>
     <text class="ink b" x="28" y="780">Script: <tspan class="mono" font-weight="700">cache</tspan> and <tspan class="mono" font-weight="700">cache_system</tspan></text>
@@ -179,16 +183,17 @@
   </g>
 
   <!-- strip -->
-  <rect class="card" x="30" y="1024" width="980" height="118" rx="12"/>
-  <text class="ink b" x="48" y="1056">A new trial gets a new nonce, so the cache starts empty.</text>
-  <text class="ink b" x="48" y="1082">Claims in the same trial share it.</text>
-  <text class="ink b" x="48" y="1114">The cache lives 5 minutes unless it is read again.</text>
-  <line class="rule" x1="560" y1="1040" x2="560" y2="1126"/>
-  <text class="mute b" x="584" y="1056">The notebook's multipliers on the input price</text>
-  <rect class="boxw" x="584" y="1074" width="196" height="40" rx="10"/>
-  <text class="ink b" x="682" y="1100" text-anchor="middle">Cache write: 1.25×</text>
-  <rect class="boxok" x="796" y="1074" width="196" height="40" rx="10"/>
-  <text class="ink b" x="894" y="1100" text-anchor="middle">Cache read: 0.1×</text>
+  <rect class="card" x="30" y="1024" width="980" height="138" rx="12"/>
+  <text class="ink b" x="48" y="1054">A new trial gets a new nonce, so the cache starts empty.</text>
+  <text class="ink b" x="48" y="1080">Claims in the same trial share it only with an</text>
+  <text class="ink b" x="48" y="1101">explicit breakpoint (case 3, not yet run).</text>
+  <text class="ink b" x="48" y="1136">The cache lives 5 minutes unless it is read again.</text>
+  <line class="rule" x1="560" y1="1040" x2="560" y2="1146"/>
+  <text class="mute b" x="584" y="1066">The notebook's multipliers on the input price</text>
+  <rect class="boxw" x="584" y="1084" width="196" height="40" rx="10"/>
+  <text class="ink b" x="682" y="1110" text-anchor="middle">Cache write: 1.25×</text>
+  <rect class="boxok" x="796" y="1084" width="196" height="40" rx="10"/>
+  <text class="ink b" x="894" y="1110" text-anchor="middle">Cache read: 0.1×</text>
 
-  <text class="mute s" x="30" y="1164">Drawn from model_benchmark.py, function loop_body. Values in the request are left out.</text>
+  <text class="mute s" x="30" y="1184">Drawn from model_benchmark.py, function loop_body. Values in the request are left out.</text>
 </svg>
