@@ -13,4 +13,4 @@
 | Fable medium cache | 10/10, 10/10 | 0.2628 | 15.86 | 3.24 | 0.87 / 1.05 | 1.54 / 3.58 | 1.54 / n/a |
 | Fable low cache | 10/10, 10/10 | 0.2501 | 12.96 | 2.95 | 0.89 / 1.03 | 0.89 / 2.95 | 0.89 / 2.40 |
 
-Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none. Times are medians over all requests of the arm; wall time per claim runs from a claim's first request to its verdict.
+Models: Opus 5.5, Sonnet 5.5, Fable 5.1 (latest on 2026-10-22). high, medium, low = effort level. cache = automatic prompt cache; no cache = none. Times are medians over all requests of the arm; wall time per claim runs from a claim's first request to its verdict.

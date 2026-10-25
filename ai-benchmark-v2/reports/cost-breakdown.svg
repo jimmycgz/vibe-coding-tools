@@ -72,6 +72,6 @@
 <rect x="372.9" y="429" width="31.3" height="20" fill="#3b8f6b"/>
 <rect x="404.2" y="429" width="44.3" height="20" fill="#5b4aa5"/>
 <text x="454.5" y="443" font-size="12" font-weight="600">0.2501</text>
-<text x="20" y="510" font-size="12" fill="#5a6472">Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none.</text>
+<text x="20" y="510" font-size="12" fill="#5a6472">Models: Opus 5.5, Sonnet 5.5, Fable 5.1 (latest on 2026-10-22). high, medium, low = effort level. cache = automatic prompt cache; no cache = none.</text>
 </g>
 </svg>
