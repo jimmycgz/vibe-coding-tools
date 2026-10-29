@@ -79,6 +79,6 @@
 <circle cx="531.0" cy="439" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
 <circle cx="448.1" cy="439" r="5" fill="#fff" stroke="#1d2430" stroke-width="2"/>
 <text x="543.0" y="443" font-size="12" font-weight="600">13.0</text>
-<text x="20" y="510" font-size="12" fill="#5a6472">Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none.</text>
+<text x="20" y="510" font-size="12" fill="#5a6472">Models: Opus 5.5, Sonnet 5.5, Fable 5.1 (latest on 2026-10-22). high, medium, low = effort level. cache = automatic prompt cache; no cache = none.</text>
 </g>
 </svg>

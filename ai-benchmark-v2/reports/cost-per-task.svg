@@ -51,6 +51,6 @@
 <text x="180" y="419" font-size="13" text-anchor="end">Fable low cache</text>
 <rect x="190" y="405" width="258.5" height="20" rx="3" fill="#c0702a"/>
 <text x="454.5" y="419" font-size="12" font-weight="600">0.2501</text>
-<text x="20" y="486" font-size="12" fill="#5a6472">Models: Opus 5.5, Sonnet 5.5, Fable 5.1, the latest versions. high, medium, low = effort level. cache = automatic prompt cache; no cache = none.</text>
+<text x="20" y="486" font-size="12" fill="#5a6472">Models: Opus 5.5, Sonnet 5.5, Fable 5.1 (latest on 2026-10-22). high, medium, low = effort level. cache = automatic prompt cache; no cache = none.</text>
 </g>
 </svg>
